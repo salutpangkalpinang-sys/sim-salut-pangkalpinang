@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS public.operational_categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('INCOME', 'EXPENSE')),
+    transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('income', 'expense')),
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

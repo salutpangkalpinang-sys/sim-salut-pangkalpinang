@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS public.operational_categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('INCOME', 'EXPENSE')),
+    transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('income', 'expense')),
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -2290,6 +2290,20 @@ CREATE TABLE IF NOT EXISTS public.operational_categories (
     updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
 );
 
+-- Ensure column name is transaction_type if created by earlier schema draft
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'operational_categories' 
+          AND column_name = 'type'
+    ) THEN
+        ALTER TABLE public.operational_categories RENAME COLUMN type TO transaction_type;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_ops_categories_type ON public.operational_categories (transaction_type);
 
 -- Seed Default Master Categories safely
@@ -3938,6 +3952,20 @@ CREATE TABLE IF NOT EXISTS public.operational_categories (
     created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
 );
+
+-- Ensure column name is transaction_type if created by earlier schema draft
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'operational_categories' 
+          AND column_name = 'type'
+    ) THEN
+        ALTER TABLE public.operational_categories RENAME COLUMN type TO transaction_type;
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_ops_categories_type ON public.operational_categories (transaction_type);
 

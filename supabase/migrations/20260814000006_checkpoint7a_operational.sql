@@ -187,6 +187,20 @@ CREATE TABLE IF NOT EXISTS public.operational_categories (
     updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
 );
 
+-- Ensure column name is transaction_type if created by earlier schema draft
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'operational_categories' 
+          AND column_name = 'type'
+    ) THEN
+        ALTER TABLE public.operational_categories RENAME COLUMN type TO transaction_type;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_ops_categories_type ON public.operational_categories (transaction_type);
 
 -- Seed Default Master Categories safely
