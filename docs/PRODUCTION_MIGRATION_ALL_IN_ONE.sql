@@ -4574,11 +4574,11 @@ INSERT INTO public.cash_accounts (code, name, account_number, bank_name) VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- 11. Operational Categories
-INSERT INTO public.operational_categories (code, name, type) VALUES
-('OP_OPERATIONAL', 'Beban Operasional Kantor', 'EXPENSE'),
-('OP_ELECTRICITY', 'Listrik & Internet', 'EXPENSE'),
-('OP_SALARY', 'Gaji & Honorarium Staf', 'EXPENSE'),
-('OP_OTHER_INCOME', 'Pemasukan Non-Akademik Lainnya', 'INCOME')
+INSERT INTO public.operational_categories (code, name, transaction_type) VALUES
+('OP_OPERATIONAL', 'Beban Operasional Kantor', 'expense'),
+('OP_ELECTRICITY', 'Listrik & Internet', 'expense'),
+('OP_SALARY', 'Gaji & Honorarium Staf', 'expense'),
+('OP_OTHER_INCOME', 'Pemasukan Non-Akademik Lainnya', 'income')
 ON CONFLICT (code) DO NOTHING;
 
 -- 12. App Settings Initial Default
