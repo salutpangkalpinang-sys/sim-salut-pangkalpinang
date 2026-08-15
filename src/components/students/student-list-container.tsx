@@ -7,8 +7,9 @@ import { StudentFilter } from "@/components/students/student-filter";
 import { StudentForm } from "@/components/students/student-form";
 import { StatusChangeDialog } from "@/components/students/status-change-dialog";
 import { RoleCode } from "@/lib/auth/types";
-import { UserPlus } from "lucide-react";
+import { UserPlus, FileSpreadsheet } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ImportModal } from "@/components/students/import-modal";
 
 interface StudentListContainerProps {
   initialStudents: Student[];
@@ -51,6 +52,7 @@ export function StudentListContainer({
 
   // Modal Dialogs State
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [statusStudent, setStatusStudent] = useState<Student | null>(null);
 
@@ -119,14 +121,25 @@ export function StudentListContainer({
         </div>
 
         {canMutate && (
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/25 transition shrink-0 self-start md:self-auto"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{isCalonView ? "Tambah Calon Mahasiswa" : "Tambah Mahasiswa"}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-blue-700 font-semibold text-xs rounded-lg border border-blue-200 shadow-xs transition"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+              <span>Import Excel/CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow-md shadow-blue-600/25 transition"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{isCalonView ? "Tambah Calon Mahasiswa" : "Tambah Mahasiswa"}</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -187,6 +200,13 @@ export function StudentListContainer({
           statuses={options.statuses}
         />
       )}
+
+      {/* Mass Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        defaultMode={isCalonView ? "calon" : "mahasiswa"}
+      />
     </div>
   );
 }

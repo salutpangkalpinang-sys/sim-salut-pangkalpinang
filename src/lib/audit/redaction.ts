@@ -37,6 +37,14 @@ export function maskNikInText(text: string): string {
   return text.replace(NIK_REGEX, "$1******$2");
 }
 
+export function maskNik(nik: string): string {
+  if (!nik) return "";
+  if (nik.length === 16) {
+    return `${nik.slice(0, 6)}******${nik.slice(12)}`;
+  }
+  return maskNikInText(nik);
+}
+
 export function sanitizeAuditValue(value: unknown): unknown {
   if (value === null || value === undefined) return value;
 
