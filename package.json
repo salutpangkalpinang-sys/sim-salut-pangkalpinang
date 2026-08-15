@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx src/lib/validation/__tests__/student-validation.test.ts && tsx src/lib/validation/__tests__/registration-validation.test.ts && tsx src/lib/validation/__tests__/lip-invoice-validation.test.ts && tsx src/lib/validation/__tests__/payment-validation.test.ts && tsx src/lib/validation/__tests__/ut-remittance-validation.test.ts && tsx src/lib/validation/__tests__/operational-validation.test.ts && tsx src/lib/validation/__tests__/reports-dashboard.test.ts && tsx src/lib/validation/__tests__/checkpoint8-final-qa.test.ts && tsx src/lib/validation/__tests__/iteration1-ux.test.ts && tsx src/lib/validation/__tests__/users-rbac.test.ts && tsx src/lib/validation/__tests__/audit-log.test.ts && tsx src/lib/validation/__tests__/settings.test.ts"
+    "test": "tsx src/lib/validation/__tests__/student-validation.test.ts && tsx src/lib/validation/__tests__/registration-validation.test.ts && tsx src/lib/validation/__tests__/lip-invoice-validation.test.ts && tsx src/lib/validation/__tests__/payment-validation.test.ts && tsx src/lib/validation/__tests__/ut-remittance-validation.test.ts && tsx src/lib/validation/__tests__/operational-validation.test.ts && tsx src/lib/validation/__tests__/reports-dashboard.test.ts && tsx src/lib/validation/__tests__/checkpoint8-final-qa.test.ts && tsx src/lib/validation/__tests__/iteration1-ux.test.ts && tsx src/lib/validation/__tests__/users-rbac.test.ts && tsx src/lib/validation/__tests__/audit-log.test.ts && tsx src/lib/validation/__tests__/settings.test.ts && tsx src/lib/validation/__tests__/action-center.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

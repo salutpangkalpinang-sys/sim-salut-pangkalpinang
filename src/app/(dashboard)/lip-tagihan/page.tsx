@@ -4,15 +4,34 @@ import { getRegistrationsList } from "@/features/registrations/queries";
 import { LipInvoiceContainer } from "@/components/lip-invoices/lip-invoice-container";
 import { redirect } from "next/navigation";
 
-export default async function LipTagihanPage() {
+export default async function LipTagihanPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string; status?: string }>;
+}) {
   const profile = await getCurrentUserProfile();
 
   if (!profile) {
     redirect("/login");
   }
 
+  let statusFilter: any = undefined;
+  let initialTab = "lips";
+
+  if (searchParams) {
+    const resolvedParams = await searchParams;
+    if (resolvedParams.status) {
+      statusFilter = resolvedParams.status;
+    }
+    if (resolvedParams.tab === "lip" || resolvedParams.tab === "lips") {
+      initialTab = "lips";
+    } else if (resolvedParams.tab === "invoices") {
+      initialTab = "invoices";
+    }
+  }
+
   const [lipsRes, invoicesRes, regsRes] = await Promise.all([
-    getLipDocumentsList({ limit: 50 }),
+    getLipDocumentsList({ limit: 50, status: statusFilter }),
     getInvoicesList({ limit: 50 }),
     getRegistrationsList({ limit: 100 }),
   ]);
@@ -33,6 +52,8 @@ export default async function LipTagihanPage() {
       initialInvoiceTotal={invoicesRes.total}
       userRole={profile.role}
       registrationsOptions={registrationsOptions}
+      initialTab={initialTab}
+      initialStatusFilter={statusFilter}
     />
   );
 }

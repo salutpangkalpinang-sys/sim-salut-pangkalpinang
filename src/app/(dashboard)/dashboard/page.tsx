@@ -60,7 +60,16 @@ export default async function DashboardPage({
   let pendingLips: any[] = [];
   let outstandingUtPriority: any[] = [];
 
+  let actionCenterSummary: any = {
+    items: [],
+    totalActionsCount: 0,
+    urgentCount: 0,
+    attentionCount: 0,
+    newCount: 0,
+  };
+
   try {
+    const { getActionCenterSummary } = await import("@/features/dashboard/action-center");
     const [
       fetchedMetrics,
       fetchedMasterOptions,
@@ -68,6 +77,7 @@ export default async function DashboardPage({
       fetchedOverdueInvoices,
       fetchedPendingLips,
       fetchedOutstandingUtPriority,
+      fetchedActionCenter,
     ] = await Promise.all([
       getDashboardKpiMetrics(periodId),
       getRegistrationMasterOptions(),
@@ -75,6 +85,7 @@ export default async function DashboardPage({
       getOverdueInvoicesWidget(5),
       getPendingLipsWidget(5),
       getOutstandingUtPriorityWidget(5),
+      getActionCenterSummary(profile.role),
     ]);
 
     metrics = fetchedMetrics;
@@ -83,9 +94,12 @@ export default async function DashboardPage({
     overdueInvoices = fetchedOverdueInvoices;
     pendingLips = fetchedPendingLips;
     outstandingUtPriority = fetchedOutstandingUtPriority;
+    actionCenterSummary = fetchedActionCenter;
   } catch (err: any) {
     console.warn("Error fetching dashboard data:", err?.message || err);
   }
+
+  const { ActionCenterSection } = await import("@/components/dashboard/action-center-section");
 
   return (
     <div className="space-y-6">
@@ -119,6 +133,9 @@ export default async function DashboardPage({
           </form>
         </div>
       </div>
+
+      {/* Action Center Section */}
+      <ActionCenterSection summary={actionCenterSummary} />
 
       {/* KPI Cards Component */}
       <DashboardKpiCards metrics={metrics} />

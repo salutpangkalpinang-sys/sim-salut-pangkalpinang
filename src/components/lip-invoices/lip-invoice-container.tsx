@@ -17,6 +17,8 @@ interface LipInvoiceContainerProps {
   initialInvoiceTotal: number;
   userRole: RoleCode;
   registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string }[];
+  initialTab?: string;
+  initialStatusFilter?: string;
 }
 
 export function LipInvoiceContainer({
@@ -26,12 +28,13 @@ export function LipInvoiceContainer({
   initialInvoiceTotal,
   userRole,
   registrationsOptions,
+  initialTab = "lips",
+  initialStatusFilter,
 }: LipInvoiceContainerProps) {
   const router = useRouter();
-
-  const [activeTab, setActiveTab] = useState<"lip" | "invoice">("lip");
+  const [activeTab, setActiveTab] = useState<"lip" | "invoice">(initialTab === "invoices" || initialTab === "invoice" ? "invoice" : "lip");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || "");
 
   const [isLipModalOpen, setIsLipModalOpen] = useState(false);
   const [selectedLipForInvoice, setSelectedLipForInvoice] = useState<LipDocument | null>(null);

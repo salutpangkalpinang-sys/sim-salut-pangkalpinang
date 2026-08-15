@@ -34,6 +34,7 @@ export default async function PembayaranPage({
       initialTotalPages={paymentsRes.totalPages}
       userRole={profile.role}
       options={masterOptions}
+      initialStatusFilter={status}
     />
   );
 }

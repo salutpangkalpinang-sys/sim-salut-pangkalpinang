@@ -31,6 +31,7 @@ interface PaymentListContainerProps {
       remainingBalance: number;
     }[];
   };
+  initialStatusFilter?: string;
 }
 
 export function PaymentListContainer({
@@ -41,11 +42,12 @@ export function PaymentListContainer({
   initialTotalPages,
   userRole,
   options,
+  initialStatusFilter,
 }: PaymentListContainerProps) {
   const router = useRouter();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || "");
   const [methodFilter, setMethodFilter] = useState("");
   const [page, setPage] = useState(initialPage);
 

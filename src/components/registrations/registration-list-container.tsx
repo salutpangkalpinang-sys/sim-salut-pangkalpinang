@@ -24,6 +24,7 @@ interface RegistrationListContainerProps {
     serviceSchemes: { id: string; code: string; name: string }[];
     students: { id: string; nim: string | null; full_name: string; study_program_id: string | null; service_scheme_id: string | null }[];
   };
+  initialStatusFilter?: string;
 }
 
 export function RegistrationListContainer({
@@ -34,6 +35,7 @@ export function RegistrationListContainer({
   initialTotalPages,
   userRole,
   options,
+  initialStatusFilter,
 }: RegistrationListContainerProps) {
   const router = useRouter();
 
@@ -43,7 +45,7 @@ export function RegistrationListContainer({
   const [registrationTypeId, setRegistrationTypeId] = useState("");
   const [studyProgramId, setStudyProgramId] = useState("");
   const [serviceSchemeId, setServiceSchemeId] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(initialStatusFilter || "");
   const [page, setPage] = useState(initialPage);
 
   // Dialog States
