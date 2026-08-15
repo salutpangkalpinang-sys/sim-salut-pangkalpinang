@@ -81,31 +81,32 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
     try {
       const supabase = await createClient();
 
-      // Find role ID
-      const { data: roleRow } = await supabase
-        .from("roles")
-        .select("id")
-        .eq("code", role)
-        .single();
+      // Call secure RPC function
+      const { data: rpcUserId, error: rpcErr } = await supabase.rpc("create_internal_user", {
+        p_email: email,
+        p_password: "suksesterus",
+        p_full_name: fullName,
+        p_role_code: role,
+      });
 
-      if (roleRow) {
-        // Create auth user or profile
-        const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-          email,
-          email_confirm: true,
-          user_metadata: { full_name: fullName },
-        });
+      if (!rpcErr && rpcUserId) {
+        newUserId = rpcUserId as string;
+      } else {
+        // Fallback to table query if RPC is not yet applied
+        const { data: roleRow } = await supabase
+          .from("roles")
+          .select("id")
+          .eq("code", role)
+          .single();
 
-        if (!createErr && newUser?.user) {
-          newUserId = newUser.user.id;
-
-          await supabase.from("profiles").insert({
+        if (roleRow) {
+          await supabase.from("profiles").upsert({
             id: newUserId,
             full_name: fullName,
             is_active: true,
           });
 
-          await supabase.from("user_roles").insert({
+          await supabase.from("user_roles").upsert({
             user_id: newUserId,
             role_id: roleRow.id,
           });
