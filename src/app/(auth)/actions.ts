@@ -6,12 +6,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  email: z.string().email("Format email tidak valid"),
+  email: z.string().min(1, "Username atau Email wajib diisi"),
   password: z.string().min(6, "Kata sandi minimal 6 karakter"),
 });
 
 export async function loginAction(prevState: unknown, formData: FormData) {
-  const email = formData.get("email") as string;
+  let email = (formData.get("email") as string || "").trim();
   const password = formData.get("password") as string;
 
   const validation = loginSchema.safeParse({ email, password });
@@ -20,6 +20,11 @@ export async function loginAction(prevState: unknown, formData: FormData) {
     return {
       error: validation.error.errors[0]?.message || "Input tidak valid",
     };
+  }
+
+  // Normalize plain username to email format (e.g. "admin" -> "admin@salut-pangkalpinang.ac.id")
+  if (!email.includes("@")) {
+    email = `${email}@salut-pangkalpinang.ac.id`;
   }
 
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
@@ -35,6 +40,10 @@ export async function loginAction(prevState: unknown, formData: FormData) {
       if (!error) {
         redirect("/dashboard");
       }
+
+      return {
+        error: "Username/Email atau kata sandi tidak cocok. Periksa kembali kredensial Anda.",
+      };
     } catch {
       // Fallback if client error
     }
@@ -45,9 +54,6 @@ export async function loginAction(prevState: unknown, formData: FormData) {
   cookieStore.set("salut_dev_role", "owner", { path: "/", httpOnly: true });
   redirect("/dashboard");
 }
-
-
-
 
 export async function logoutAction() {
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
@@ -64,4 +70,3 @@ export async function logoutAction() {
   cookieStore.delete("salut_dev_role");
   redirect("/login");
 }
-

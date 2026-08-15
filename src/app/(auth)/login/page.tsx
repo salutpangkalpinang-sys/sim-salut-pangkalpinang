@@ -24,7 +24,7 @@ export default function LoginPage() {
       {state?.error && (
         <div
           role="alert"
-          className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5"
+          className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5 shadow-xs"
         >
           <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
           <span>{state.error}</span>
@@ -37,14 +37,14 @@ export default function LoginPage() {
             htmlFor="email"
             className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5"
           >
-            Alamat Email
+            Username / Email
           </label>
           <input
             id="email"
             name="email"
-            type="email"
+            type="text"
             required
-            placeholder="admin@salut-pangkalpinang.ac.id"
+            placeholder="admin (atau admin@salut-pangkalpinang.ac.id)"
             className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition"
           />
         </div>
