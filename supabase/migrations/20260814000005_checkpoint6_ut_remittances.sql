@@ -13,18 +13,22 @@ DROP POLICY IF EXISTS "Owner/AcademicAdmin can update student_payments" ON publi
 DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_allocations" ON public.payment_allocations;
 DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_void_requests" ON public.payment_void_requests;
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert student_payments" ON public.student_payments;
 CREATE POLICY "Owner/FinanceAdmin can insert student_payments" ON public.student_payments
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update student_payments" ON public.student_payments;
 CREATE POLICY "Owner/FinanceAdmin can update student_payments" ON public.student_payments
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert payment_allocations" ON public.payment_allocations;
 CREATE POLICY "Owner/FinanceAdmin can insert payment_allocations" ON public.payment_allocations
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Owner/FinanceAdmin can insert payment_void_requests" ON public.payment_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
@@ -607,31 +611,39 @@ ALTER TABLE public.ut_remittances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ut_remittance_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ut_remittance_void_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view ut_remittances" ON public.ut_remittances;
 CREATE POLICY "Authenticated users can view ut_remittances" ON public.ut_remittances
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view ut_remittance_items" ON public.ut_remittance_items;
 CREATE POLICY "Authenticated users can view ut_remittance_items" ON public.ut_remittance_items
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view ut_remittance_void_requests" ON public.ut_remittance_void_requests;
 CREATE POLICY "Authenticated users can view ut_remittance_void_requests" ON public.ut_remittance_void_requests
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert ut_remittances" ON public.ut_remittances;
 CREATE POLICY "Owner/FinanceAdmin can insert ut_remittances" ON public.ut_remittances
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update ut_remittances" ON public.ut_remittances;
 CREATE POLICY "Owner/FinanceAdmin can update ut_remittances" ON public.ut_remittances
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert ut_remittance_items" ON public.ut_remittance_items;
 CREATE POLICY "Owner/FinanceAdmin can insert ut_remittance_items" ON public.ut_remittance_items
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert ut_remittance_void_requests" ON public.ut_remittance_void_requests;
 CREATE POLICY "Owner/FinanceAdmin can insert ut_remittance_void_requests" ON public.ut_remittance_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner can update ut_remittance_void_requests" ON public.ut_remittance_void_requests;
 CREATE POLICY "Owner can update ut_remittance_void_requests" ON public.ut_remittance_void_requests
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() = 'owner');
@@ -642,14 +654,17 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('ut-remittance-proofs', 'ut-remittance-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view ut remittance proof storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'ut-remittance-proofs');
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload ut remittance proof storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update ut remittance proof storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));

@@ -239,6 +239,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('payment-proofs', 'payment-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view payment proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view payment proof storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'payment-proofs');
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload payment proof storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update payment proof storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));

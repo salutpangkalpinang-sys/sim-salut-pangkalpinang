@@ -371,6 +371,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('ut-remittance-proofs', 'ut-remittance-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view ut remittance proof storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'ut-remittance-proofs');
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload ut remittance proof storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update ut remittance proof storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));

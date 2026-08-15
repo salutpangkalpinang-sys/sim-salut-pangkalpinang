@@ -163,12 +163,19 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registration_fee_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Read policies
+DROP POLICY IF EXISTS "Authenticated users can view registration_types" ON public.registration_types;
 CREATE POLICY "Authenticated users can view registration_types" ON public.registration_types FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view registrations" ON public.registrations;
 CREATE POLICY "Authenticated users can view registrations" ON public.registrations FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Authenticated users can view registration_fee_snapshots" ON public.registration_fee_snapshots FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can create/update/cancel registrations)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert registrations" ON public.registrations;
 CREATE POLICY "Owner/AcademicAdmin can insert registrations" ON public.registrations FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update registrations" ON public.registrations;
 CREATE POLICY "Owner/AcademicAdmin can update registrations" ON public.registrations FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Owner/AcademicAdmin can insert registration_fee_snapshots" ON public.registration_fee_snapshots FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Owner/AcademicAdmin can update registration_fee_snapshots" ON public.registration_fee_snapshots FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));

@@ -248,32 +248,51 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Read policies (All authenticated internal users can read master data)
+DROP POLICY IF EXISTS "Authenticated users can view roles" ON public.roles;
 CREATE POLICY "Authenticated users can view roles" ON public.roles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
 CREATE POLICY "Authenticated users can view profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view user_roles" ON public.user_roles;
 CREATE POLICY "Authenticated users can view user_roles" ON public.user_roles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view academic_periods" ON public.academic_periods;
 CREATE POLICY "Authenticated users can view academic_periods" ON public.academic_periods FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view faculties" ON public.faculties;
 CREATE POLICY "Authenticated users can view faculties" ON public.faculties FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view study_levels" ON public.study_levels;
 CREATE POLICY "Authenticated users can view study_levels" ON public.study_levels FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view study_programs" ON public.study_programs;
 CREATE POLICY "Authenticated users can view study_programs" ON public.study_programs FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view service_schemes" ON public.service_schemes;
 CREATE POLICY "Authenticated users can view service_schemes" ON public.service_schemes FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view fee_types" ON public.fee_types;
 CREATE POLICY "Authenticated users can view fee_types" ON public.fee_types FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view fee_rates" ON public.fee_rates;
 CREATE POLICY "Authenticated users can view fee_rates" ON public.fee_rates FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view payment_methods" ON public.payment_methods;
 CREATE POLICY "Authenticated users can view payment_methods" ON public.payment_methods FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view student_statuses" ON public.student_statuses;
 CREATE POLICY "Authenticated users can view student_statuses" ON public.student_statuses FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view cash_accounts" ON public.cash_accounts;
 CREATE POLICY "Authenticated users can view cash_accounts" ON public.cash_accounts FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view operational_categories" ON public.operational_categories;
 CREATE POLICY "Authenticated users can view operational_categories" ON public.operational_categories FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view app_settings" ON public.app_settings;
 CREATE POLICY "Authenticated users can view app_settings" ON public.app_settings FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can mutate master data)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage master data" ON public.study_programs;
 CREATE POLICY "Owner/AcademicAdmin can manage master data" ON public.study_programs FOR ALL TO authenticated
 USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage fee_rates" ON public.fee_rates;
 CREATE POLICY "Owner/AcademicAdmin can manage fee_rates" ON public.fee_rates FOR ALL TO authenticated
 USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner can manage user roles" ON public.user_roles;
 CREATE POLICY "Owner can manage user roles" ON public.user_roles FOR ALL TO authenticated
 USING (public.get_current_user_role() = 'owner');
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated
 USING (auth.uid() = id);
 -- ============================================================================
@@ -396,21 +415,26 @@ ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
 
 -- Read policy (All internal authenticated users can view student records)
+DROP POLICY IF EXISTS "Authenticated users can view students" ON public.students;
 CREATE POLICY "Authenticated users can view students" ON public.students
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view status history" ON public.student_status_history;
 CREATE POLICY "Authenticated users can view status history" ON public.student_status_history
     FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can insert/update students)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can insert students" ON public.students
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can update students" ON public.students
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert status history" ON public.student_status_history;
 CREATE POLICY "Owner/AcademicAdmin can insert status history" ON public.student_status_history
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
@@ -582,28 +606,35 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registration_fee_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Read policies
+DROP POLICY IF EXISTS "Authenticated users can view registration_types" ON public.registration_types;
 CREATE POLICY "Authenticated users can view registration_types" ON public.registration_types
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view registrations" ON public.registrations;
 CREATE POLICY "Authenticated users can view registrations" ON public.registrations
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Authenticated users can view registration_fee_snapshots" ON public.registration_fee_snapshots
     FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can manage registrations)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert registrations" ON public.registrations;
 CREATE POLICY "Owner/AcademicAdmin can insert registrations" ON public.registrations
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update registrations" ON public.registrations;
 CREATE POLICY "Owner/AcademicAdmin can update registrations" ON public.registrations
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Owner/AcademicAdmin can insert registration_fee_snapshots" ON public.registration_fee_snapshots
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Owner/AcademicAdmin can update registration_fee_snapshots" ON public.registration_fee_snapshots
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
@@ -913,37 +944,46 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 
 -- Read policies for authenticated users
+DROP POLICY IF EXISTS "Authenticated users can view lip_documents" ON public.lip_documents;
 CREATE POLICY "Authenticated users can view lip_documents" ON public.lip_documents
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view invoices" ON public.invoices;
 CREATE POLICY "Authenticated users can view invoices" ON public.invoices
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view invoice_items" ON public.invoice_items;
 CREATE POLICY "Authenticated users can view invoice_items" ON public.invoice_items
     FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Owner and Academic Admin can manage LIP)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert lip_documents" ON public.lip_documents;
 CREATE POLICY "Owner/AcademicAdmin can insert lip_documents" ON public.lip_documents
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update lip_documents" ON public.lip_documents;
 CREATE POLICY "Owner/AcademicAdmin can update lip_documents" ON public.lip_documents
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
 -- Write policies for invoices (Owner and Academic Admin can issue invoices)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert invoices" ON public.invoices;
 CREATE POLICY "Owner/AcademicAdmin can insert invoices" ON public.invoices
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update invoices" ON public.invoices;
 CREATE POLICY "Owner/AcademicAdmin can update invoices" ON public.invoices
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert invoice_items" ON public.invoice_items;
 CREATE POLICY "Owner/AcademicAdmin can insert invoice_items" ON public.invoice_items
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update invoice_items" ON public.invoice_items;
 CREATE POLICY "Owner/AcademicAdmin can update invoice_items" ON public.invoice_items
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
@@ -955,14 +995,17 @@ VALUES ('lip-documents', 'lip-documents', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
 -- Storage Objects RLS Policies
+DROP POLICY IF EXISTS "Authenticated users can view lip storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view lip storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'lip-documents');
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can upload lip storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can upload lip storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'lip-documents' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update lip storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can update lip storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'lip-documents' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
@@ -1398,32 +1441,40 @@ ALTER TABLE public.payment_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_void_requests ENABLE ROW LEVEL SECURITY;
 
 -- Read policies for authenticated users
+DROP POLICY IF EXISTS "Authenticated users can view student_payments" ON public.student_payments;
 CREATE POLICY "Authenticated users can view student_payments" ON public.student_payments
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view payment_allocations" ON public.payment_allocations;
 CREATE POLICY "Authenticated users can view payment_allocations" ON public.payment_allocations
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Authenticated users can view payment_void_requests" ON public.payment_void_requests
     FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Owner and Academic Admin/Finance can insert/update payments)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert student_payments" ON public.student_payments;
 CREATE POLICY "Owner/AcademicAdmin can insert student_payments" ON public.student_payments
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update student_payments" ON public.student_payments;
 CREATE POLICY "Owner/AcademicAdmin can update student_payments" ON public.student_payments
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_allocations" ON public.payment_allocations;
 CREATE POLICY "Owner/AcademicAdmin can insert payment_allocations" ON public.payment_allocations
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Owner/AcademicAdmin can insert payment_void_requests" ON public.payment_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner can update payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Owner can update payment_void_requests" ON public.payment_void_requests
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() = 'owner');
@@ -1435,14 +1486,17 @@ VALUES ('payment-proofs', 'payment-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
 -- Storage Objects RLS Policies
+DROP POLICY IF EXISTS "Authenticated users can view payment proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view payment proof storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'payment-proofs');
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can upload payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can upload payment proof storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can update payment proof storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
@@ -1461,18 +1515,22 @@ DROP POLICY IF EXISTS "Owner/AcademicAdmin can update student_payments" ON publi
 DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_allocations" ON public.payment_allocations;
 DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_void_requests" ON public.payment_void_requests;
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert student_payments" ON public.student_payments;
 CREATE POLICY "Owner/FinanceAdmin can insert student_payments" ON public.student_payments
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update student_payments" ON public.student_payments;
 CREATE POLICY "Owner/FinanceAdmin can update student_payments" ON public.student_payments
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert payment_allocations" ON public.payment_allocations;
 CREATE POLICY "Owner/FinanceAdmin can insert payment_allocations" ON public.payment_allocations
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Owner/FinanceAdmin can insert payment_void_requests" ON public.payment_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
@@ -2055,31 +2113,39 @@ ALTER TABLE public.ut_remittances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ut_remittance_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ut_remittance_void_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view ut_remittances" ON public.ut_remittances;
 CREATE POLICY "Authenticated users can view ut_remittances" ON public.ut_remittances
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view ut_remittance_items" ON public.ut_remittance_items;
 CREATE POLICY "Authenticated users can view ut_remittance_items" ON public.ut_remittance_items
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view ut_remittance_void_requests" ON public.ut_remittance_void_requests;
 CREATE POLICY "Authenticated users can view ut_remittance_void_requests" ON public.ut_remittance_void_requests
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert ut_remittances" ON public.ut_remittances;
 CREATE POLICY "Owner/FinanceAdmin can insert ut_remittances" ON public.ut_remittances
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update ut_remittances" ON public.ut_remittances;
 CREATE POLICY "Owner/FinanceAdmin can update ut_remittances" ON public.ut_remittances
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert ut_remittance_items" ON public.ut_remittance_items;
 CREATE POLICY "Owner/FinanceAdmin can insert ut_remittance_items" ON public.ut_remittance_items
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert ut_remittance_void_requests" ON public.ut_remittance_void_requests;
 CREATE POLICY "Owner/FinanceAdmin can insert ut_remittance_void_requests" ON public.ut_remittance_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner can update ut_remittance_void_requests" ON public.ut_remittance_void_requests;
 CREATE POLICY "Owner can update ut_remittance_void_requests" ON public.ut_remittance_void_requests
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() = 'owner');
@@ -2090,14 +2156,17 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('ut-remittance-proofs', 'ut-remittance-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view ut remittance proof storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'ut-remittance-proofs');
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload ut remittance proof storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update ut remittance proof storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
@@ -2638,31 +2707,39 @@ ALTER TABLE public.operational_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operational_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operational_transaction_void_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view operational_categories" ON public.operational_categories;
 CREATE POLICY "Authenticated users can view operational_categories" ON public.operational_categories
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view operational_transactions" ON public.operational_transactions;
 CREATE POLICY "Authenticated users can view operational_transactions" ON public.operational_transactions
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view operational_transaction_void_requests" ON public.operational_transaction_void_requests;
 CREATE POLICY "Authenticated users can view operational_transaction_void_requests" ON public.operational_transaction_void_requests
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert operational_categories" ON public.operational_categories;
 CREATE POLICY "Owner/FinanceAdmin can insert operational_categories" ON public.operational_categories
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert operational_transactions" ON public.operational_transactions;
 CREATE POLICY "Owner/FinanceAdmin can insert operational_transactions" ON public.operational_transactions
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update operational_transactions" ON public.operational_transactions;
 CREATE POLICY "Owner/FinanceAdmin can update operational_transactions" ON public.operational_transactions
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert operational_transaction_void_requests" ON public.operational_transaction_void_requests;
 CREATE POLICY "Owner/FinanceAdmin can insert operational_transaction_void_requests" ON public.operational_transaction_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner can update operational_transaction_void_requests" ON public.operational_transaction_void_requests;
 CREATE POLICY "Owner can update operational_transaction_void_requests" ON public.operational_transaction_void_requests
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() = 'owner');
@@ -2673,14 +2750,17 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('operational-proofs', 'operational-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view operational proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view operational proof storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'operational-proofs');
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload operational proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload operational proof storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'operational-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update operational proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update operational proof storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'operational-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
@@ -2891,24 +2971,37 @@ ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
 
 -- Master data READ for all authenticated users
+DROP POLICY IF EXISTS "Authenticated users can read master data" ON public.academic_periods;
 CREATE POLICY "Authenticated users can read master data" ON public.academic_periods FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read faculties" ON public.faculties;
 CREATE POLICY "Authenticated users can read faculties" ON public.faculties FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read study levels" ON public.study_levels;
 CREATE POLICY "Authenticated users can read study levels" ON public.study_levels FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read study programs" ON public.study_programs;
 CREATE POLICY "Authenticated users can read study programs" ON public.study_programs FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read service schemes" ON public.service_schemes;
 CREATE POLICY "Authenticated users can read service schemes" ON public.service_schemes FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read student statuses" ON public.student_statuses;
 CREATE POLICY "Authenticated users can read student statuses" ON public.student_statuses FOR SELECT TO authenticated USING (true);
 
 -- Master data WRITE for Owner & Academic Admin
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage academic_periods" ON public.academic_periods;
 CREATE POLICY "Owner/AcademicAdmin can manage academic_periods" ON public.academic_periods FOR ALL TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage study_programs" ON public.study_programs;
 CREATE POLICY "Owner/AcademicAdmin can manage study_programs" ON public.study_programs FOR ALL TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
 -- Students READ for all authenticated users (Owner, Academic Admin, Finance Admin, Viewer)
+DROP POLICY IF EXISTS "Authenticated users can view students" ON public.students;
 CREATE POLICY "Authenticated users can view students" ON public.students FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view status history" ON public.student_status_history;
 CREATE POLICY "Authenticated users can view status history" ON public.student_status_history FOR SELECT TO authenticated USING (true);
 
 -- Students WRITE for Owner & Academic Admin ONLY (Finance Admin and Viewer DENIED)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can insert students" ON public.students FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can update students" ON public.students FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert status history" ON public.student_status_history;
 CREATE POLICY "Owner/AcademicAdmin can insert status history" ON public.student_status_history FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 -- ============================================================================
 -- SIM-SALUT Pangkalpinang Database Migration
@@ -3075,14 +3168,21 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registration_fee_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Read policies
+DROP POLICY IF EXISTS "Authenticated users can view registration_types" ON public.registration_types;
 CREATE POLICY "Authenticated users can view registration_types" ON public.registration_types FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view registrations" ON public.registrations;
 CREATE POLICY "Authenticated users can view registrations" ON public.registrations FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Authenticated users can view registration_fee_snapshots" ON public.registration_fee_snapshots FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can create/update/cancel registrations)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert registrations" ON public.registrations;
 CREATE POLICY "Owner/AcademicAdmin can insert registrations" ON public.registrations FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update registrations" ON public.registrations;
 CREATE POLICY "Owner/AcademicAdmin can update registrations" ON public.registrations FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Owner/AcademicAdmin can insert registration_fee_snapshots" ON public.registration_fee_snapshots FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update registration_fee_snapshots" ON public.registration_fee_snapshots;
 CREATE POLICY "Owner/AcademicAdmin can update registration_fee_snapshots" ON public.registration_fee_snapshots FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 -- ============================================================================
 -- SIM-SALUT Pangkalpinang Database Migration
@@ -3295,16 +3395,25 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 
 -- Read policies for authenticated users
+DROP POLICY IF EXISTS "Authenticated users can view lip_documents" ON public.lip_documents;
 CREATE POLICY "Authenticated users can view lip_documents" ON public.lip_documents FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view invoices" ON public.invoices;
 CREATE POLICY "Authenticated users can view invoices" ON public.invoices FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view invoice_items" ON public.invoice_items;
 CREATE POLICY "Authenticated users can view invoice_items" ON public.invoice_items FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Owner and Academic Admin can manage LIP and issue Invoices)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert lip_documents" ON public.lip_documents;
 CREATE POLICY "Owner/AcademicAdmin can insert lip_documents" ON public.lip_documents FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update lip_documents" ON public.lip_documents;
 CREATE POLICY "Owner/AcademicAdmin can update lip_documents" ON public.lip_documents FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert invoices" ON public.invoices;
 CREATE POLICY "Owner/AcademicAdmin can insert invoices" ON public.invoices FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update invoices" ON public.invoices;
 CREATE POLICY "Owner/AcademicAdmin can update invoices" ON public.invoices FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert invoice_items" ON public.invoice_items;
 CREATE POLICY "Owner/AcademicAdmin can insert invoice_items" ON public.invoice_items FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update invoice_items" ON public.invoice_items;
 CREATE POLICY "Owner/AcademicAdmin can update invoice_items" ON public.invoice_items FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
 -- 7. PRIVATE STORAGE BUCKET SETUP (lip-documents)
@@ -3312,8 +3421,11 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('lip-documents', 'lip-documents', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view lip storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view lip storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'lip-documents');
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can upload lip storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can upload lip storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'lip-documents' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update lip storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can update lip storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'lip-documents' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
 -- ============================================================================
 -- SIM-SALUT Pangkalpinang Database Migration
@@ -3556,8 +3668,11 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('payment-proofs', 'payment-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view payment proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view payment proof storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'payment-proofs');
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload payment proof storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update payment proof storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 -- ============================================================================
 -- SIM-SALUT Pangkalpinang Database Migration
@@ -3932,8 +4047,11 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('ut-remittance-proofs', 'ut-remittance-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view ut remittance proof storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'ut-remittance-proofs');
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload ut remittance proof storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update ut remittance proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update ut remittance proof storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'ut-remittance-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 -- ============================================================================
 -- SIM-SALUT Pangkalpinang Database Migration
@@ -4290,8 +4408,11 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('operational-proofs', 'operational-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view operational proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view operational proof storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'operational-proofs');
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload operational proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload operational proof storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'operational-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update operational proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update operational proof storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'operational-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 -- ============================================================================
 -- SIM-SALUT Pangkalpinang Database Migration

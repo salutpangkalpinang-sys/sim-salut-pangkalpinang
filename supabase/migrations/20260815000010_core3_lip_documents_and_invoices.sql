@@ -209,16 +209,25 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 
 -- Read policies for authenticated users
+DROP POLICY IF EXISTS "Authenticated users can view lip_documents" ON public.lip_documents;
 CREATE POLICY "Authenticated users can view lip_documents" ON public.lip_documents FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view invoices" ON public.invoices;
 CREATE POLICY "Authenticated users can view invoices" ON public.invoices FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view invoice_items" ON public.invoice_items;
 CREATE POLICY "Authenticated users can view invoice_items" ON public.invoice_items FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Owner and Academic Admin can manage LIP and issue Invoices)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert lip_documents" ON public.lip_documents;
 CREATE POLICY "Owner/AcademicAdmin can insert lip_documents" ON public.lip_documents FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update lip_documents" ON public.lip_documents;
 CREATE POLICY "Owner/AcademicAdmin can update lip_documents" ON public.lip_documents FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert invoices" ON public.invoices;
 CREATE POLICY "Owner/AcademicAdmin can insert invoices" ON public.invoices FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update invoices" ON public.invoices;
 CREATE POLICY "Owner/AcademicAdmin can update invoices" ON public.invoices FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert invoice_items" ON public.invoice_items;
 CREATE POLICY "Owner/AcademicAdmin can insert invoice_items" ON public.invoice_items FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update invoice_items" ON public.invoice_items;
 CREATE POLICY "Owner/AcademicAdmin can update invoice_items" ON public.invoice_items FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
 -- 7. PRIVATE STORAGE BUCKET SETUP (lip-documents)
@@ -226,6 +235,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('lip-documents', 'lip-documents', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view lip storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view lip storage objects" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'lip-documents');
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can upload lip storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can upload lip storage objects" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'lip-documents' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update lip storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can update lip storage objects" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'lip-documents' AND public.get_current_user_role() IN ('owner', 'academic_admin'));

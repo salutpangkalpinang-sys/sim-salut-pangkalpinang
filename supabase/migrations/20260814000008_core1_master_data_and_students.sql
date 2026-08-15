@@ -175,22 +175,35 @@ ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
 
 -- Master data READ for all authenticated users
+DROP POLICY IF EXISTS "Authenticated users can read master data" ON public.academic_periods;
 CREATE POLICY "Authenticated users can read master data" ON public.academic_periods FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read faculties" ON public.faculties;
 CREATE POLICY "Authenticated users can read faculties" ON public.faculties FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read study levels" ON public.study_levels;
 CREATE POLICY "Authenticated users can read study levels" ON public.study_levels FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read study programs" ON public.study_programs;
 CREATE POLICY "Authenticated users can read study programs" ON public.study_programs FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read service schemes" ON public.service_schemes;
 CREATE POLICY "Authenticated users can read service schemes" ON public.service_schemes FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can read student statuses" ON public.student_statuses;
 CREATE POLICY "Authenticated users can read student statuses" ON public.student_statuses FOR SELECT TO authenticated USING (true);
 
 -- Master data WRITE for Owner & Academic Admin
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage academic_periods" ON public.academic_periods;
 CREATE POLICY "Owner/AcademicAdmin can manage academic_periods" ON public.academic_periods FOR ALL TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage study_programs" ON public.study_programs;
 CREATE POLICY "Owner/AcademicAdmin can manage study_programs" ON public.study_programs FOR ALL TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
 -- Students READ for all authenticated users (Owner, Academic Admin, Finance Admin, Viewer)
+DROP POLICY IF EXISTS "Authenticated users can view students" ON public.students;
 CREATE POLICY "Authenticated users can view students" ON public.students FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view status history" ON public.student_status_history;
 CREATE POLICY "Authenticated users can view status history" ON public.student_status_history FOR SELECT TO authenticated USING (true);
 
 -- Students WRITE for Owner & Academic Admin ONLY (Finance Admin and Viewer DENIED)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can insert students" ON public.students FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can update students" ON public.students FOR UPDATE TO authenticated USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert status history" ON public.student_status_history;
 CREATE POLICY "Owner/AcademicAdmin can insert status history" ON public.student_status_history FOR INSERT TO authenticated WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));

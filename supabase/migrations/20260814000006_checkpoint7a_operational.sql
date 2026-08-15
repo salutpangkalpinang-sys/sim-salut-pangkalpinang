@@ -535,31 +535,39 @@ ALTER TABLE public.operational_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operational_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operational_transaction_void_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view operational_categories" ON public.operational_categories;
 CREATE POLICY "Authenticated users can view operational_categories" ON public.operational_categories
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view operational_transactions" ON public.operational_transactions;
 CREATE POLICY "Authenticated users can view operational_transactions" ON public.operational_transactions
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view operational_transaction_void_requests" ON public.operational_transaction_void_requests;
 CREATE POLICY "Authenticated users can view operational_transaction_void_requests" ON public.operational_transaction_void_requests
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert operational_categories" ON public.operational_categories;
 CREATE POLICY "Owner/FinanceAdmin can insert operational_categories" ON public.operational_categories
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert operational_transactions" ON public.operational_transactions;
 CREATE POLICY "Owner/FinanceAdmin can insert operational_transactions" ON public.operational_transactions
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update operational_transactions" ON public.operational_transactions;
 CREATE POLICY "Owner/FinanceAdmin can update operational_transactions" ON public.operational_transactions
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can insert operational_transaction_void_requests" ON public.operational_transaction_void_requests;
 CREATE POLICY "Owner/FinanceAdmin can insert operational_transaction_void_requests" ON public.operational_transaction_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner can update operational_transaction_void_requests" ON public.operational_transaction_void_requests;
 CREATE POLICY "Owner can update operational_transaction_void_requests" ON public.operational_transaction_void_requests
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() = 'owner');
@@ -570,14 +578,17 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('operational-proofs', 'operational-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+DROP POLICY IF EXISTS "Authenticated users can view operational proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view operational proof storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'operational-proofs');
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can upload operational proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can upload operational proof storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'operational-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));
 
+DROP POLICY IF EXISTS "Owner/FinanceAdmin can update operational proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/FinanceAdmin can update operational proof storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'operational-proofs' AND public.get_current_user_role() IN ('owner', 'finance_admin'));

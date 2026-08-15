@@ -430,32 +430,40 @@ ALTER TABLE public.payment_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_void_requests ENABLE ROW LEVEL SECURITY;
 
 -- Read policies for authenticated users
+DROP POLICY IF EXISTS "Authenticated users can view student_payments" ON public.student_payments;
 CREATE POLICY "Authenticated users can view student_payments" ON public.student_payments
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view payment_allocations" ON public.payment_allocations;
 CREATE POLICY "Authenticated users can view payment_allocations" ON public.payment_allocations
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Authenticated users can view payment_void_requests" ON public.payment_void_requests
     FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Owner and Academic Admin/Finance can insert/update payments)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert student_payments" ON public.student_payments;
 CREATE POLICY "Owner/AcademicAdmin can insert student_payments" ON public.student_payments
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update student_payments" ON public.student_payments;
 CREATE POLICY "Owner/AcademicAdmin can update student_payments" ON public.student_payments
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_allocations" ON public.payment_allocations;
 CREATE POLICY "Owner/AcademicAdmin can insert payment_allocations" ON public.payment_allocations
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Owner/AcademicAdmin can insert payment_void_requests" ON public.payment_void_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner can update payment_void_requests" ON public.payment_void_requests;
 CREATE POLICY "Owner can update payment_void_requests" ON public.payment_void_requests
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() = 'owner');
@@ -467,14 +475,17 @@ VALUES ('payment-proofs', 'payment-proofs', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
 -- Storage Objects RLS Policies
+DROP POLICY IF EXISTS "Authenticated users can view payment proof storage objects" ON storage.objects;
 CREATE POLICY "Authenticated users can view payment proof storage objects"
     ON storage.objects FOR SELECT TO authenticated
     USING (bucket_id = 'payment-proofs');
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can upload payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can upload payment proof storage objects"
     ON storage.objects FOR INSERT TO authenticated
     WITH CHECK (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update payment proof storage objects" ON storage.objects;
 CREATE POLICY "Owner/AcademicAdmin can update payment proof storage objects"
     ON storage.objects FOR UPDATE TO authenticated
     USING (bucket_id = 'payment-proofs' AND public.get_current_user_role() IN ('owner', 'academic_admin'));

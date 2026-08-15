@@ -118,21 +118,26 @@ ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_status_history ENABLE ROW LEVEL SECURITY;
 
 -- Read policy (All internal authenticated users can view student records)
+DROP POLICY IF EXISTS "Authenticated users can view students" ON public.students;
 CREATE POLICY "Authenticated users can view students" ON public.students
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view status history" ON public.student_status_history;
 CREATE POLICY "Authenticated users can view status history" ON public.student_status_history
     FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can insert/update students)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can insert students" ON public.students
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can update students" ON public.students;
 CREATE POLICY "Owner/AcademicAdmin can update students" ON public.students
     FOR UPDATE TO authenticated
     USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can insert status history" ON public.student_status_history;
 CREATE POLICY "Owner/AcademicAdmin can insert status history" ON public.student_status_history
     FOR INSERT TO authenticated
     WITH CHECK (public.get_current_user_role() IN ('owner', 'academic_admin'));

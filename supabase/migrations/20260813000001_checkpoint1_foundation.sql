@@ -248,31 +248,50 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Read policies (All authenticated internal users can read master data)
+DROP POLICY IF EXISTS "Authenticated users can view roles" ON public.roles;
 CREATE POLICY "Authenticated users can view roles" ON public.roles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
 CREATE POLICY "Authenticated users can view profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view user_roles" ON public.user_roles;
 CREATE POLICY "Authenticated users can view user_roles" ON public.user_roles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view academic_periods" ON public.academic_periods;
 CREATE POLICY "Authenticated users can view academic_periods" ON public.academic_periods FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view faculties" ON public.faculties;
 CREATE POLICY "Authenticated users can view faculties" ON public.faculties FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view study_levels" ON public.study_levels;
 CREATE POLICY "Authenticated users can view study_levels" ON public.study_levels FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view study_programs" ON public.study_programs;
 CREATE POLICY "Authenticated users can view study_programs" ON public.study_programs FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view service_schemes" ON public.service_schemes;
 CREATE POLICY "Authenticated users can view service_schemes" ON public.service_schemes FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view fee_types" ON public.fee_types;
 CREATE POLICY "Authenticated users can view fee_types" ON public.fee_types FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view fee_rates" ON public.fee_rates;
 CREATE POLICY "Authenticated users can view fee_rates" ON public.fee_rates FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view payment_methods" ON public.payment_methods;
 CREATE POLICY "Authenticated users can view payment_methods" ON public.payment_methods FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view student_statuses" ON public.student_statuses;
 CREATE POLICY "Authenticated users can view student_statuses" ON public.student_statuses FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view cash_accounts" ON public.cash_accounts;
 CREATE POLICY "Authenticated users can view cash_accounts" ON public.cash_accounts FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view operational_categories" ON public.operational_categories;
 CREATE POLICY "Authenticated users can view operational_categories" ON public.operational_categories FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can view app_settings" ON public.app_settings;
 CREATE POLICY "Authenticated users can view app_settings" ON public.app_settings FOR SELECT TO authenticated USING (true);
 
 -- Write policies (Only Owner and Academic Admin can mutate master data)
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage master data" ON public.study_programs;
 CREATE POLICY "Owner/AcademicAdmin can manage master data" ON public.study_programs FOR ALL TO authenticated
 USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner/AcademicAdmin can manage fee_rates" ON public.fee_rates;
 CREATE POLICY "Owner/AcademicAdmin can manage fee_rates" ON public.fee_rates FOR ALL TO authenticated
 USING (public.get_current_user_role() IN ('owner', 'academic_admin'));
 
+DROP POLICY IF EXISTS "Owner can manage user roles" ON public.user_roles;
 CREATE POLICY "Owner can manage user roles" ON public.user_roles FOR ALL TO authenticated
 USING (public.get_current_user_role() = 'owner');
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated
 USING (auth.uid() = id);
