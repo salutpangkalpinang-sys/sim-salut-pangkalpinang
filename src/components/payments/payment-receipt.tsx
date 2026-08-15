@@ -22,6 +22,9 @@ export function PaymentReceipt({ receiptData }: PaymentReceiptProps) {
     minute: "2-digit",
   });
 
+  const headerName = receiptData.receiptHeaderName || "SALUT PANGKALPINANG";
+  const receiptAddress = receiptData.receiptAddress || "Jl. Utama No. 12, Pangkalpinang, Bangka Belitung";
+
   return (
     <div className="space-y-4">
       {/* Top Action Bar */}
@@ -54,13 +57,13 @@ export function PaymentReceipt({ receiptData }: PaymentReceiptProps) {
         <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4">
           <div className="space-y-1">
             <h1 className="text-lg font-black tracking-tight text-slate-900 uppercase">
-              SALUT PANGKALPINANG
+              {headerName}
             </h1>
             <p className="text-[11px] text-slate-600 font-medium">
               Sentra Layanan Universitas Terbuka — Kota Pangkalpinang
             </p>
             <p className="text-[10px] text-slate-500">
-              Jl. Jenderal Sudirman No. 123, Pangkalpinang, Bangka Belitung
+              {receiptAddress}
             </p>
           </div>
 

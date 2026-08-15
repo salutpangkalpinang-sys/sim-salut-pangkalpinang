@@ -98,4 +98,8 @@ export interface PaymentReceiptData {
   cumulativeVerifiedPaid: number;
   remainingBalance: number;
   verifierName: string | null;
+  receiptHeaderName?: string;
+  receiptAddress?: string;
+  receiptLeaderName?: string;
+  receiptFooter?: string;
 }
