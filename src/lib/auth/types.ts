@@ -87,7 +87,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     name: "Audit Log",
     href: "/audit-log",
     iconName: "History",
-    allowedRoles: ["owner"],
+    allowedRoles: ["owner", "viewer"],
   },
   {
     name: "Pengaturan",

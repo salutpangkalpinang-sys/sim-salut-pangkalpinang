@@ -27,15 +27,16 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(create
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- 3. RLS POLICIES FOR AUDIT LOGS
--- Only Owner can view audit logs
+-- Only Owner and Viewer can view audit logs
 DROP POLICY IF EXISTS "Owner can view audit logs" ON public.audit_logs;
-CREATE POLICY "Owner can view audit logs" ON public.audit_logs
+DROP POLICY IF EXISTS "Owner and Auditor can view audit logs" ON public.audit_logs;
+CREATE POLICY "Owner and Auditor can view audit logs" ON public.audit_logs
     FOR SELECT TO authenticated
     USING (
         EXISTS (
             SELECT 1 FROM public.user_roles ur
             JOIN public.roles r ON ur.role_id = r.id
-            WHERE ur.user_id = auth.uid() AND r.code = 'owner'
+            WHERE ur.user_id = auth.uid() AND r.code IN ('owner', 'viewer')
         )
     );
 
