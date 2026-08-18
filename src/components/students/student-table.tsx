@@ -5,6 +5,7 @@ import { Student } from "@/types/student";
 import { MaskedText } from "@/components/ui/masked-text";
 import { Eye, Edit2, ArrowLeft, ArrowRight, UserCheck } from "lucide-react";
 import { RoleCode } from "@/lib/auth/types";
+import { formatUtMasaLabel } from "@/lib/utils/ut-masa";
 
 interface StudentTableProps {
   students: Student[];
@@ -122,8 +123,14 @@ export function StudentTable({
                       <div>{student.studyProgramName || "-"}</div>
                       <div className="text-[10px] text-slate-400">{student.facultyName || ""}</div>
                     </td>
-                    <td className="px-4 py-3 font-mono">
-                      {student.entryYear || <span className="text-slate-400 italic">-</span>}
+                    <td className="px-4 py-3 font-mono font-medium text-slate-700">
+                      {student.entryYear ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200" title={formatUtMasaLabel(student.entryYear)}>
+                          {student.entryYear}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-700">
                       {student.serviceSchemeName || "-"}

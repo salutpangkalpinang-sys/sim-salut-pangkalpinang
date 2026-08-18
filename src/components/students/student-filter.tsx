@@ -2,6 +2,7 @@
 
 import { MasterOption } from "@/types/student";
 import { Search, RotateCcw, Filter } from "lucide-react";
+import { generateUtMasaOptions } from "@/lib/utils/ut-masa";
 
 interface StudentFilterProps {
   search: string;
@@ -21,7 +22,8 @@ interface StudentFilterProps {
   onReset: () => void;
   options: {
     faculties: MasterOption[];
-    studyPrograms: MasterOption[];
+    studyLevels: MasterOption[];
+    studyPrograms: (MasterOption & { faculty_id?: string; study_level_id?: string })[];
     serviceSchemes: MasterOption[];
     statuses: MasterOption[];
   };
@@ -47,9 +49,7 @@ export function StudentFilter({
   options,
   isCalonView = false,
 }: StudentFilterProps) {
-
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 8 }, (_, i) => currentYear - 5 + i);
+  const masaOptions = generateUtMasaOptions(2021, 2030);
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm">
@@ -68,17 +68,17 @@ export function StudentFilter({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-        {/* Search Input */}
-        <div className="lg:col-span-2 relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
+            placeholder="Cari nama, NIM, NIK..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Cari Nama, NIM, NIK, WhatsApp..."
-            className="w-full pl-9 pr-3.5 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </div>
 
         {/* Fakultas Filter */}
@@ -113,17 +113,17 @@ export function StudentFilter({
           </select>
         </div>
 
-        {/* Angkatan / Tahun Masuk Filter */}
+        {/* Angkatan / Masa UT Filter */}
         <div>
           <select
             value={entryYear}
             onChange={(e) => onEntryYearChange(e.target.value)}
             className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           >
-            <option value="">Semua Angkatan</option>
-            {yearOptions.map((yr) => (
-              <option key={yr} value={yr}>
-                Tahun {yr}
+            <option value="">Semua Angkatan / Masa</option>
+            {masaOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </select>

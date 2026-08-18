@@ -7,6 +7,7 @@ import {
   NormalizedStudentImportData,
 } from "@/types/student-import";
 import { maskNik } from "@/lib/audit/redaction";
+import { deriveUtMasaCode } from "@/lib/utils/ut-masa";
 
 // Helper to escape formula injection characters
 export function escapeFormulaInjection(val: string): string {
@@ -405,8 +406,8 @@ export function parseStudentImportBuffer(
         entryYear = yr;
       }
     } else {
-      // Automatic fallback to current active UT Masa (20261) if left blank in Excel
-      entryYear = 20261;
+      // Automatic calculation based on UT rule: Oct-Jan -> NNNN1, Feb-Sep -> NNNN2
+      entryYear = deriveUtMasaCode();
     }
 
 // Clean match helper: removes punctuation, hyphens, underscores, extra spaces
