@@ -341,7 +341,7 @@ export async function getPaymentReceiptData(paymentId: string): Promise<PaymentR
     cumulativeVerifiedPaid,
     remainingBalance,
     verifierName,
-    receiptHeaderName: settings?.receipt_header_name || "SALUT PANGKALPINANG",
+    receiptHeaderName: settings?.receipt_header_name || "SALUT MEGA CENDEKIA",
     receiptAddress: settings?.receipt_address || "Jl. Utama No. 12, Pangkalpinang, Bangka Belitung",
     receiptLeaderName: settings?.receipt_leader_name || "Drs. H. Ahmad Subagyo, M.M.",
     receiptFooter: settings?.receipt_footer || undefined,

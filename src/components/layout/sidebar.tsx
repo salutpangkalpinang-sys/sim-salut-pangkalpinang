@@ -99,7 +99,7 @@ export function Sidebar({ userRole, salutName, salutCity }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-3 border-t border-slate-200 text-[11px] text-slate-400 text-center">
-        SIM-SALUT Pangkalpinang v1.0
+        SIM-SALUT Mega Cendekia v1.0
       </div>
     </aside>
   );

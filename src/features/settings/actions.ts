@@ -187,7 +187,7 @@ export async function updateSettingsAction(prevState: unknown, formData: FormDat
 
   return {
     success: true,
-    message: "Pengaturan sistem SIM-SALUT Pangkalpinang berhasil diperbarui.",
+    message: "Pengaturan sistem SIM-SALUT berhasil diperbarui.",
   };
 }
 

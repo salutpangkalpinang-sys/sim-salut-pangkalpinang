@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SIM-SALUT Pangkalpinang",
-  description: "Sistem Informasi Manajemen Sentra Layanan Universitas Terbuka Pangkalpinang",
+  title: "SIM-SALUT Mega Cendekia",
+  description: "Sistem Informasi Manajemen Sentra Layanan Universitas Terbuka Mega Cendekia",
 };
 
 export default function RootLayout({

@@ -22,7 +22,7 @@ export function PaymentReceipt({ receiptData }: PaymentReceiptProps) {
     minute: "2-digit",
   });
 
-  const headerName = receiptData.receiptHeaderName || "SALUT PANGKALPINANG";
+  const headerName = receiptData.receiptHeaderName || "SALUT MEGA CENDEKIA";
   const receiptAddress = receiptData.receiptAddress || "Jl. Utama No. 12, Pangkalpinang, Bangka Belitung";
 
   return (
@@ -30,7 +30,7 @@ export function PaymentReceipt({ receiptData }: PaymentReceiptProps) {
       {/* Top Action Bar */}
       <div className="flex items-center justify-between print:hidden">
         <div className="text-xs text-slate-400">
-          Kuitansi Pembayaran Resmi SIM-SALUT Pangkalpinang
+          Kuitansi Pembayaran Resmi SIM-SALUT
         </div>
         <button
           type="button"

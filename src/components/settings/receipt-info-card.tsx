@@ -36,7 +36,7 @@ export function ReceiptInfoCard({ settings, disabled, onChange }: ReceiptInfoCar
             disabled={disabled}
             value={settings.receipt_header_name}
             onChange={onChange}
-            placeholder="SALUT PANGKALPINANG"
+            placeholder="SALUT MEGA CENDEKIA"
             className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition disabled:opacity-60"
           />
         </div>

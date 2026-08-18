@@ -36,7 +36,7 @@ export function SalutIdentityCard({ settings, disabled, onChange }: SalutIdentit
             disabled={disabled}
             value={settings.salut_name}
             onChange={onChange}
-            placeholder="Contoh: SALUT Pangkalpinang"
+            placeholder="Contoh: SALUT Mega Cendekia"
             className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition disabled:opacity-60"
           />
         </div>
@@ -54,7 +54,7 @@ export function SalutIdentityCard({ settings, disabled, onChange }: SalutIdentit
             disabled={disabled}
             value={settings.salut_official_name}
             onChange={onChange}
-            placeholder="Contoh: Sentra Layanan Universitas Terbuka Pangkalpinang"
+            placeholder="Contoh: Sentra Layanan Universitas Terbuka Mega Cendekia"
             className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition disabled:opacity-60"
           />
         </div>

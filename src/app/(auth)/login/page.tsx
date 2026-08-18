@@ -14,7 +14,7 @@ export default function LoginPage() {
           <Building2 className="w-7 h-7" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          SIM-SALUT Pangkalpinang
+          SIM-SALUT Mega Cendekia
         </h1>
         <p className="text-sm text-slate-500">
           Masuk ke Portal Internal Pengelola SALUT

@@ -3,20 +3,20 @@ import { SalutSettings, ALLOWED_SETTING_KEYS } from "@/types/settings";
 import { cache } from "react";
 
 const DEFAULT_SETTINGS: SalutSettings = {
-  salut_name: "SALUT Pangkalpinang",
-  salut_official_name: "Sentra Layanan Universitas Terbuka Pangkalpinang",
+  salut_name: "SALUT Mega Cendekia",
+  salut_official_name: "Sentra Layanan Universitas Terbuka Mega Cendekia",
   salut_address: "Jl. Utama No. 12, Pangkalpinang",
   salut_city: "Pangkalpinang",
   salut_province: "Kepulauan Bangka Belitung",
   salut_postal_code: "33111",
   salut_whatsapp: "081234567890",
-  salut_email: "info@salut-pangkalpinang.ac.id",
+  salut_email: "info@salut-megacendekia.ac.id",
   salut_leader_name: "Drs. H. Ahmad Subagyo, M.M.",
 
-  receipt_header_name: "SALUT PANGKALPINANG",
+  receipt_header_name: "SALUT MEGA CENDEKIA",
   receipt_address: "Jl. Utama No. 12, Pangkalpinang, Bangka Belitung",
   receipt_whatsapp: "081234567890",
-  receipt_email: "keuangan@salut-pangkalpinang.ac.id",
+  receipt_email: "keuangan@salut-megacendekia.ac.id",
   receipt_leader_name: "Drs. H. Ahmad Subagyo, M.M.",
   receipt_footer: "1. Bukti pembayaran ini adalah dokumen sah pengganti kuitansi fisik.\n2. Harap simpan bukti kuitansi ini untuk keperluan administrasi akademik.",
 

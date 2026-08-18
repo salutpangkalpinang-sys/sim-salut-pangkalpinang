@@ -25,7 +25,7 @@ export function SettingsHeaderBanner({ isOwner, roleName }: SettingsHeaderBanner
             )}
           </div>
           <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
-            Konfigurasi parameter operasional resmi SIM-SALUT Pangkalpinang, informasi kop kuitansi, dan default estimasi biaya layanan untuk pendaftaran baru.
+            Konfigurasi parameter operasional resmi SIM-SALUT, informasi kop kuitansi, dan default estimasi biaya layanan untuk pendaftaran baru.
           </p>
         </div>
       </div>
