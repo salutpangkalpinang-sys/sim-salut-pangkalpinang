@@ -48,12 +48,19 @@ export function RegistrationForm({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Bangka Belitung Only Schemes: SIPAS Non-TTM, SIPAS Semi, Non-SIPAS
+  const bangkaBelitungSchemes = options.serviceSchemes.filter((s) => {
+    const code = (s.code || s.name || "").toUpperCase();
+    return !code.includes("PENUH") && !code.includes("PLUS");
+  });
+
   const handleStudentSelect = (stdId: string) => {
     setSelectedStudentId(stdId);
     const std = options.students.find((s) => s.id === stdId);
     if (std) {
       setStudyProgramId(std.study_program_id || options.studyPrograms[0]?.id || "");
-      setServiceSchemeId(std.service_scheme_id || options.serviceSchemes[0]?.id || "");
+      const schemeId = std.service_scheme_id || bangkaBelitungSchemes[0]?.id || "";
+      setServiceSchemeId(schemeId);
     }
   };
 
@@ -62,8 +69,32 @@ export function RegistrationForm({
       getAvailableCandidateFeeRatesAction(studyProgramId, serviceSchemeId, academicPeriodId)
         .then((rates) => {
           setCandidateRates(rates);
-          if (rates.length > 0) {
-            const initialRows: FeeSnapshotRow[] = rates.map((r) => {
+
+          const selectedScheme = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
+          const schemeCode = (selectedScheme?.code || selectedScheme?.name || "").toUpperCase();
+
+          // Filter MANDATORY rates based on UT 2026/2027 guideline and selected scheme
+          const mandatoryRates = rates.filter((r) => {
+            const rName = (r.name || "").toUpperCase();
+            const rCode = (r.feeTypeCode || "").toUpperCase();
+
+            // 1. SALUT Service is mandatory
+            if (rName.includes("SALUT") || rCode.includes("SALUT")) return true;
+
+            // 2. Mandatory tuition & books by scheme
+            if (schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS")) {
+              return rCode.includes("NON_SIPAS_PER_SKS") || rCode.includes("PER_SKS") || rName.includes("PER SKS") || rName.includes("BAHAN AJAR") || rName.includes("MODUL");
+            } else if (schemeCode.includes("SEMI")) {
+              return rCode.includes("UKT_SIPAS_SEMI") || rCode.includes("SEMI") || rName.includes("SIPAS SEMI");
+            } else if (schemeCode.includes("NON_TTM") || schemeCode.includes("NON-TTM")) {
+              return rCode.includes("UKT_SIPAS_NON_TTM") || rCode.includes("NON_TTM") || rName.includes("NON-TTM") || rName.includes("NON TTM");
+            }
+
+            return false;
+          });
+
+          if (mandatoryRates.length > 0) {
+            const initialRows: FeeSnapshotRow[] = mandatoryRates.map((r) => {
               const qty = r.isPerSks ? Math.max(1, credits) : 1;
               return {
                 sourceFeeRateId: r.id,
@@ -76,6 +107,8 @@ export function RegistrationForm({
               };
             });
             setFeeRows(initialRows);
+          } else {
+            setFeeRows([]);
           }
         })
         .catch(console.warn);
@@ -114,6 +147,20 @@ export function RegistrationForm({
         quantity: qty,
         unitAmount: rate.unitAmount,
         totalAmount: qty * rate.unitAmount,
+      },
+    ]);
+  };
+
+  const addManualFeeRow = () => {
+    setFeeRows((prev) => [
+      ...prev,
+      {
+        feeTypeId: options.registrationTypes[0]?.id || "",
+        feeNameSnapshot: "Komponen Biaya Tambahan",
+        calculationType: "FIXED",
+        quantity: 1,
+        unitAmount: 0,
+        totalAmount: 0,
       },
     ]);
   };
@@ -296,8 +343,8 @@ export function RegistrationForm({
                   onChange={(e) => setServiceSchemeId(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
-                  <option value="">Pilih Skema</option>
-                  {options.serviceSchemes.map((sc) => (
+                  <option value="">Pilih Skema (Khusus Wilayah Bangka Belitung)</option>
+                  {bangkaBelitungSchemes.map((sc) => (
                     <option key={sc.id} value={sc.id}>
                       {sc.name}
                     </option>
@@ -326,29 +373,36 @@ export function RegistrationForm({
                 <Calculator className="w-4 h-4" />
                 <span>3. Pemilihan Master Tarif & Snapshot Komponen Biaya</span>
               </h3>
-              {candidateRates.length > 0 && (
-                <span className="text-[11px] text-slate-500">
-                  {candidateRates.length} Tarif Master Valid Ditemukan
-                </span>
-              )}
+              <span className="text-[11px] text-slate-500">
+                Komponen Wajib Otomatis & Komponen Opsional
+              </span>
             </div>
 
-            {candidateRates.length > 0 && (
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-wrap items-center gap-2">
-                <span className="text-[11px] text-slate-600 font-medium">Tambah Komponen Tarif Master:</span>
+            {/* Candidate & Optional Rates Selector Bar */}
+            <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-slate-600 font-medium">Tambah Komponen Tarif Opsional:</span>
                 {candidateRates.map((r) => (
                   <button
                     key={r.id}
                     type="button"
                     onClick={() => addCandidateRateToRows(r)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] bg-white hover:bg-slate-100 border border-slate-300 text-blue-700 hover:text-blue-800 rounded-md transition shadow-xs"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] bg-white hover:bg-blue-50 border border-blue-200 text-blue-700 hover:text-blue-800 rounded-md transition shadow-xs"
                   >
                     <Plus className="w-3 h-3" />
                     <span>{r.name} (Rp {r.unitAmount.toLocaleString("id-ID")})</span>
                   </button>
                 ))}
               </div>
-            )}
+              <button
+                type="button"
+                onClick={addManualFeeRow}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md transition"
+              >
+                <Plus className="w-3 h-3" />
+                <span>+ Baris Manual</span>
+              </button>
+            </div>
 
             {/* Fee Snapshot Lines Table */}
             <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
