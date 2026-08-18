@@ -100,8 +100,8 @@ export function RegistrationForm({
               feeNameSnapshot: "Total Biaya Buku / Bahan Ajar Cetak",
               calculationType: "FIXED",
               quantity: 1,
-              unitAmount: 1123980,
-              totalAmount: 1123980,
+              unitAmount: 0,
+              totalAmount: 0,
             });
 
             rows.push({
@@ -109,8 +109,8 @@ export function RegistrationForm({
               feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
               calculationType: "FIXED",
               quantity: 1,
-              unitAmount: 169163,
-              totalAmount: 169163,
+              unitAmount: 0,
+              totalAmount: 0,
             });
           } else if (isSemi) {
             // SIPAS Semi (LIP Contoh 1): Paket Semester (Bahan Ajar & TTM Wajib Sudah Termasuk)
@@ -144,8 +144,8 @@ export function RegistrationForm({
               feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
               calculationType: "FIXED",
               quantity: 1,
-              unitAmount: 117600,
-              totalAmount: 117600,
+              unitAmount: 0,
+              totalAmount: 0,
             });
           }
 
