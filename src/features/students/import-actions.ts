@@ -45,6 +45,7 @@ export async function fetchMasterDataForImport(): Promise<MasterDataResolved> {
       { id: "f2", code: "FEB", name: "Fakultas Ekonomi dan Bisnis" },
       { id: "f3", code: "FST", name: "Fakultas Sains dan Teknologi" },
       { id: "f4", code: "FHISIP", name: "Fakultas Hukum, Ilmu Sosial dan Ilmu Politik" },
+      { id: "f5", code: "SV", name: "Sekolah Vokasi" },
     ],
     studyPrograms: [
       { id: "sp1", code: "Manajemen", name: "Manajemen", faculty_id: "f2" },
