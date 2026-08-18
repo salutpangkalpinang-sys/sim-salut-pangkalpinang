@@ -61,8 +61,12 @@ export const studentSchema = z.object({
   entryYear: z
     .union([z.number(), z.string().transform((val) => parseInt(val, 10))])
     .refine(
-      (val) => !val || (isNaN(val) ? false : val >= 1990 && val <= 2100),
-      "Tahun masuk harus antara 1990 dan 2100"
+      (val) =>
+        !val ||
+        (isNaN(val)
+          ? false
+          : (val >= 1980 && val <= 2100) || (val >= 19801 && val <= 21002)),
+      "Angkatan / Tahun masuk harus berupa tahun 4 digit (contoh: 2026) atau 5 digit masa UT (contoh: 20261)"
     )
     .nullable()
     .optional(),
