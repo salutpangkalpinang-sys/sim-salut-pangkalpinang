@@ -392,12 +392,15 @@ export function parseStudentImportBuffer(
       errors.push("Format alamat email tidak valid.");
     }
 
-    // 7. Entry Year Validation
+    // 7. Entry Year Validation (Supports 4-digit 2026 or 5-digit UT Masa 20261 / 20262)
     let entryYear: number | null = null;
     if (entryYearRaw) {
       const yr = parseInt(entryYearRaw, 10);
-      if (isNaN(yr) || yr < 1980 || yr > 2100) {
-        errors.push("Tahun masuk harus berupa angka tahun valid (contoh: 2025).");
+      const is4DigitValid = !isNaN(yr) && yr >= 1980 && yr <= 2100;
+      const is5DigitValid = !isNaN(yr) && yr >= 19801 && yr <= 21002;
+
+      if (!is4DigitValid && !is5DigitValid) {
+        errors.push("Tahun masuk / angkatan harus berupa angka tahun 4 digit (contoh: 2026) atau 5 digit masa UT (contoh: 20261 / 20262).");
       } else {
         entryYear = yr;
       }
