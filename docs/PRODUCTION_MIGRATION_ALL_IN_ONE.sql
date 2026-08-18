@@ -4800,7 +4800,8 @@ INSERT INTO public.faculties (code, name) VALUES
 ('FKIP', 'Fakultas Keguruan dan Ilmu Pendidikan'),
 ('FE', 'Fakultas Ekonomi dan Bisnis'),
 ('FHISIP', 'Fakultas Hukum, Ilmu Sosial dan Ilmu Politik'),
-('FST', 'Fakultas Sains dan Teknologi')
+('FST', 'Fakultas Sains dan Teknologi'),
+('SV', 'Sekolah Vokasi')
 ON CONFLICT (code) DO NOTHING;
 
 -- 4. Study Levels
@@ -4824,17 +4825,18 @@ INSERT INTO public.study_programs (code, name, faculty_id, study_level_id) VALUE
 ('258', 'Agribisnis Bidang Minat Perikanan', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('259', 'Teknologi Pangan', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('260', 'Perencanaan Wilayah & Kota', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('261', 'Sains Data', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 
--- FHISIP (Fakultas Hukum, Ilmu Sosial dan Ilmu Politik) - S1 & D4
+-- FHISIP (Fakultas Hukum, Ilmu Sosial dan Ilmu Politik) - S1
 ('311', 'Ilmu Hukum', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
-('312', 'Administrasi Negara', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('312', 'Administrasi Negara / Publik', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('313', 'Administrasi Bisnis', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('314', 'Ilmu Pemerintahan', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('315', 'Ilmu Komunikasi', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('316', 'Ilmu Perpustakaan', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('317', 'Sosiologi', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('318', 'Sastra Inggris Penerjemah', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
-('411', 'D-IV Kearsipan', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'D4')),
+('319', 'Perpajakan (S1)', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 
 -- FKIP (Fakultas Keguruan dan Ilmu Pendidikan) - S1
 ('118', 'Pendidikan Guru Sekolah Dasar (PGSD)', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
@@ -4850,13 +4852,18 @@ INSERT INTO public.study_programs (code, name, faculty_id, study_level_id) VALUE
 ('128', 'Pendidikan Ekonomi', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('129', 'Teknologi Pendidikan', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 
--- FEB (Fakultas Ekonomi dan Bisnis) - S1 & D3
+-- FEB (Fakultas Ekonomi dan Bisnis) - S1
 ('54', 'Manajemen', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('83', 'Akuntansi', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('55', 'Ekonomi Pembangunan', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('56', 'Ekonomi Syariah', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('57', 'Pariwisata', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
-('412', 'D-III Perpajakan', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'D3'))
+('58', 'Kewirausahaan', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('59', 'Akuntansi Keuangan Publik', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+
+-- SV (Sekolah Vokasi) - D3 & D4
+('411', 'D-IV Kearsipan', (SELECT id FROM public.faculties WHERE code = 'SV'), (SELECT id FROM public.study_levels WHERE code = 'D4')),
+('412', 'D-III Perpajakan', (SELECT id FROM public.faculties WHERE code = 'SV'), (SELECT id FROM public.study_levels WHERE code = 'D3'))
 ON CONFLICT (code) DO NOTHING;
 
 -- 6. Service Schemes
