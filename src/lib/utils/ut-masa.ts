@@ -37,21 +37,7 @@ export function deriveUtMasaCode(dateInput?: Date | string | null): number {
  */
 export function formatUtMasaLabel(code: number | string | null | undefined): string {
   if (!code) return "-";
-  const str = String(code).trim();
-  if (str.length !== 5) {
-    return `${str}`;
-  }
-
-  const yr = parseInt(str.substring(0, 4), 10);
-  const term = str.substring(4);
-
-  if (term === "1") {
-    return `${str} (Masa ${yr}/${yr + 1} Ganjil - Penerimaan 1)`;
-  } else if (term === "2") {
-    return `${str} (Masa ${yr}/${yr + 1} Genap - Penerimaan 2)`;
-  }
-
-  return `${str}`;
+  return String(code).trim();
 }
 
 /**
@@ -66,11 +52,11 @@ export function generateUtMasaOptions(startYear = 2022, endYear = 2030): { value
 
     options.push({
       value: code2,
-      label: formatUtMasaLabel(code2),
+      label: String(code2),
     });
     options.push({
       value: code1,
-      label: formatUtMasaLabel(code1),
+      label: String(code1),
     });
   }
 

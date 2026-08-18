@@ -353,22 +353,22 @@ export function StudentForm({
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1 flex items-center justify-between">
-                  <span>Angkatan / Masa UT</span>
+                  <span>Angkatan</span>
                   {!isEditing && (
                     <span className="text-xs text-blue-600 font-normal flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Auto-Deteksi Masa
+                      <Sparkles className="w-3 h-3" /> Auto
                     </span>
                   )}
                 </label>
                 <select
                   value={formData.entryYear || autoDerivedEntryYear}
                   onChange={(e) => setFormData({ ...formData, entryYear: parseInt(e.target.value, 10) || null })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm font-medium"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm font-medium font-mono"
                 >
                   {/* Current value fallback if not in options */}
                   {formData.entryYear && !masaSelectOptions.some((o) => o.value === formData.entryYear) && (
                     <option value={formData.entryYear}>
-                      {formatUtMasaLabel(formData.entryYear)}
+                      {formData.entryYear}
                     </option>
                   )}
                   {masaSelectOptions.map((opt) => (
@@ -377,9 +377,6 @@ export function StudentForm({
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 mt-1">
-                  Format 5-Digit UT: Masa 1 (Okt-Jan, cth: 20261) & Masa 2 (Mar-Agt, cth: 20262)
-                </p>
               </div>
 
               <div>
