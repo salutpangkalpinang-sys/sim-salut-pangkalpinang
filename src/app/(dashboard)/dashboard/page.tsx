@@ -1,4 +1,5 @@
 import { getCurrentUserProfile } from "@/lib/auth/permissions";
+import { getAppSettings } from "@/features/settings/queries";
 import {
   getDashboardKpiMetrics,
   getLatestPaymentsWidget,
@@ -17,7 +18,10 @@ export default async function DashboardPage({
 }: {
   searchParams?: Promise<{ periodId?: string }>;
 }) {
-  const profile = await getCurrentUserProfile();
+  const [profile, appSettings] = await Promise.all([
+    getCurrentUserProfile(),
+    getAppSettings(),
+  ]);
 
   if (!profile) {
     redirect("/login");
@@ -110,7 +114,7 @@ export default async function DashboardPage({
             Selamat Datang, {profile.fullName}!
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Sistem Informasi Manajemen Sentra Layanan Universitas Terbuka Pangkalpinang
+            Sistem Informasi Manajemen {appSettings.salut_official_name}
           </p>
         </div>
 

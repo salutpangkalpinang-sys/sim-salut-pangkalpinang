@@ -6,6 +6,7 @@ import { LogOut, UserCheck } from "lucide-react";
 
 interface HeaderProps {
   profile: UserProfile | null;
+  officialName?: string;
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -27,14 +28,14 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   },
 };
 
-export function Header({ profile }: HeaderProps) {
+export function Header({ profile, officialName }: HeaderProps) {
   const roleBadge = ROLE_LABELS[profile?.role || "viewer"] || ROLE_LABELS.viewer;
 
   return (
     <header className="h-16 bg-white/90 backdrop-blur border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs">
       <div className="flex items-center gap-3">
         <h1 className="text-sm font-semibold text-slate-800">
-          Sentra Layanan UT Pangkalpinang
+          {officialName || "Sentra Layanan UT Pangkalpinang"}
         </h1>
       </div>
 

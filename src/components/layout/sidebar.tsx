@@ -43,10 +43,15 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 interface SidebarProps {
   userRole: RoleCode;
+  salutName?: string;
+  salutCity?: string;
 }
 
-export function Sidebar({ userRole }: SidebarProps) {
+export function Sidebar({ userRole, salutName, salutCity }: SidebarProps) {
   const pathname = usePathname();
+
+  const brandTitle = salutName || "SIM-SALUT";
+  const brandSub = salutCity || "Pangkalpinang";
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 shrink-0 shadow-sm">
@@ -55,11 +60,11 @@ export function Sidebar({ userRole }: SidebarProps) {
         <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/20 shrink-0">
           <GraduationCap className="w-6 h-6" />
         </div>
-        <div>
-          <h2 className="font-bold text-slate-900 text-sm tracking-tight">
-            SIM-SALUT
+        <div className="min-w-0 flex-1">
+          <h2 className="font-bold text-slate-900 text-xs tracking-tight truncate" title={brandTitle}>
+            {brandTitle}
           </h2>
-          <p className="text-xs text-slate-500">Pangkalpinang</p>
+          <p className="text-[11px] text-slate-500 truncate">{brandSub}</p>
         </div>
       </div>
 

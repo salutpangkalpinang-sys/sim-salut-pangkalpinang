@@ -128,6 +128,17 @@ export async function updateSettingsAction(prevState: unknown, formData: FormDat
           error: `Gagal menyimpan pengaturan ke database Supabase: ${firstError.message}`,
         };
       }
+
+      // Also update Owner profile full_name if salut_leader_name is provided
+      if (validatedData.salut_leader_name) {
+        await supabase
+          .from("profiles")
+          .update({
+            full_name: validatedData.salut_leader_name,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", profile.id);
+      }
     } catch (err: any) {
       console.error("Exception saat menyimpan pengaturan:", err);
       return {
@@ -139,7 +150,7 @@ export async function updateSettingsAction(prevState: unknown, formData: FormDat
   const newSettingsObj: SalutSettings = {
     ...validatedData,
     updatedAt: new Date().toISOString(),
-    updatedBy: profile.fullName,
+    updatedBy: validatedData.salut_leader_name || profile.fullName,
   };
 
   updateInMemorySettings(newSettingsObj);
@@ -170,6 +181,7 @@ export async function updateSettingsAction(prevState: unknown, formData: FormDat
     }
   }
 
+  revalidatePath("/", "layout");
   revalidatePath("/pengaturan");
   revalidatePath("/pembayaran");
 
