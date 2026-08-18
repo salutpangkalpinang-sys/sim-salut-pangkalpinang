@@ -248,12 +248,13 @@ export async function getStudentStatusHistory(studentId: string): Promise<Studen
 export async function getMasterOptions() {
   const supabase = await createClient();
 
-  const [facultiesRes, levelsRes, programsRes, schemesRes, statusesRes] = await Promise.all([
+  const [facultiesRes, levelsRes, programsRes, schemesRes, statusesRes, activePeriodRes] = await Promise.all([
     supabase.from("faculties").select("id, code, name").eq("is_active", true).order("name"),
     supabase.from("study_levels").select("id, code, name").eq("is_active", true).order("name"),
     supabase.from("study_programs").select("id, code, name, faculty_id, study_level_id").eq("is_active", true).order("name"),
     supabase.from("service_schemes").select("id, code, name").eq("is_active", true).order("name"),
     supabase.from("student_statuses").select("id, code, name").eq("is_active", true).order("name"),
+    supabase.from("academic_periods").select("id, code, name").eq("is_active", true).single(),
   ]);
 
   return {
@@ -262,5 +263,6 @@ export async function getMasterOptions() {
     studyPrograms: (programsRes.data || []) as (MasterOption & { faculty_id?: string; study_level_id?: string })[],
     serviceSchemes: (schemesRes.data || []) as MasterOption[],
     statuses: (statusesRes.data || []) as MasterOption[],
+    activeAcademicPeriod: activePeriodRes.data as MasterOption | null,
   };
 }

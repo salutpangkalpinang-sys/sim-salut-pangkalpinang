@@ -17,6 +17,7 @@ interface StudentFormProps {
     studyPrograms: (MasterOption & { faculty_id?: string; study_level_id?: string })[];
     serviceSchemes: MasterOption[];
     statuses: MasterOption[];
+    activeAcademicPeriod?: MasterOption | null;
   };
   isCalonMode?: boolean;
 }
@@ -35,6 +36,10 @@ export function StudentForm({
     options.statuses.find((s) => s.code === (isCalonMode ? "CALON" : "AKTIF")) ||
     options.statuses[0];
 
+  const defaultEntryYear = options.activeAcademicPeriod?.code
+    ? parseInt(options.activeAcademicPeriod.code, 10)
+    : 20261;
+
   const [formData, setFormData] = useState<Partial<StudentFormInput>>({
     fullName: initialData?.fullName || "",
     nim: initialData?.nim || "",
@@ -46,7 +51,7 @@ export function StudentForm({
     email: initialData?.email || "",
     address: initialData?.address || "",
     city: initialData?.city || "Pangkalpinang",
-    entryYear: initialData?.entryYear || new Date().getFullYear(),
+    entryYear: initialData?.entryYear || defaultEntryYear,
     facultyId: initialData?.facultyId || "",
     studyLevelId: initialData?.studyLevelId || "",
     studyProgramId: initialData?.studyProgramId || "",

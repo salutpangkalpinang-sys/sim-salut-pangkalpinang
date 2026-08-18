@@ -404,6 +404,9 @@ export function parseStudentImportBuffer(
       } else {
         entryYear = yr;
       }
+    } else {
+      // Automatic fallback to current active UT Masa (20261) if left blank in Excel
+      entryYear = 20261;
     }
 
 // Clean match helper: removes punctuation, hyphens, underscores, extra spaces
