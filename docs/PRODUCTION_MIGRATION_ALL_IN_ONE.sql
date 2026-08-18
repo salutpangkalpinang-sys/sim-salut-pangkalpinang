@@ -4916,11 +4916,24 @@ INSERT INTO public.operational_categories (code, name, transaction_type) VALUES
 ('OP_OTHER_INCOME', 'Pemasukan Non-Akademik Lainnya', 'income')
 ON CONFLICT (code) DO NOTHING;
 
--- 12. App Settings Initial Default
+-- 12. App Settings Initial Default (SALUT Mega Cendekia)
 INSERT INTO public.app_settings (key, value, description) VALUES
-('salut_info', '{"name": "SALUT Pangkalpinang", "city": "Pangkalpinang", "phone": "0812-3456-7890", "address": "Jl. Utama No. 12, Pangkalpinang"}', 'Informasi identitas resmi SALUT'),
-('default_salut_fee', '{"amount": 400000, "currency": "IDR"}', 'Nominal estimasi awal biaya layanan SALUT per registrasi')
-ON CONFLICT (key) DO NOTHING;
+(
+  'salut_info', 
+  '{"name": "SALUT Mega Cendekia", "official_name": "Sentra Layanan Universitas Terbuka Mega Cendekia", "address": "Jl. Utama No. 12, Pangkalpinang", "city": "Pangkalpinang", "province": "Kepulauan Bangka Belitung", "postal_code": "33111", "whatsapp": "081234567890", "email": "info@salut-megacendekia.ac.id", "leader_name": "Drs. H. Ahmad Subagyo, M.M."}', 
+  'Informasi identitas resmi Sentra Layanan Universitas Terbuka Mega Cendekia'
+),
+(
+  'receipt_info',
+  '{"header_name": "SALUT MEGA CENDEKIA", "address": "Jl. Utama No. 12, Pangkalpinang, Bangka Belitung", "whatsapp": "081234567890", "email": "keuangan@salut-megacendekia.ac.id", "leader_name": "Drs. H. Ahmad Subagyo, M.M.", "footer": "1. Bukti pembayaran ini adalah dokumen sah pengganti kuitansi fisik.\\n2. Harap simpan bukti kuitansi ini untuk keperluan administrasi akademik."}',
+  'Informasi kop & footer kuitansi resmi SALUT Mega Cendekia'
+),
+(
+  'default_salut_fee', 
+  '{"amount": 250000, "currency": "IDR"}', 
+  'Nominal estimasi awal biaya layanan SALUT per registrasi'
+)
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, description = EXCLUDED.description;
 
 -- 13. Seed Official Pedoman UT 2026/2027 Fee Types & Rates
 INSERT INTO public.fee_types (code, name, category, is_per_sks, description) VALUES
