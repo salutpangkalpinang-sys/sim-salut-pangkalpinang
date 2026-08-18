@@ -35,13 +35,51 @@ INSERT INTO public.study_levels (code, name) VALUES
 ('S3', 'Doktor (S3)')
 ON CONFLICT (code) DO NOTHING;
 
--- 5. Study Programs (Samples for UT)
+-- 5. Study Programs (All Official Programs from SALUT Mega Cendekia Flyer)
 INSERT INTO public.study_programs (code, name, faculty_id, study_level_id) VALUES
-('54', 'Management', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+-- FST (Fakultas Sains dan Teknologi) - S1
+('252', 'Sistem Informasi', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('253', 'Matematika', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('254', 'Statistika', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('255', 'Biologi', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('256', 'Agribisnis Bidang Minat Pertanian', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('257', 'Agribisnis Bidang Minat Peternakan', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('258', 'Agribisnis Bidang Minat Perikanan', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('259', 'Teknologi Pangan', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('260', 'Perencanaan Wilayah & Kota', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+
+-- FHISIP (Fakultas Hukum, Ilmu Sosial dan Ilmu Politik) - S1 & D4
+('311', 'Ilmu Hukum', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('312', 'Administrasi Negara', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('313', 'Administrasi Bisnis', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('314', 'Ilmu Pemerintahan', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('315', 'Ilmu Komunikasi', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('316', 'Ilmu Perpustakaan', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('317', 'Sosiologi', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('318', 'Sastra Inggris Penerjemah', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('411', 'D-IV Kearsipan', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'D4')),
+
+-- FKIP (Fakultas Keguruan dan Ilmu Pendidikan) - S1
+('118', 'Pendidikan Guru Sekolah Dasar (PGSD)', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('119', 'Pendidikan Guru Anak Usia Dini (PGPAUD)', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('120', 'Pendidikan Agama Islam', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('121', 'Pendidikan Bahasa Indonesia', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('122', 'Pendidikan Bahasa Inggris', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('123', 'Pendidikan Matematika', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('124', 'Pendidikan Biologi', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('125', 'Pendidikan Fisika', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('126', 'Pendidikan Kimia', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('127', 'Pancasila & Kewarganegaraan', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('128', 'Pendidikan Ekonomi', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('129', 'Teknologi Pendidikan', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+
+-- FEB (Fakultas Ekonomi dan Bisnis) - S1 & D3
+('54', 'Manajemen', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
 ('83', 'Akuntansi', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
-('311', 'Hukum', (SELECT id FROM public.faculties WHERE code = 'FHISIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
-('118', 'PGSD Pre-Service', (SELECT id FROM public.faculties WHERE code = 'FKIP'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
-('252', 'Sistem Informasi', (SELECT id FROM public.faculties WHERE code = 'FST'), (SELECT id FROM public.study_levels WHERE code = 'S1'))
+('55', 'Ekonomi Pembangunan', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('56', 'Ekonomi Syariah', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('57', 'Pariwisata', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'S1')),
+('412', 'D-III Perpajakan', (SELECT id FROM public.faculties WHERE code = 'FE'), (SELECT id FROM public.study_levels WHERE code = 'D3'))
 ON CONFLICT (code) DO NOTHING;
 
 -- 6. Service Schemes

@@ -45,13 +45,13 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
   if (devRole || process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder")) {
     const activeRole = devRole || "owner";
     const roleLabels: Record<RoleCode, string> = {
-      owner: "Owner / Pimpinan SALUT",
+      owner: "Pimpinan SALUT",
       academic_admin: "Admin Akademik",
       finance_admin: "Admin Keuangan / Kasir",
       viewer: "Viewer / Auditor",
     };
 
-    const devEmail = process.env.DEV_ADMIN_EMAIL || "admin@salut-pangkalpinang.ac.id";
+    const devEmail = process.env.DEV_ADMIN_EMAIL || "admin@salut-megacendekia.ac.id";
 
     return {
       id: "dev-user-id",
