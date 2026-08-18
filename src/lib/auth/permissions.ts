@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { UserProfile, RoleCode } from "./types";
+import { cache } from "react";
 
-export async function getCurrentUserProfile(): Promise<UserProfile | null> {
+export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null> => {
   const cookieStore = await cookies();
   const devRole = cookieStore.get("salut_dev_role")?.value as RoleCode | undefined;
 
@@ -13,17 +14,18 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     } = await supabase.auth.getUser();
 
     if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, full_name, is_active")
-        .eq("id", user.id)
-        .single();
-
-      const { data: userRole } = await supabase
-        .from("user_roles")
-        .select("roles(code)")
-        .eq("user_id", user.id)
-        .single();
+      const [{ data: profile }, { data: userRole }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, is_active")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("user_roles")
+          .select("roles(code)")
+          .eq("user_id", user.id)
+          .single(),
+      ]);
 
       const roleCode = (userRole?.roles as unknown as { code: RoleCode })?.code || "viewer";
 
@@ -60,9 +62,8 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     };
   }
 
-
   return null;
-}
+});
 
 export { hasPermission } from "./types";
 export type { RoleCode, UserProfile } from "./types";

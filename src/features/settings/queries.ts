@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SalutSettings, ALLOWED_SETTING_KEYS } from "@/types/settings";
+import { cache } from "react";
 
 const DEFAULT_SETTINGS: SalutSettings = {
   salut_name: "SALUT Pangkalpinang",
@@ -27,7 +28,7 @@ const DEFAULT_SETTINGS: SalutSettings = {
 // In-memory store for dev mode fallback
 let IN_MEMORY_SETTINGS_STORE: SalutSettings = { ...DEFAULT_SETTINGS };
 
-export async function getAppSettings(): Promise<SalutSettings> {
+export const getAppSettings = cache(async (): Promise<SalutSettings> => {
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
 
   if (!isPlaceholder) {
@@ -95,7 +96,7 @@ export async function getAppSettings(): Promise<SalutSettings> {
   }
 
   return { ...IN_MEMORY_SETTINGS_STORE };
-}
+});
 
 export function updateInMemorySettings(newSettings: SalutSettings): void {
   IN_MEMORY_SETTINGS_STORE = { ...newSettings };
