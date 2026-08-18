@@ -403,13 +403,30 @@ export function parseStudentImportBuffer(
       }
     }
 
+// Clean match helper: removes punctuation, hyphens, underscores, extra spaces
+function cleanMatchKey(str: string): string {
+  return String(str || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[._\-/\s]+/g, " ");
+}
+
+// Strip common prefix noise like 'ilmu ', 'pendidikan ', 's1 ', 'd3 ', 'd4 ' for flexible prodi matching
+function normalizeProdiMatch(str: string): string {
+  let cleaned = cleanMatchKey(str);
+  cleaned = cleaned.replace(/^(s1|d3|d4|diploma 3|diploma 4|sarjana|ilmu)\s+/, "");
+  return cleaned;
+}
+
     // 8. Master Data Matching — Faculty
     let matchedFaculty: { id: string; code: string; name: string } | undefined = undefined;
     if (facultyStr) {
-      const fNorm = facultyStr.toLowerCase();
-      matchedFaculty = masterData.faculties.find(
-        (f) => f.code.toLowerCase() === fNorm || f.name.toLowerCase() === fNorm
-      );
+      const fClean = cleanMatchKey(facultyStr);
+      matchedFaculty = masterData.faculties.find((f) => {
+        const codeClean = cleanMatchKey(f.code);
+        const nameClean = cleanMatchKey(f.name);
+        return codeClean === fClean || nameClean === fClean || fClean.includes(codeClean);
+      });
       if (!matchedFaculty) {
         errors.push(`Fakultas '${facultyStr}' tidak ditemukan pada master data.`);
       }
@@ -418,10 +435,23 @@ export function parseStudentImportBuffer(
     // 9. Master Data Matching — Study Program
     let matchedProdi: { id: string; code: string; name: string; faculty_id?: string } | undefined = undefined;
     if (studyProgramStr) {
-      const pNorm = studyProgramStr.toLowerCase();
-      matchedProdi = masterData.studyPrograms.find(
-        (p) => p.code.toLowerCase() === pNorm || p.name.toLowerCase() === pNorm
-      );
+      const pClean = cleanMatchKey(studyProgramStr);
+      const pNorm = normalizeProdiMatch(studyProgramStr);
+
+      matchedProdi = masterData.studyPrograms.find((p) => {
+        const codeClean = cleanMatchKey(p.code);
+        const nameClean = cleanMatchKey(p.name);
+        const nameNorm = normalizeProdiMatch(p.name);
+        return (
+          codeClean === pClean ||
+          nameClean === pClean ||
+          nameNorm === pNorm ||
+          nameClean.includes(pClean) ||
+          pClean.includes(nameClean) ||
+          nameNorm.includes(pNorm) ||
+          pNorm.includes(nameNorm)
+        );
+      });
 
       if (!matchedProdi) {
         errors.push(`Program studi '${studyProgramStr}' tidak ditemukan pada master data.`);
@@ -435,10 +465,33 @@ export function parseStudentImportBuffer(
     // 10. Master Data Matching — Service Scheme
     let matchedScheme: { id: string; code: string; name: string } | undefined = undefined;
     if (serviceSchemeStr) {
-      const sNorm = serviceSchemeStr.toLowerCase();
-      matchedScheme = masterData.serviceSchemes.find(
-        (s) => s.code.toLowerCase() === sNorm || s.name.toLowerCase() === sNorm
-      );
+      const sClean = cleanMatchKey(serviceSchemeStr);
+      matchedScheme = masterData.serviceSchemes.find((s) => {
+        const codeClean = cleanMatchKey(s.code);
+        const nameClean = cleanMatchKey(s.name);
+        return (
+          codeClean === sClean ||
+          nameClean === sClean ||
+          codeClean.replace(/_/g, " ") === sClean ||
+          nameClean.replace(/[^a-z0-9]/g, "") === sClean.replace(/[^a-z0-9]/g, "")
+        );
+      });
+
+      // Flexible alias fallbacks for common user variations
+      if (!matchedScheme) {
+        if (sClean.includes("non ttm") || sClean.includes("nonttm")) {
+          matchedScheme = masterData.serviceSchemes.find((s) => s.code.toUpperCase().includes("NON_TTM"));
+        } else if (sClean.includes("semi")) {
+          matchedScheme = masterData.serviceSchemes.find((s) => s.code.toUpperCase().includes("SEMI"));
+        } else if (sClean.includes("full") || sClean.includes("penuh")) {
+          matchedScheme = masterData.serviceSchemes.find((s) => s.code.toUpperCase().includes("FULL"));
+        } else if (sClean.includes("ttm")) {
+          matchedScheme = masterData.serviceSchemes.find((s) => s.code.toUpperCase() === "SIPAS_TTM");
+        } else if (sClean.includes("non sipas") || sClean.includes("sks")) {
+          matchedScheme = masterData.serviceSchemes.find((s) => s.code.toUpperCase() === "NON_SIPAS");
+        }
+      }
+
       if (!matchedScheme) {
         errors.push(`Skema layanan '${serviceSchemeStr}' tidak ditemukan pada master data.`);
       }
@@ -447,10 +500,28 @@ export function parseStudentImportBuffer(
     // 11. Master Data Matching — Status
     let matchedStatus: { id: string; code: string; name: string } | undefined = undefined;
     if (statusStr) {
-      const stNorm = statusStr.toLowerCase();
-      matchedStatus = masterData.studentStatuses.find(
-        (st) => st.code.toLowerCase() === stNorm || st.name.toLowerCase() === stNorm
-      );
+      const stClean = cleanMatchKey(statusStr);
+      matchedStatus = masterData.studentStatuses.find((st) => {
+        const codeClean = cleanMatchKey(st.code);
+        const nameClean = cleanMatchKey(st.name);
+        return codeClean === stClean || nameClean === stClean;
+      });
+
+      // Flexible alias fallbacks for status (e.g. MABA, CAMABA, MAHASISWA BARU -> CALON)
+      if (!matchedStatus) {
+        if (["maba", "camaba", "mahasiswa baru", "baru", "calon", "calon mahasiswa"].includes(stClean) || stClean.includes("calon") || stClean.includes("maba")) {
+          matchedStatus = masterData.studentStatuses.find((st) => st.code.toLowerCase() === "calon");
+        } else if (["aktif", "mahasiswa aktif", "mhs aktif"].includes(stClean) || stClean.includes("aktif")) {
+          matchedStatus = masterData.studentStatuses.find((st) => st.code.toLowerCase() === "aktif");
+        } else if (["cuti", "cuti akademik"].includes(stClean) || stClean.includes("cuti")) {
+          matchedStatus = masterData.studentStatuses.find((st) => st.code.toLowerCase() === "cuti");
+        } else if (["lulus", "alumni"].includes(stClean) || stClean.includes("lulus")) {
+          matchedStatus = masterData.studentStatuses.find((st) => st.code.toLowerCase() === "lulus");
+        } else if (["drop out", "do", "do/dikeluarkan"].includes(stClean)) {
+          matchedStatus = masterData.studentStatuses.find((st) => st.code.toLowerCase() === "do");
+        }
+      }
+
       if (!matchedStatus) {
         errors.push(`Status mahasiswa '${statusStr}' tidak ditemukan pada master data.`);
       }
