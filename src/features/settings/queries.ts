@@ -51,23 +51,23 @@ export async function getAppSettings(): Promise<SalutSettings> {
 
           if (row.key === "salut_info" && typeof row.value === "object" && row.value !== null) {
             const val = row.value as Record<string, any>;
-            if (val.name) fetched.salut_name = val.name;
-            if (val.official_name) fetched.salut_official_name = val.official_name;
-            if (val.address) fetched.salut_address = val.address;
-            if (val.city) fetched.salut_city = val.city;
-            if (val.province) fetched.salut_province = val.province;
-            if (val.postal_code) fetched.salut_postal_code = val.postal_code;
-            if (val.whatsapp || val.phone) fetched.salut_whatsapp = val.whatsapp || val.phone;
-            if (val.email) fetched.salut_email = val.email;
-            if (val.leader_name) fetched.salut_leader_name = val.leader_name;
+            if (val.name !== undefined) fetched.salut_name = val.name;
+            if (val.official_name !== undefined) fetched.salut_official_name = val.official_name;
+            if (val.address !== undefined) fetched.salut_address = val.address;
+            if (val.city !== undefined) fetched.salut_city = val.city;
+            if (val.province !== undefined) fetched.salut_province = val.province;
+            if (val.postal_code !== undefined) fetched.salut_postal_code = val.postal_code;
+            if (val.whatsapp !== undefined || val.phone !== undefined) fetched.salut_whatsapp = val.whatsapp ?? val.phone;
+            if (val.email !== undefined) fetched.salut_email = val.email;
+            if (val.leader_name !== undefined) fetched.salut_leader_name = val.leader_name;
           } else if (row.key === "receipt_info" && typeof row.value === "object" && row.value !== null) {
             const val = row.value as Record<string, any>;
-            if (val.header_name) fetched.receipt_header_name = val.header_name;
-            if (val.address) fetched.receipt_address = val.address;
-            if (val.whatsapp) fetched.receipt_whatsapp = val.whatsapp;
-            if (val.email) fetched.receipt_email = val.email;
-            if (val.leader_name) fetched.receipt_leader_name = val.leader_name;
-            if (val.footer) fetched.receipt_footer = val.footer;
+            if (val.header_name !== undefined) fetched.receipt_header_name = val.header_name;
+            if (val.address !== undefined) fetched.receipt_address = val.address;
+            if (val.whatsapp !== undefined) fetched.receipt_whatsapp = val.whatsapp;
+            if (val.email !== undefined) fetched.receipt_email = val.email;
+            if (val.leader_name !== undefined) fetched.receipt_leader_name = val.leader_name;
+            if (val.footer !== undefined) fetched.receipt_footer = val.footer;
           } else if (row.key === "default_salut_fee") {
             if (typeof row.value === "number") {
               fetched.default_salut_fee = row.value;

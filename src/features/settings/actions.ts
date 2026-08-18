@@ -97,7 +97,7 @@ export async function updateSettingsAction(prevState: unknown, formData: FormDat
         footer: validatedData.receipt_footer,
       };
 
-      await Promise.all([
+      const results = await Promise.all([
         supabase.from("app_settings").upsert({
           key: "salut_info",
           value: salutInfoObj,
@@ -120,8 +120,19 @@ export async function updateSettingsAction(prevState: unknown, formData: FormDat
           updated_by: profile.id,
         }),
       ]);
-    } catch {
-      // Dev mode fallback
+
+      const firstError = results.find((res) => res.error)?.error;
+      if (firstError) {
+        console.error("Gagal menyimpan app_settings di Supabase:", firstError);
+        return {
+          error: `Gagal menyimpan pengaturan ke database Supabase: ${firstError.message}`,
+        };
+      }
+    } catch (err: any) {
+      console.error("Exception saat menyimpan pengaturan:", err);
+      return {
+        error: `Terjadi kesalahan saat menyimpan pengaturan: ${err?.message || "Error tidak diketahui"}`,
+      };
     }
   }
 

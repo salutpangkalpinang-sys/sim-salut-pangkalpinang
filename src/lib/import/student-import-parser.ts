@@ -25,6 +25,132 @@ export function normalizeStringValue(val: any): string {
   return str;
 }
 
+// Helper to parse Excel numeric date codes (e.g. 34812 -> 1995-04-23)
+export function parseExcelDate(val: any): string {
+  if (val === null || val === undefined || val === "") return "";
+  const str = String(val).trim();
+  if (
+    typeof val === "number" ||
+    (!isNaN(Number(str)) &&
+      Number(str) > 10000 &&
+      Number(str) < 80000 &&
+      !str.includes("-") &&
+      !str.includes("/"))
+  ) {
+    try {
+      const parsed = XLSX.SSF.parse_date_code(Number(str));
+      if (parsed) {
+        const yyyy = parsed.y;
+        const mm = String(parsed.m).padStart(2, "0");
+        const dd = String(parsed.d).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    } catch {}
+  }
+  return str;
+}
+
+// Clean string for header matching
+function cleanHeaderKey(key: any): string {
+  return String(key || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\ufeff\r]/g, "")
+    .replace(/[._\-/\s]+/g, " ");
+}
+
+const FIELD_ALIASES: Record<string, string[]> = {
+  fullName: [
+    "nama_lengkap", "nama lengkap", "nama", "nama mahasiswa", "fullname",
+    "name", "namalengkap", "nama_mhs", "nama mhs", "mhs"
+  ],
+  nim: [
+    "nim", "no nim", "no_nim", "no.nim", "no. nim", "nim mahasiswa",
+    "nim_mhs", "nomor induk mahasiswa", "n.i.m"
+  ],
+  nik: [
+    "nik", "no nik", "no_nik", "no.nik", "no. nik", "nik (ktp)", "nik ktp",
+    "no ktp", "no. ktp", "ktp", "nik/ktp", "nik mahasiswa", "nomor induk kependudukan"
+  ],
+  placeOfBirth: [
+    "tempat_lahir", "tempat lahir", "tmp_lahir", "tmp lahir", "tmp. lahir",
+    "tempat lahir mahasiswa", "tmpt lahir", "tempat", "tmp"
+  ],
+  dateOfBirth: [
+    "tanggal_lahir", "tanggal lahir", "tgl_lahir", "tgl lahir", "tgl. lahir",
+    "tgllahir", "tanggal lahir (yyyy-mm-dd)", "tgl lahir (yyyy-mm-dd)"
+  ],
+  gender: [
+    "jenis_kelamin", "jenis kelamin", "jk", "j_k", "gender", "sex", "kelamin"
+  ],
+  whatsapp: [
+    "whatsapp", "no_wa", "no wa", "no. wa", "wa", "no hp", "no. hp", "hp",
+    "telepon", "no telepon", "no. telp", "no_hp", "no_telp", "phone", "mobile"
+  ],
+  email: [
+    "email", "e-mail", "alamat email", "mail"
+  ],
+  address: [
+    "alamat", "alamat domisili", "alamat rumah", "address", "street"
+  ],
+  city: [
+    "kota", "kota/kabupaten", "kabupaten", "kab/kota", "kabupaten/kota", "city"
+  ],
+  entryYear: [
+    "tahun_masuk", "tahun masuk", "thn_masuk", "thn masuk", "thn. masuk",
+    "angkatan", "thn_angkatan", "year"
+  ],
+  faculty: [
+    "fakultas", "fak", "faculty"
+  ],
+  studyProgram: [
+    "program_studi", "program studi", "prodi", "jurusan", "progstudi",
+    "nama prodi", "nama program studi"
+  ],
+  serviceScheme: [
+    "skema_layanan", "skema layanan", "skema", "skema ut", "layanan"
+  ],
+  status: [
+    "status", "status mahasiswa", "status mhs"
+  ],
+  statusEffectiveDate: [
+    "tanggal_efektif_status", "tanggal efektif status", "tgl efektif status",
+    "tgl efektif", "tgl. efektif"
+  ],
+  notes: [
+    "catatan_internal", "catatan internal", "catatan", "keterangan", "remark", "notes"
+  ]
+};
+
+function matchCanonicalField(cleanedHeader: string): string | null {
+  if (!cleanedHeader) return null;
+  // 1. Direct match on exact alias list
+  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+    if (aliases.includes(cleanedHeader)) {
+      return field;
+    }
+  }
+  // 2. Partial / Substring matching for resilient fallback
+  if (cleanedHeader.includes("nama") && !cleanedHeader.includes("prodi") && !cleanedHeader.includes("studi")) return "fullName";
+  if (cleanedHeader.includes("nim")) return "nim";
+  if (cleanedHeader.includes("nik") || cleanedHeader.includes("ktp")) return "nik";
+  if (cleanedHeader.includes("prodi") || cleanedHeader.includes("jurusan") || cleanedHeader.includes("program studi")) return "studyProgram";
+  if (cleanedHeader.includes("skema")) return "serviceScheme";
+  if (cleanedHeader.includes("fakultas")) return "faculty";
+  if (cleanedHeader.includes("status")) return "status";
+  if (cleanedHeader.includes("wa") || cleanedHeader.includes("hp") || cleanedHeader.includes("telepon") || cleanedHeader.includes("phone")) return "whatsapp";
+  if (cleanedHeader.includes("email")) return "email";
+  if (cleanedHeader.includes("alamat")) return "address";
+  if (cleanedHeader.includes("kota") || cleanedHeader.includes("kabupaten")) return "city";
+  if (cleanedHeader.includes("angkatan") || cleanedHeader.includes("tahun")) return "entryYear";
+  if (cleanedHeader.includes("tgl lahir") || cleanedHeader.includes("tanggal lahir")) return "dateOfBirth";
+  if (cleanedHeader.includes("tmp lahir") || cleanedHeader.includes("tempat lahir")) return "placeOfBirth";
+  if (cleanedHeader.includes("jk") || cleanedHeader.includes("kelamin") || cleanedHeader.includes("gender")) return "gender";
+  if (cleanedHeader.includes("catatan") || cleanedHeader.includes("keterangan")) return "notes";
+
+  return null;
+}
+
 export function parseStudentImportBuffer(
   buffer: Buffer,
   filename: string,
@@ -41,7 +167,21 @@ export function parseStudentImportBuffer(
 
   let workbook: XLSX.WorkBook;
   try {
-    workbook = XLSX.read(buffer, { type: "buffer", raw: true });
+    const readOpts: XLSX.ParsingOptions = { type: "buffer", raw: true };
+    if (ext === "csv") {
+      const csvStr = buffer.toString("utf-8");
+      const firstLine = csvStr.split(/\r?\n/)[0] || "";
+      const semiCount = (firstLine.match(/;/g) || []).length;
+      const tabCount = (firstLine.match(/\t/g) || []).length;
+      const commaCount = (firstLine.match(/,/g) || []).length;
+
+      if (semiCount > commaCount && semiCount > tabCount) {
+        readOpts.FS = ";";
+      } else if (tabCount > commaCount && tabCount > semiCount) {
+        readOpts.FS = "\t";
+      }
+    }
+    workbook = XLSX.read(buffer, readOpts);
   } catch (err: any) {
     throw new Error(`Gagal membaca berkas spreadsheet: ${err?.message || "File corrupt/invalid"}`);
   }
@@ -52,14 +192,82 @@ export function parseStudentImportBuffer(
   }
 
   const worksheet = workbook.Sheets[sheetName];
-  // Parse rows as raw text objects
-  const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, {
-    raw: false,
+
+  // Read entire worksheet as 2D array (Array of Arrays)
+  const aoa: any[][] = XLSX.utils.sheet_to_json(worksheet, {
+    header: 1,
     defval: "",
+    raw: false,
   });
 
-  if (rawRows.length === 0) {
+  if (!aoa || aoa.length === 0) {
     throw new Error("File spreadsheet tidak berisi data baris (kosong).");
+  }
+
+  // Find the header row index (scanning first 15 rows)
+  let headerRowIdx = -1;
+  let maxScore = -1;
+
+  for (let r = 0; r < Math.min(15, aoa.length); r++) {
+    const row = aoa[r];
+    if (!Array.isArray(row) || row.length === 0) continue;
+
+    let score = 0;
+    row.forEach((cell) => {
+      const cleaned = cleanHeaderKey(cell);
+      if (cleaned && matchCanonicalField(cleaned)) {
+        score++;
+      }
+    });
+
+    if (score > maxScore && score > 0) {
+      maxScore = score;
+      headerRowIdx = r;
+    }
+  }
+
+  // Fallback to row 0 if no clear header detected
+  if (headerRowIdx === -1) {
+    headerRowIdx = 0;
+  }
+
+  const headerCells = aoa[headerRowIdx] || [];
+  const colIndexToCanonicalMap: (string | null)[] = headerCells.map((cell: any) => {
+    const cleaned = cleanHeaderKey(cell);
+    return matchCanonicalField(cleaned);
+  });
+
+  // Extract raw rows
+  const rawRows: Record<string, any>[] = [];
+  const rawRowsExcelLineNumbers: number[] = [];
+
+  for (let r = headerRowIdx + 1; r < aoa.length; r++) {
+    const rowData = aoa[r];
+    if (!Array.isArray(rowData)) continue;
+
+    // Check if row is completely empty
+    const isAllEmpty = rowData.every((cell) => cell === null || cell === undefined || String(cell).trim() === "");
+    if (isAllEmpty) continue;
+
+    const rowObj: Record<string, any> = {};
+    headerCells.forEach((hCell: any, colIdx: number) => {
+      const headerStr = String(hCell || "").trim();
+      const val = rowData[colIdx] !== undefined ? rowData[colIdx] : "";
+      if (headerStr) {
+        rowObj[headerStr] = val;
+      }
+      const canonical = colIndexToCanonicalMap[colIdx];
+      if (canonical && !(canonical in rowObj)) {
+        rowObj[canonical] = val;
+      }
+    });
+
+    rawRows.push(rowObj);
+    rawRowsExcelLineNumbers.push(r + 1); // 1-indexed row number in spreadsheet
+  }
+
+  if (rawRows.length === 0) {
+    throw new Error("File spreadsheet tidak berisi data baris setelah header.");
   }
 
   if (rawRows.length > 1000) {
@@ -74,7 +282,7 @@ export function parseStudentImportBuffer(
 
   // Pass 1: Collect NIM & NIK for file-level duplicate detection
   rawRows.forEach((row, idx) => {
-    const rowNum = idx + 2; // Row 1 is header
+    const rowNum = rawRowsExcelLineNumbers[idx];
     const nim = normalizeStringValue(row.nim || row.NIM);
     const nik = normalizeStringValue(row.nik || row.NIK);
 
@@ -93,32 +301,32 @@ export function parseStudentImportBuffer(
 
   // Pass 2: Row-by-row validation
   rawRows.forEach((row, idx) => {
-    const rowNum = idx + 2;
+    const rowNum = rawRowsExcelLineNumbers[idx];
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Extract fields (support uppercase / lowercase column names)
-    const fullName = normalizeStringValue(row.nama_lengkap || row.Nama || row["Nama Lengkap"]);
+    // Extract fields (support flexible alias matching + direct column names)
+    const fullName = normalizeStringValue(row.fullName || row.nama_lengkap || row.Nama || row["Nama Lengkap"]);
     const nim = normalizeStringValue(row.nim || row.NIM) || null;
     const nik = normalizeStringValue(row.nik || row.NIK) || null;
-    const placeOfBirth = normalizeStringValue(row.tempat_lahir || row["Tempat Lahir"]) || null;
-    const dateOfBirth = normalizeStringValue(row.tanggal_lahir || row["Tanggal Lahir"]) || null;
-    const genderRaw = normalizeStringValue(row.jenis_kelamin || row["Jenis Kelamin"]).toUpperCase();
+    const placeOfBirth = normalizeStringValue(row.placeOfBirth || row.tempat_lahir || row["Tempat Lahir"]) || null;
+    const dateOfBirth = parseExcelDate(row.dateOfBirth || row.tanggal_lahir || row["Tanggal Lahir"]) || null;
+    const genderRaw = normalizeStringValue(row.gender || row.jenis_kelamin || row["Jenis Kelamin"]).toUpperCase();
     const whatsapp = normalizeStringValue(row.whatsapp || row.No_WA || row.WhatsApp) || null;
     const email = normalizeStringValue(row.email || row.Email) || null;
-    const address = normalizeStringValue(row.alamat || row.Alamat) || null;
-    const city = normalizeStringValue(row.kota || row.Kota) || null;
-    const entryYearRaw = normalizeStringValue(row.tahun_masuk || row["Tahun Masuk"]);
-    const facultyStr = normalizeStringValue(row.fakultas || row.Fakultas);
-    const studyProgramStr = normalizeStringValue(row.program_studi || row["Program Studi"] || row.Prodi);
-    const serviceSchemeStr = normalizeStringValue(row.skema_layanan || row["Skema Layanan"]);
+    const address = normalizeStringValue(row.address || row.alamat || row.Alamat) || null;
+    const city = normalizeStringValue(row.city || row.kota || row.Kota) || null;
+    const entryYearRaw = normalizeStringValue(row.entryYear || row.tahun_masuk || row["Tahun Masuk"]);
+    const facultyStr = normalizeStringValue(row.faculty || row.fakultas || row.Fakultas);
+    const studyProgramStr = normalizeStringValue(row.studyProgram || row.program_studi || row["Program Studi"] || row.Prodi);
+    const serviceSchemeStr = normalizeStringValue(row.serviceScheme || row.skema_layanan || row["Skema Layanan"]);
     const statusStr = normalizeStringValue(row.status || row.Status);
-    const statusEffectiveDate = normalizeStringValue(row.tanggal_efektif_status || row["Tanggal Efektif Status"]) || null;
-    const notes = normalizeStringValue(row.catatan_internal || row["Catatan Internal"]) || null;
+    const statusEffectiveDate = parseExcelDate(row.statusEffectiveDate || row.tanggal_efektif_status || row["Tanggal Efektif Status"]) || null;
+    const notes = normalizeStringValue(row.notes || row.catatan_internal || row["Catatan Internal"]) || null;
 
     // 0. Formula Cell Guard (Reject raw spreadsheet formulas)
     const rawCells = [
-      String(row.nama_lengkap || row.Nama || ""),
+      String(row.fullName || row.nama_lengkap || row.Nama || ""),
       String(row.nim || row.NIM || ""),
       String(row.nik || row.NIK || ""),
       String(row.whatsapp || row.No_WA || ""),
@@ -322,3 +530,4 @@ export function parseStudentImportBuffer(
     filename,
   };
 }
+

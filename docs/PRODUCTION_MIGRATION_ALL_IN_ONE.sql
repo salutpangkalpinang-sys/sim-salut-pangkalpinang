@@ -292,6 +292,11 @@ DROP POLICY IF EXISTS "Owner can manage user roles" ON public.user_roles;
 CREATE POLICY "Owner can manage user roles" ON public.user_roles FOR ALL TO authenticated
 USING (public.get_current_user_role() = 'owner');
 
+DROP POLICY IF EXISTS "Owner can manage app_settings" ON public.app_settings;
+CREATE POLICY "Owner can manage app_settings" ON public.app_settings FOR ALL TO authenticated
+USING (public.get_current_user_role() = 'owner')
+WITH CHECK (public.get_current_user_role() = 'owner');
+
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated
 USING (auth.uid() = id);

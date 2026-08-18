@@ -182,4 +182,36 @@ assert.strictEqual(importAuditEvent.action, "student_import_completed");
 assert.strictEqual(importAuditEvent.tableName, "student_status_history");
 console.log("✓ Test 12 Passed: student_import_completed audit log event & singular table name verified");
 
+// 13. Semicolon-Separated CSV (Indonesian Excel Regional Export) Test
+const semiCsvContent = `NAMA LENGKAP;NO NIM;NO. NIK;PROGRAM STUDI;STATUS
+Dewi Lestari;041234599;3671012304950099;Manajemen;Calon Mahasiswa`;
+const parsedSemiCsv = parseStudentImportBuffer(Buffer.from(semiCsvContent), "export_excel_indo.csv", "calon", mockMasterData);
+assert.strictEqual(parsedSemiCsv.totalRows, 1, "Semicolon CSV parsed 1 row");
+assert.strictEqual(parsedSemiCsv.validRowsCount, 1, "Semicolon CSV row is valid");
+assert.strictEqual(parsedSemiCsv.rows[0].normalizedData?.fullName, "Dewi Lestari");
+assert.strictEqual(parsedSemiCsv.rows[0].normalizedData?.nim, "041234599");
+assert.strictEqual(parsedSemiCsv.rows[0].normalizedData?.studyProgramName, "Manajemen");
+console.log("✓ Test 13 Passed: Semicolon-separated CSV (Indonesian Excel export) parsing verified");
+
+// 14. Flexible Header Alias Matching (Uppercase, Spaces, No. WA, Prodi, etc.)
+const aliasHeaderCsv = `NAMA MAHASISWA,NIM MAHASISWA,NIK KTP,PRODI,NO. WA,SKEMA LAYANAN
+Rudi Hermawan,041234598,3671012304950098,Manajemen,081299887766,SIPAS`;
+const parsedAliasCsv = parseStudentImportBuffer(Buffer.from(aliasHeaderCsv), "custom_header.csv", "calon", mockMasterData);
+assert.strictEqual(parsedAliasCsv.validRowsCount, 1, "Alias header matched correctly");
+assert.strictEqual(parsedAliasCsv.rows[0].normalizedData?.fullName, "Rudi Hermawan");
+assert.strictEqual(parsedAliasCsv.rows[0].normalizedData?.whatsapp, "081299887766");
+console.log("✓ Test 14 Passed: Flexible header alias matching (Uppercase, PRODI, NO. WA) verified");
+
+// 15. Header Row Offset Detection (Title text on top rows)
+const offsetCsv = `REKAPITULASI DATA MAHASISWA SALUT 2025/2026,,,,,
+,,,,,
+NAMA LENGKAP,NIM,NIK,PROGRAM STUDI,STATUS
+Eka Saputra,041234597,3671012304950097,Manajemen,Calon Mahasiswa`;
+const parsedOffsetCsv = parseStudentImportBuffer(Buffer.from(offsetCsv), "offset.csv", "calon", mockMasterData);
+assert.strictEqual(parsedOffsetCsv.totalRows, 1, "Offset header detected 1 row of data");
+assert.strictEqual(parsedOffsetCsv.validRowsCount, 1, "Data after title rows parsed cleanly");
+assert.strictEqual(parsedOffsetCsv.rows[0].normalizedData?.fullName, "Eka Saputra");
+console.log("✓ Test 15 Passed: Header row offset auto-detection verified");
+
 console.log("=== ALL POST-LAUNCH ITERATION 2 SECURITY & INTEGRITY VERIFICATION TESTS PASSED CLEANLY! ===");
+

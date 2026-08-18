@@ -22,7 +22,7 @@ export function SettingsFormContainer({
   roleName,
 }: SettingsFormContainerProps) {
   const [settings, setSettings] = useState<SalutSettings>(initialSettings);
-  const [originalSettings] = useState<SalutSettings>(initialSettings);
+  const [originalSettings, setOriginalSettings] = useState<SalutSettings>(initialSettings);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -32,11 +32,12 @@ export function SettingsFormContainer({
     if (state?.success && state.message) {
       setToastMessage(state.message);
       setIsConfirmModalOpen(false);
+      setOriginalSettings(settings);
       setTimeout(() => {
         setToastMessage(null);
       }, 4000);
     }
-  }, [state]);
+  }, [state, settings]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
