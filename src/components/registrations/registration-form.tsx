@@ -73,43 +73,95 @@ export function RegistrationForm({
           const selectedScheme = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
           const schemeCode = (selectedScheme?.code || selectedScheme?.name || "").toUpperCase();
 
-          // Filter MANDATORY rates based on UT 2026/2027 guideline and selected scheme
-          const mandatoryRates = rates.filter((r) => {
-            const rName = (r.name || "").toUpperCase();
-            const rCode = (r.feeTypeCode || "").toUpperCase();
+          const isNonSipas = schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS");
+          const isSemi = schemeCode.includes("SEMI");
+          const isNonTtm = schemeCode.includes("NON_TTM") || schemeCode.includes("NON-TTM");
 
-            // 1. SALUT Service is mandatory
-            if (rName.includes("SALUT") || rCode.includes("SALUT")) return true;
+          // Formulasi Komponen Wajib persis sesuai 3 Contoh LIP Real SALUT Mega Cendekia
+          const rows: FeeSnapshotRow[] = [];
 
-            // 2. Mandatory tuition & books by scheme
-            if (schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS")) {
-              return rCode.includes("NON_SIPAS_PER_SKS") || rCode.includes("PER_SKS") || rName.includes("PER SKS") || rName.includes("BAHAN AJAR") || rName.includes("MODUL");
-            } else if (schemeCode.includes("SEMI")) {
-              return rCode.includes("UKT_SIPAS_SEMI") || rCode.includes("SEMI") || rName.includes("SIPAS SEMI");
-            } else if (schemeCode.includes("NON_TTM") || schemeCode.includes("NON-TTM")) {
-              return rCode.includes("UKT_SIPAS_NON_TTM") || rCode.includes("NON_TTM") || rName.includes("NON-TTM") || rName.includes("NON TTM");
-            }
+          if (isNonSipas) {
+            // Non-SIPAS (LIP Contoh 3): SKS + Biaya Buku + Biaya Pengiriman
+            const perSksRate = rates.find(r => (r.feeTypeCode || "").includes("PER_SKS") || r.isPerSks || (r.name || "").includes("SKS")) || rates[0];
+            const sksUnitPrice = perSksRate?.unitAmount || 40000;
+            const sksQty = Math.max(1, credits || 20);
+            rows.push({
+              sourceFeeRateId: perSksRate?.id,
+              feeTypeId: perSksRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+              feeNameSnapshot: "Total Biaya Mata Kuliah (Per SKS)",
+              calculationType: "PER_SKS",
+              quantity: sksQty,
+              unitAmount: sksUnitPrice,
+              totalAmount: sksQty * sksUnitPrice,
+            });
 
-            return false;
+            rows.push({
+              feeTypeId: options.registrationTypes[0]?.id || "",
+              feeNameSnapshot: "Total Biaya Buku / Bahan Ajar Cetak",
+              calculationType: "FIXED",
+              quantity: 1,
+              unitAmount: 1123980,
+              totalAmount: 1123980,
+            });
+
+            rows.push({
+              feeTypeId: options.registrationTypes[0]?.id || "",
+              feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
+              calculationType: "FIXED",
+              quantity: 1,
+              unitAmount: 169163,
+              totalAmount: 169163,
+            });
+          } else if (isSemi) {
+            // SIPAS Semi (LIP Contoh 1): Paket Semester (Bahan Ajar & TTM Wajib Sudah Termasuk)
+            const semiRate = rates.find(r => (r.feeTypeCode || "").includes("SEMI") || (r.name || "").includes("SEMI")) || rates[0];
+            const unitPrice = semiRate?.unitAmount || 1750000;
+            rows.push({
+              sourceFeeRateId: semiRate?.id,
+              feeTypeId: semiRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+              feeNameSnapshot: "Total Biaya Mata Kuliah (SIPAS Semi Paket)",
+              calculationType: "FIXED",
+              quantity: 1,
+              unitAmount: unitPrice,
+              totalAmount: unitPrice,
+            });
+          } else if (isNonTtm) {
+            // SIPAS Non TTM (LIP Contoh 2): Paket Semester + Biaya Pengiriman
+            const nonTtmRate = rates.find(r => (r.feeTypeCode || "").includes("NON_TTM") || (r.name || "").includes("NON-TTM") || (r.name || "").includes("NON TTM")) || rates[0];
+            const unitPrice = nonTtmRate?.unitAmount || 1300000;
+            rows.push({
+              sourceFeeRateId: nonTtmRate?.id,
+              feeTypeId: nonTtmRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+              feeNameSnapshot: "Total Biaya Mata Kuliah (SIPAS Non TTM Paket)",
+              calculationType: "FIXED",
+              quantity: 1,
+              unitAmount: unitPrice,
+              totalAmount: unitPrice,
+            });
+
+            rows.push({
+              feeTypeId: options.registrationTypes[0]?.id || "",
+              feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
+              calculationType: "FIXED",
+              quantity: 1,
+              unitAmount: 117600,
+              totalAmount: 117600,
+            });
+          }
+
+          // Biaya Layanan & Pendampingan SALUT Mega Cendekia (Internal)
+          const salutRate = rates.find(r => (r.name || "").includes("SALUT") || (r.feeTypeCode || "").includes("SALUT"));
+          rows.push({
+            sourceFeeRateId: salutRate?.id,
+            feeTypeId: salutRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+            feeNameSnapshot: "Biaya Layanan & Pendampingan SALUT",
+            calculationType: "FIXED",
+            quantity: 1,
+            unitAmount: salutRate?.unitAmount || 250000,
+            totalAmount: salutRate?.unitAmount || 250000,
           });
 
-          if (mandatoryRates.length > 0) {
-            const initialRows: FeeSnapshotRow[] = mandatoryRates.map((r) => {
-              const qty = r.isPerSks ? Math.max(1, credits) : 1;
-              return {
-                sourceFeeRateId: r.id,
-                feeTypeId: r.feeTypeId,
-                feeNameSnapshot: r.name,
-                calculationType: r.calculationType,
-                quantity: qty,
-                unitAmount: r.unitAmount,
-                totalAmount: qty * r.unitAmount,
-              };
-            });
-            setFeeRows(initialRows);
-          } else {
-            setFeeRows([]);
-          }
+          setFeeRows(rows);
         })
         .catch(console.warn);
     }
