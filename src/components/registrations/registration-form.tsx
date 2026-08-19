@@ -482,7 +482,9 @@ export function RegistrationForm({
                   type="number"
                   min={0}
                   max={36}
-                  value={credits}
+                  value={credits === 0 ? "" : credits}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setCredits(parseInt(e.target.value, 10) || 0)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
                 />
@@ -570,6 +572,7 @@ export function RegistrationForm({
                           type="number"
                           min={1}
                           value={row.quantity}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => updateFeeRow(idx, "quantity", e.target.value)}
                           className="w-14 px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono text-center"
                         />
@@ -578,8 +581,14 @@ export function RegistrationForm({
                         <input
                           type="number"
                           min={0}
-                          value={row.unitAmount}
-                          onChange={(e) => updateFeeRow(idx, "unitAmount", e.target.value)}
+                          value={row.unitAmount === 0 ? "" : row.unitAmount}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const num = val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0);
+                            updateFeeRow(idx, "unitAmount", num);
+                          }}
                           className="w-28 px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                         />
                       </td>
