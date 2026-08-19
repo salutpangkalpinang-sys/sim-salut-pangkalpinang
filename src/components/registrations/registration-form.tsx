@@ -213,21 +213,6 @@ export function RegistrationForm({
     ]);
   };
 
-  const addManualFeeRow = () => {
-    const validFeeTypeId = getValidFeeTypeId("SALUT", candidateRates?.[0]?.feeTypeId);
-    setFeeRows((prev) => [
-      ...prev,
-      {
-        feeTypeId: validFeeTypeId,
-        feeNameSnapshot: "Komponen Biaya Tambahan",
-        calculationType: "FIXED",
-        quantity: 1,
-        unitAmount: 0,
-        totalAmount: 0,
-      },
-    ]);
-  };
-
   const grandTotalEstimate = feeRows.reduce((acc, r) => acc + r.totalAmount, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -442,47 +427,36 @@ export function RegistrationForm({
             </div>
 
             {/* Candidate & Optional Rates Selector Bar (Single Compact Row) */}
-            <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-              <div className="flex-1 flex items-center gap-2">
-                <span className="text-[11px] text-slate-600 font-medium whitespace-nowrap hidden md:inline">
-                  Komponen Opsional:
-                </span>
-                <select
-                  value={selectedCandidateRateId}
-                  onChange={(e) => setSelectedCandidateRateId(e.target.value)}
-                  className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">-- Pilih Komponen Biaya Opsional dari Master Tarif --</option>
-                  {candidateRates.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} — (Rp {r.unitAmount.toLocaleString("id-ID")})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  disabled={!selectedCandidateRateId}
-                  onClick={() => {
-                    const target = candidateRates.find((r) => r.id === selectedCandidateRateId);
-                    if (target) {
-                      addCandidateRateToRows(target);
-                      setSelectedCandidateRateId("");
-                    }
-                  }}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md transition shadow-xs whitespace-nowrap"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah Komponen</span>
-                </button>
-              </div>
-
+            <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg flex items-center gap-2">
+              <span className="text-[11px] text-slate-600 font-medium whitespace-nowrap hidden sm:inline">
+                Tambah Komponen Opsional:
+              </span>
+              <select
+                value={selectedCandidateRateId}
+                onChange={(e) => setSelectedCandidateRateId(e.target.value)}
+                className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value="">-- Pilih Komponen Biaya Opsional dari Master Tarif --</option>
+                {candidateRates.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} — (Rp {r.unitAmount.toLocaleString("id-ID")})
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
-                onClick={addManualFeeRow}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-md transition whitespace-nowrap"
+                disabled={!selectedCandidateRateId}
+                onClick={() => {
+                  const target = candidateRates.find((r) => r.id === selectedCandidateRateId);
+                  if (target) {
+                    addCandidateRateToRows(target);
+                    setSelectedCandidateRateId("");
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md transition shadow-xs whitespace-nowrap"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Baris Kustom</span>
+                <span>Tambah</span>
               </button>
             </div>
 
