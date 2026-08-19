@@ -9,6 +9,8 @@ import Link from "next/link";
 import { ArrowLeft, Wallet, CheckCircle2, Ban, ExternalLink, ShieldAlert, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+
 interface OperationalDetailViewProps {
   transaction: OperationalTransaction;
   userRole: RoleCode;
@@ -39,14 +41,16 @@ export function OperationalDetailView({
     minute: "2-digit",
   });
 
-  const handleVerify = async () => {
-    if (!confirm(`Verifikasi Transaksi ${transaction.transactionNumber}?`)) return;
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+
+  const handleConfirmVerify = async () => {
     setIsSubmitting(true);
     try {
       const res = await verifyOperationalTransactionAction(transaction.id);
       if (res.error) {
         setErrorMsg(res.error);
       } else {
+        setShowVerifyModal(false);
         router.refresh();
       }
     } finally {
@@ -153,7 +157,7 @@ export function OperationalDetailView({
               </button>
               <button
                 type="button"
-                onClick={handleVerify}
+                onClick={() => setShowVerifyModal(true)}
                 disabled={isSubmitting}
                 className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm transition"
               >
@@ -252,29 +256,88 @@ export function OperationalDetailView({
           </div>
         </div>
 
-        {/* Right Column: Proof & Notes */}
+        {/* Left Column (Main Info) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3 shadow-sm">
-            <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wider border-b border-slate-200 pb-2">
-              Berkas Bukti Transaksi (Struk / Kwitansi)
-            </h2>
-            {transaction.signedProofUrl ? (
-              <div className="space-y-2">
-                <a
-                  href={transaction.signedProofUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Buka Berkas Bukti ({transaction.originalFileName || "File"})</span>
-                </a>
+          {/* Reject Form */}
+          {showRejectForm && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3 animate-in fade-in duration-200">
+              <h3 className="text-xs font-bold text-red-900 uppercase tracking-wider">Form Penolakan Transaksi</h3>
+              <form onSubmit={handleReject} className="space-y-3">
+                <textarea
+                  rows={2}
+                  required
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Alasan penolakan..."
+                  className="w-full px-3 py-2 bg-white border border-red-300 rounded-lg text-slate-900 text-xs focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectForm(false)}
+                    className="px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-white border border-slate-300 rounded-lg transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-3 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm disabled:opacity-50 transition"
+                  >
+                    Konfirmasi Tolak
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Void Request Alert */}
+          {transaction.voidRequest && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-purple-900 font-bold text-xs uppercase tracking-wider">
+                <ShieldAlert className="w-4 h-4 text-purple-600" />
+                <span>Pengajuan Pembatalan (Void) Aktif</span>
               </div>
-            ) : (
-              <p className="text-slate-500 italic">Tidak ada berkas bukti transaksi yang dilampirkan.</p>
-            )}
+              <p className="text-xs text-purple-800">Alasan: {transaction.voidRequest.reason}</p>
+            </div>
+          )}
+
+          {/* Overview Card */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
+            <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-2">
+              Rincian Informasi Transaksi
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <span className="text-slate-500 block">Kategori</span>
+                <span className="font-semibold text-slate-900">{transaction.categoryName}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Akun Kas</span>
+                <span className="font-semibold text-slate-900">{transaction.cashAccountName || "Kas Operasional"}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Nomor Referensi</span>
+                <span className="font-mono font-semibold text-slate-900">{transaction.referenceNumber || "-"}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Dibuat Oleh</span>
+                <span className="font-medium text-slate-900">{transaction.createdBy || "-"}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Tanggal Dibuat</span>
+                <span className="font-medium text-slate-900">{formattedTxnDate}</span>
+              </div>
+              {transaction.verifiedBy && (
+                <div>
+                  <span className="text-slate-500 block">Diverifikasi Oleh</span>
+                  <span className="font-medium text-slate-900">{transaction.verifiedBy}</span>
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* Transaction Notes */}
           {transaction.notes && (
             <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-2 shadow-sm">
               <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wider border-b border-slate-200 pb-2">
@@ -283,6 +346,28 @@ export function OperationalDetailView({
               <p className="text-slate-800 leading-relaxed">{transaction.notes}</p>
             </div>
           )}
+        </div>
+
+        {/* Right Column: Proof */}
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3 shadow-sm">
+            <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wider border-b border-slate-200 pb-2">
+              Berkas Bukti
+            </h2>
+            {transaction.signedProofUrl ? (
+              <a
+                href={transaction.signedProofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Lihat Berkas ({transaction.originalFileName || "File"})</span>
+              </a>
+            ) : (
+              <p className="text-slate-500 italic">Tidak ada lampiran.</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -296,6 +381,19 @@ export function OperationalDetailView({
           userRole={userRole}
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={showVerifyModal}
+        variant="warning"
+        title="Verifikasi Transaksi Operasional"
+        description={`Apakah Anda yakin ingin memverifikasi transaksi operasional ${transaction.transactionNumber}?`}
+        confirmText="Ya, Verifikasi"
+        cancelText="Batal"
+        isLoading={isSubmitting}
+        onConfirm={handleConfirmVerify}
+        onClose={() => setShowVerifyModal(false)}
+      />
     </div>
   );
 }

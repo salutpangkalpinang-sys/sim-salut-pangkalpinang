@@ -5,6 +5,7 @@ import { LipDocument } from "@/types/lip-invoice";
 import { getSignedLipUrlAction, verifyLipDocumentAction } from "@/features/lip-invoices/actions";
 import { FileText, CheckCircle2, Ban, ExternalLink, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
 import { RoleCode } from "@/lib/auth/types";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface LipTableProps {
   lipDocuments: LipDocument[];
@@ -54,34 +55,37 @@ export function LipTable({
 }: LipTableProps) {
   const [loadingSignedId, setLoadingSignedId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verifyingLip, setVerifyingLip] = useState<LipDocument | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canVerify = userRole === "owner" || userRole === "academic_admin";
 
   const handleOpenSignedFile = async (lip: LipDocument) => {
+    if (!lip.storagePath) return;
     setLoadingSignedId(lip.id);
     try {
       const res = await getSignedLipUrlAction(lip.storagePath);
       if (res.signedUrl) {
         window.open(res.signedUrl, "_blank");
       } else {
-        alert(res.error || "Gagal membuka berkas LIP.");
+        setErrorMessage(res.error || "Gagal membuka berkas LIP.");
       }
     } catch (err: any) {
-      alert(err.message || "Gagal membuka berkas.");
+      setErrorMessage(err.message || "Gagal membuka berkas.");
     } finally {
       setLoadingSignedId(null);
     }
   };
 
-  const handleVerify = async (lip: LipDocument) => {
-    if (!confirm(`Verifikasi Dokumen LIP ${lip.lipNumber}? Setelah diverifikasi, nilai nominal resmi tidak dapat diubah lagi.`)) {
-      return;
-    }
-    setVerifyingId(lip.id);
+  const handleConfirmVerify = async () => {
+    if (!verifyingLip) return;
+    setVerifyingId(verifyingLip.id);
     try {
-      const res = await verifyLipDocumentAction(lip.id);
+      const res = await verifyLipDocumentAction(verifyingLip.id);
       if (res.error) {
-        alert(res.error);
+        setErrorMessage(res.error);
+      } else {
+        setVerifyingLip(null);
       }
     } finally {
       setVerifyingId(null);
@@ -189,7 +193,7 @@ export function LipTable({
                         {canVerify && lip.status === "pending_verification" && (
                           <button
                             type="button"
-                            onClick={() => handleVerify(lip)}
+                            onClick={() => setVerifyingLip(lip)}
                             disabled={verifyingId === lip.id}
                             className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition text-[11px] font-semibold flex items-center gap-1 shadow-xs"
                             title="Verifikasi LIP"
@@ -232,7 +236,7 @@ export function LipTable({
           <div>
             Menampilkan <span className="font-semibold text-slate-800">{startRecord}</span> -{" "}
             <span className="font-semibold text-slate-800">{endRecord}</span> dari{" "}
-            <span className="font-semibold text-slate-800">{total}</span> dokumen LIP
+            <span className="font-semibold text-slate-800">{total}</span> dokumen
           </div>
 
           {totalPages > 1 && (
@@ -265,6 +269,31 @@ export function LipTable({
           )}
         </div>
       </div>
+
+      {/* Verification Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(verifyingLip)}
+        variant="warning"
+        title="Verifikasi Dokumen LIP"
+        description={`Apakah Anda yakin ingin memverifikasi Dokumen LIP ${verifyingLip?.lipNumber}? Setelah diverifikasi, nilai nominal resmi tidak dapat diubah lagi.`}
+        confirmText="Ya, Verifikasi"
+        cancelText="Batal"
+        isLoading={Boolean(verifyingId)}
+        onConfirm={handleConfirmVerify}
+        onClose={() => setVerifyingLip(null)}
+      />
+
+      {/* Error Message Modal */}
+      <ConfirmModal
+        isOpen={Boolean(errorMessage)}
+        variant="danger"
+        title="Terjadi Kesalahan"
+        description={errorMessage || ""}
+        confirmText="Tutup"
+        cancelText=""
+        onConfirm={() => setErrorMessage(null)}
+        onClose={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

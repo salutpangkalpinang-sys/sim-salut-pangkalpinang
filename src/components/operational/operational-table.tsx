@@ -41,6 +41,8 @@ const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   },
 };
 
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+
 export function OperationalTable({
   transactions,
   total,
@@ -52,25 +54,20 @@ export function OperationalTable({
   onRequestVoid,
 }: OperationalTableProps) {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verifyingTx, setVerifyingTx] = useState<OperationalTransaction | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canVerify = userRole === "owner" || userRole === "finance_admin";
 
-  const handleVerify = async (transaction: OperationalTransaction) => {
-    if (
-      !confirm(
-        `Verifikasi Transaksi Operasional ${transaction.transactionNumber} (${transaction.transactionType === "income" ? "Pemasukan" : "Pengeluaran"}) sebesar Rp ${transaction.amount.toLocaleString(
-          "id-ID"
-        )}?`
-      )
-    ) {
-      return;
-    }
-
-    setVerifyingId(transaction.id);
+  const handleConfirmVerify = async () => {
+    if (!verifyingTx) return;
+    setVerifyingId(verifyingTx.id);
     try {
-      const res = await verifyOperationalTransactionAction(transaction.id);
+      const res = await verifyOperationalTransactionAction(verifyingTx.id);
       if (res.error) {
-        alert(res.error);
+        setErrorMessage(res.error);
+      } else {
+        setVerifyingTx(null);
       }
     } finally {
       setVerifyingId(null);
@@ -184,7 +181,7 @@ export function OperationalTable({
                         {canVerify && txn.status === "pending_verification" && (
                           <button
                             type="button"
-                            onClick={() => handleVerify(txn)}
+                            onClick={() => setVerifyingTx(txn)}
                             disabled={verifyingId === txn.id}
                             className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition text-[11px] font-semibold flex items-center gap-1 shadow-xs"
                             title="Verifikasi Transaksi"
@@ -250,6 +247,31 @@ export function OperationalTable({
           )}
         </div>
       </div>
+
+      {/* Verification Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(verifyingTx)}
+        variant="warning"
+        title="Verifikasi Transaksi Operasional"
+        description={`Apakah Anda yakin ingin memverifikasi transaksi operasional ${verifyingTx?.transactionNumber} (${verifyingTx?.transactionType === "income" ? "Pemasukan" : "Pengeluaran"}) sebesar Rp ${verifyingTx?.amount.toLocaleString("id-ID")}?`}
+        confirmText="Ya, Verifikasi"
+        cancelText="Batal"
+        isLoading={Boolean(verifyingId)}
+        onConfirm={handleConfirmVerify}
+        onClose={() => setVerifyingTx(null)}
+      />
+
+      {/* Error Message Modal */}
+      <ConfirmModal
+        isOpen={Boolean(errorMessage)}
+        variant="danger"
+        title="Terjadi Kesalahan"
+        description={errorMessage || ""}
+        confirmText="Tutup"
+        cancelText=""
+        onConfirm={() => setErrorMessage(null)}
+        onClose={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

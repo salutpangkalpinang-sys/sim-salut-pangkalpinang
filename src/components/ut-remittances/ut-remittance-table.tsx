@@ -41,6 +41,8 @@ const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   },
 };
 
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+
 export function UtRemittanceTable({
   remittances,
   total,
@@ -52,19 +54,20 @@ export function UtRemittanceTable({
   onRequestVoid,
 }: UtRemittanceTableProps) {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verifyingRemittance, setVerifyingRemittance] = useState<UtRemittance | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canVerify = userRole === "owner" || userRole === "finance_admin";
 
-  const handleVerify = async (remittance: UtRemittance) => {
-    if (!confirm(`Verifikasi Setoran UT ${remittance.remittanceNumber} sebesar Rp ${remittance.amount.toLocaleString("id-ID")}?`)) {
-      return;
-    }
-
-    setVerifyingId(remittance.id);
+  const handleConfirmVerify = async () => {
+    if (!verifyingRemittance) return;
+    setVerifyingId(verifyingRemittance.id);
     try {
-      const res = await verifyUtRemittanceAction(remittance.id);
+      const res = await verifyUtRemittanceAction(verifyingRemittance.id);
       if (res.error) {
-        alert(res.error);
+        setErrorMessage(res.error);
+      } else {
+        setVerifyingRemittance(null);
       }
     } finally {
       setVerifyingId(null);
@@ -155,7 +158,7 @@ export function UtRemittanceTable({
                         {canVerify && rem.status === "pending_verification" && (
                           <button
                             type="button"
-                            onClick={() => handleVerify(rem)}
+                            onClick={() => setVerifyingRemittance(rem)}
                             disabled={verifyingId === rem.id}
                             className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition text-[11px] font-semibold flex items-center gap-1 shadow-xs"
                             title="Verifikasi Setoran UT"
@@ -221,6 +224,31 @@ export function UtRemittanceTable({
           )}
         </div>
       </div>
+
+      {/* Verification Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(verifyingRemittance)}
+        variant="warning"
+        title="Verifikasi Transaksi Setoran UT"
+        description={`Apakah Anda yakin ingin memverifikasi transaksi setoran UT ${verifyingRemittance?.remittanceNumber} sebesar Rp ${verifyingRemittance?.amount.toLocaleString("id-ID")}?`}
+        confirmText="Ya, Verifikasi"
+        cancelText="Batal"
+        isLoading={Boolean(verifyingId)}
+        onConfirm={handleConfirmVerify}
+        onClose={() => setVerifyingRemittance(null)}
+      />
+
+      {/* Error Message Modal */}
+      <ConfirmModal
+        isOpen={Boolean(errorMessage)}
+        variant="danger"
+        title="Terjadi Kesalahan"
+        description={errorMessage || ""}
+        confirmText="Tutup"
+        cancelText=""
+        onConfirm={() => setErrorMessage(null)}
+        onClose={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

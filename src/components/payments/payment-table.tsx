@@ -41,6 +41,8 @@ const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   },
 };
 
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+
 export function PaymentTable({
   payments,
   total,
@@ -52,19 +54,20 @@ export function PaymentTable({
   onRequestVoid,
 }: PaymentTableProps) {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState<StudentPayment | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canVerify = userRole === "owner" || userRole === "academic_admin";
 
-  const handleVerify = async (payment: StudentPayment) => {
-    if (!confirm(`Verifikasi Pembayaran ${payment.transactionNumber} sebesar Rp ${payment.amount.toLocaleString("id-ID")}?`)) {
-      return;
-    }
-
-    setVerifyingId(payment.id);
+  const handleConfirmVerify = async () => {
+    if (!verifyingPayment) return;
+    setVerifyingId(verifyingPayment.id);
     try {
-      const res = await verifyStudentPaymentAction(payment.id);
+      const res = await verifyStudentPaymentAction(verifyingPayment.id);
       if (res.error) {
-        alert(res.error);
+        setErrorMessage(res.error);
+      } else {
+        setVerifyingPayment(null);
       }
     } finally {
       setVerifyingId(null);
@@ -196,7 +199,7 @@ export function PaymentTable({
                         {canVerify && p.status === "pending_verification" && (
                           <button
                             type="button"
-                            onClick={() => handleVerify(p)}
+                            onClick={() => setVerifyingPayment(p)}
                             disabled={verifyingId === p.id}
                             className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition text-[11px] font-semibold flex items-center gap-1 shadow-xs"
                             title="Verifikasi Pembayaran"
@@ -262,6 +265,31 @@ export function PaymentTable({
           )}
         </div>
       </div>
+
+      {/* Verification Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(verifyingPayment)}
+        variant="warning"
+        title="Verifikasi Transaksi Pembayaran"
+        description={`Apakah Anda yakin ingin memverifikasi transaksi pembayaran ${verifyingPayment?.transactionNumber} sebesar Rp ${verifyingPayment?.amount.toLocaleString("id-ID")}?`}
+        confirmText="Ya, Verifikasi"
+        cancelText="Batal"
+        isLoading={Boolean(verifyingId)}
+        onConfirm={handleConfirmVerify}
+        onClose={() => setVerifyingPayment(null)}
+      />
+
+      {/* Error Message Modal */}
+      <ConfirmModal
+        isOpen={Boolean(errorMessage)}
+        variant="danger"
+        title="Terjadi Kesalahan"
+        description={errorMessage || ""}
+        confirmText="Tutup"
+        cancelText=""
+        onConfirm={() => setErrorMessage(null)}
+        onClose={() => setErrorMessage(null)}
+      />
     </div>
   );
 }
