@@ -132,8 +132,21 @@ export function LipTable({
 
                 return (
                   <tr key={lip.id} className="hover:bg-slate-50/80 transition">
-                    <td className="px-4 py-3 font-mono font-medium text-blue-600">
-                      <div>{lip.lipNumber}</div>
+                    <td className="px-4 py-3 font-mono">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (lip.storagePath) {
+                            handleOpenSignedFile(lip);
+                          } else {
+                            window.open("https://myut.ut.ac.id", "_blank");
+                          }
+                        }}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-left transition"
+                        title={lip.storagePath ? "Klik untuk melihat berkas LIP" : "Klik untuk membuka Portal MyUT"}
+                      >
+                        {lip.lipNumber}
+                      </button>
                       <div className="text-[10px] text-slate-500 font-sans">Versi {lip.version}</div>
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900">
