@@ -133,21 +133,8 @@ export function LipTable({
                 return (
                   <tr key={lip.id} className="hover:bg-slate-50/80 transition">
                     <td className="px-4 py-3 font-mono">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (lip.storagePath) {
-                            handleOpenSignedFile(lip);
-                          } else {
-                            window.open("https://myut.ut.ac.id", "_blank");
-                          }
-                        }}
-                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-left transition"
-                        title={lip.storagePath ? "Klik untuk melihat berkas LIP" : "Klik untuk membuka Portal MyUT"}
-                      >
-                        {lip.lipNumber}
-                      </button>
-                      <div className="text-[10px] text-slate-500 font-sans">Versi {lip.version}</div>
+                      <div className="font-semibold text-slate-800">{lip.lipNumber}</div>
+                      <div className="text-[10px] text-slate-400 font-sans">Versi {lip.version}</div>
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900">
                       <div>{lip.studentName || "Mahasiswa"}</div>
@@ -162,11 +149,30 @@ export function LipTable({
                       Rp {lip.officialAmount.toLocaleString("id-ID")}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-[11px] text-slate-700">
-                        SPP: Rp {lip.tuitionAmount.toLocaleString("id-ID")}
+                      <div className="space-y-0.5 text-[11px]">
+                        {lip.tuitionAmount > 0 && (
+                          <div className="text-slate-700 font-mono">
+                            <span className="text-slate-500 font-sans">SPP:</span> Rp {lip.tuitionAmount.toLocaleString("id-ID")}
+                          </div>
+                        )}
+                        {lip.shippingAmount > 0 && (
+                          <div className="text-slate-700 font-mono">
+                            <span className="text-slate-500 font-sans">Ongkir:</span> Rp {lip.shippingAmount.toLocaleString("id-ID")}
+                          </div>
+                        )}
+                        {lip.bookAmount > 0 && (
+                          <div className="text-slate-700 font-mono">
+                            <span className="text-slate-500 font-sans">Buku:</span> Rp {lip.bookAmount.toLocaleString("id-ID")}
+                          </div>
+                        )}
+                        {lip.otherUtAmount > 0 && (
+                          <div className="text-slate-700 font-mono">
+                            <span className="text-slate-500 font-sans">Lainnya:</span> Rp {lip.otherUtAmount.toLocaleString("id-ID")}
+                          </div>
+                        )}
                       </div>
                       {lip.hasAmountMismatch && (
-                        <div className="flex items-center gap-1 text-[10px] text-amber-600 mt-0.5" title={`Rincian Rp ${lip.componentTotalAmount?.toLocaleString("id-ID")} vs Resmi Rp ${lip.officialAmount.toLocaleString("id-ID")}`}>
+                        <div className="flex items-center gap-1 text-[10px] text-amber-600 mt-1" title={`Rincian Rp ${lip.componentTotalAmount?.toLocaleString("id-ID")} vs Resmi Rp ${lip.officialAmount.toLocaleString("id-ID")}`}>
                           <AlertTriangle className="w-3 h-3 shrink-0" />
                           <span>Mismatch Rp {lip.mismatchDifference?.toLocaleString("id-ID")}</span>
                         </div>
