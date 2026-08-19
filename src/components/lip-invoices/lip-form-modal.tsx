@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { uploadLipFileAndCreateAction } from "@/features/lip-invoices/actions";
 import { X, FileText, Upload, AlertTriangle, AlertCircle, Save } from "lucide-react";
 
@@ -8,7 +8,7 @@ interface LipFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string }[];
+  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number }[];
   defaultRegistrationId?: string;
 }
 
@@ -33,6 +33,24 @@ export function LipFormModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill SPP from registration snapshot when registrationId changes
+  useEffect(() => {
+    if (registrationId) {
+      const selectedReg = registrationsOptions.find((r) => r.id === registrationId);
+      if (selectedReg && selectedReg.estimatedTuition) {
+        setTuitionAmount(selectedReg.estimatedTuition);
+      }
+    }
+  }, [registrationId, registrationsOptions]);
+
+  // Auto-calculate Total Resmi Kewajiban UT from components
+  useEffect(() => {
+    const sum = tuitionAmount + bookAmount + shippingAmount + otherUtAmount;
+    if (sum > 0) {
+      setOfficialAmount(sum);
+    }
+  }, [tuitionAmount, bookAmount, shippingAmount, otherUtAmount]);
 
   if (!isOpen) return null;
 

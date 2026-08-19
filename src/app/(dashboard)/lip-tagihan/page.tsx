@@ -36,13 +36,18 @@ export default async function LipTagihanPage({
     getRegistrationsList({ limit: 100 }),
   ]);
 
-  const registrationsOptions = (regsRes.data || []).map((r) => ({
-    id: r.id,
-    registrationNumber: r.registrationNumber,
-    studentName: r.studentName || "Mahasiswa",
-    studentNim: r.studentNim || null,
-    academicPeriodName: r.academicPeriodName || "-",
-  }));
+  const registrationsOptions = (regsRes.data || []).map((r) => {
+    const tuitionSnapshot = r.feeSnapshots?.find((s) => (s.feeNameSnapshot || "").toLowerCase().includes("mata kuliah") || (s.feeNameSnapshot || "").toLowerCase().includes("spp") || s.calculationType === "PER_SKS");
+    return {
+      id: r.id,
+      registrationNumber: r.registrationNumber,
+      studentName: r.studentName || "Mahasiswa",
+      studentNim: r.studentNim || null,
+      academicPeriodName: r.academicPeriodName || "-",
+      estimatedTuition: tuitionSnapshot?.totalAmount || r.totalEstimateAmount || 0,
+      estimatedTotal: r.totalEstimateAmount || 0,
+    };
+  });
 
   return (
     <LipInvoiceContainer
