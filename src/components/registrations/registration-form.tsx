@@ -10,12 +10,17 @@ interface RegistrationFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+interface RegistrationFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
   options: {
     academicPeriods: { id: string; code: string; name: string }[];
     registrationTypes: RegistrationType[];
     studyPrograms: { id: string; code: string; name: string }[];
     serviceSchemes: { id: string; code: string; name: string }[];
     students: { id: string; nim: string | null; full_name: string; study_program_id: string | null; service_scheme_id: string | null }[];
+    feeTypes?: { id: string; code: string; name: string }[];
   };
 }
 
@@ -64,6 +69,14 @@ export function RegistrationForm({
     }
   };
 
+  const getValidFeeTypeId = (keyword: string, candidateRateFeeTypeId?: string) => {
+    if (candidateRateFeeTypeId) return candidateRateFeeTypeId;
+    const matched = (options.feeTypes || []).find((ft) =>
+      (ft.code || ft.name || "").toUpperCase().includes(keyword.toUpperCase())
+    );
+    return matched?.id || options.feeTypes?.[0]?.id || "";
+  };
+
   useEffect(() => {
     if (studyProgramId && serviceSchemeId && academicPeriodId) {
       getAvailableCandidateFeeRatesAction(studyProgramId, serviceSchemeId, academicPeriodId)
@@ -87,7 +100,7 @@ export function RegistrationForm({
             const sksQty = Math.max(1, credits || 20);
             rows.push({
               sourceFeeRateId: perSksRate?.id,
-              feeTypeId: perSksRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+              feeTypeId: getValidFeeTypeId("PER_SKS", perSksRate?.feeTypeId),
               feeNameSnapshot: "Total Biaya Mata Kuliah (Per SKS)",
               calculationType: "PER_SKS",
               quantity: sksQty,
@@ -96,7 +109,7 @@ export function RegistrationForm({
             });
 
             rows.push({
-              feeTypeId: options.registrationTypes[0]?.id || "",
+              feeTypeId: getValidFeeTypeId("NON_SIPAS", perSksRate?.feeTypeId),
               feeNameSnapshot: "Total Biaya Buku / Bahan Ajar Cetak",
               calculationType: "FIXED",
               quantity: 1,
@@ -105,7 +118,7 @@ export function RegistrationForm({
             });
 
             rows.push({
-              feeTypeId: options.registrationTypes[0]?.id || "",
+              feeTypeId: getValidFeeTypeId("NON_SIPAS", perSksRate?.feeTypeId),
               feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
               calculationType: "FIXED",
               quantity: 1,
@@ -118,7 +131,7 @@ export function RegistrationForm({
             const unitPrice = semiRate?.unitAmount || 1750000;
             rows.push({
               sourceFeeRateId: semiRate?.id,
-              feeTypeId: semiRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+              feeTypeId: getValidFeeTypeId("SEMI", semiRate?.feeTypeId),
               feeNameSnapshot: "Total Biaya Mata Kuliah (SIPAS Semi Paket)",
               calculationType: "FIXED",
               quantity: 1,
@@ -131,7 +144,7 @@ export function RegistrationForm({
             const unitPrice = nonTtmRate?.unitAmount || 1300000;
             rows.push({
               sourceFeeRateId: nonTtmRate?.id,
-              feeTypeId: nonTtmRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+              feeTypeId: getValidFeeTypeId("NON_TTM", nonTtmRate?.feeTypeId),
               feeNameSnapshot: "Total Biaya Mata Kuliah (SIPAS Non TTM Paket)",
               calculationType: "FIXED",
               quantity: 1,
@@ -140,7 +153,7 @@ export function RegistrationForm({
             });
 
             rows.push({
-              feeTypeId: options.registrationTypes[0]?.id || "",
+              feeTypeId: getValidFeeTypeId("NON_TTM", nonTtmRate?.feeTypeId),
               feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
               calculationType: "FIXED",
               quantity: 1,
@@ -153,7 +166,7 @@ export function RegistrationForm({
           const salutRate = rates.find(r => (r.name || "").includes("SALUT") || (r.feeTypeCode || "").includes("SALUT"));
           rows.push({
             sourceFeeRateId: salutRate?.id,
-            feeTypeId: salutRate?.feeTypeId || options.registrationTypes[0]?.id || "",
+            feeTypeId: getValidFeeTypeId("SALUT", salutRate?.feeTypeId),
             feeNameSnapshot: "Biaya Layanan & Pendampingan SALUT",
             calculationType: "FIXED",
             quantity: 1,
@@ -204,10 +217,11 @@ export function RegistrationForm({
   };
 
   const addManualFeeRow = () => {
+    const validFeeTypeId = getValidFeeTypeId("SALUT", candidateRates?.[0]?.feeTypeId);
     setFeeRows((prev) => [
       ...prev,
       {
-        feeTypeId: options.registrationTypes[0]?.id || "",
+        feeTypeId: validFeeTypeId,
         feeNameSnapshot: "Komponen Biaya Tambahan",
         calculationType: "FIXED",
         quantity: 1,

@@ -300,12 +300,13 @@ export async function getAvailableCandidateFeeRates(
 export async function getRegistrationMasterOptions() {
   const supabase = await createClient();
 
-  const [periodsRes, typesRes, programsRes, schemesRes, studentsRes] = await Promise.all([
+  const [periodsRes, typesRes, programsRes, schemesRes, studentsRes, feeTypesRes] = await Promise.all([
     supabase.from("academic_periods").select("id, code, name").order("code", { ascending: false }),
     supabase.from("registration_types").select("id, code, name").eq("is_active", true).order("name"),
     supabase.from("study_programs").select("id, code, name, faculty_id, study_level_id").eq("is_active", true).order("name"),
     supabase.from("service_schemes").select("id, code, name").eq("is_active", true).order("name"),
     supabase.from("students").select("id, nim, full_name, study_program_id, service_scheme_id").order("full_name"),
+    supabase.from("fee_types").select("id, code, name").order("name"),
   ]);
 
   return {
@@ -314,5 +315,6 @@ export async function getRegistrationMasterOptions() {
     studyPrograms: (programsRes.data || []) as { id: string; code: string; name: string; faculty_id?: string; study_level_id?: string }[],
     serviceSchemes: (schemesRes.data || []) as { id: string; code: string; name: string }[],
     students: (studentsRes.data || []) as { id: string; nim: string | null; full_name: string; study_program_id: string | null; service_scheme_id: string | null }[],
+    feeTypes: (feeTypesRes.data || []) as { id: string; code: string; name: string }[],
   };
 }
