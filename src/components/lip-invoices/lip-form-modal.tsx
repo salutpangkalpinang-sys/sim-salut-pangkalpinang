@@ -177,8 +177,13 @@ export function LipFormModal({
                 type="number"
                 required
                 min={0}
-                value={officialAmount}
-                onChange={(e) => setOfficialAmount(parseInt(e.target.value, 10) || 0)}
+                value={officialAmount === 0 ? "" : officialAmount}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setOfficialAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
+                }}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold text-emerald-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
@@ -195,8 +200,13 @@ export function LipFormModal({
                 <input
                   type="number"
                   min={0}
-                  value={tuitionAmount}
-                  onChange={(e) => setTuitionAmount(parseInt(e.target.value, 10) || 0)}
+                  value={tuitionAmount === 0 ? "" : tuitionAmount}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTuitionAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
+                  }}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
@@ -206,8 +216,13 @@ export function LipFormModal({
                 <input
                   type="number"
                   min={0}
-                  value={bookAmount}
-                  onChange={(e) => setBookAmount(parseInt(e.target.value, 10) || 0)}
+                  value={bookAmount === 0 ? "" : bookAmount}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBookAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
+                  }}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
@@ -217,8 +232,13 @@ export function LipFormModal({
                 <input
                   type="number"
                   min={0}
-                  value={shippingAmount}
-                  onChange={(e) => setShippingAmount(parseInt(e.target.value, 10) || 0)}
+                  value={shippingAmount === 0 ? "" : shippingAmount}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setShippingAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
+                  }}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
@@ -228,8 +248,13 @@ export function LipFormModal({
                 <input
                   type="number"
                   min={0}
-                  value={otherUtAmount}
-                  onChange={(e) => setOtherUtAmount(parseInt(e.target.value, 10) || 0)}
+                  value={otherUtAmount === 0 ? "" : otherUtAmount}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setOtherUtAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
+                  }}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
