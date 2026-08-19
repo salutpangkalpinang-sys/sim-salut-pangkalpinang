@@ -76,11 +76,6 @@ export function LipFormModal({
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!selectedFile) {
-      setErrorMsg("Berkas fisik LIP wajib diunggah.");
-      return;
-    }
-
     if (!lipNumber.trim()) {
       setErrorMsg("Nomor LIP wajib diisi.");
       return;
@@ -105,7 +100,7 @@ export function LipFormModal({
       if (issuedAt) formData.append("issuedAt", issuedAt);
       if (dueAt) formData.append("dueAt", dueAt);
       if (notes) formData.append("notes", notes.trim());
-      formData.append("file", selectedFile);
+      if (selectedFile) formData.append("file", selectedFile);
 
       const res = await uploadLipFileAndCreateAction(formData);
 
@@ -299,7 +294,7 @@ export function LipFormModal({
           {/* File Picker */}
           <div>
             <label className="block text-slate-700 font-medium mb-1">
-              Berkas Fisik LIP (PDF / Gambar) <span className="text-red-500">*</span>
+              Berkas Fisik LIP (PDF / Gambar) <span className="text-slate-400 font-normal">(Opsional)</span>
             </label>
             <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50">
               <input

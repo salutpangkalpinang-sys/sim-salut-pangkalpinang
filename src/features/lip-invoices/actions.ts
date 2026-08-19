@@ -32,24 +32,6 @@ export async function uploadLipFileAndCreateAction(formData: FormData) {
   const notes = formData.get("notes") as string || null;
   const file = formData.get("file") as File | null;
 
-  if (!file || file.size === 0) {
-    return { error: "Berkas fisik LIP wajib diunggah." };
-  }
-
-  // Validate File metadata
-  const fileVal = validateFileMetadata(file.name, file.type, file.size);
-  if (!fileVal.valid) {
-    return { error: fileVal.message };
-  }
-
-  // Server-Side Magic-Byte Signature Validation
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const magicVal = validateFileMagicBytes(buffer, file.name);
-  if (!magicVal.valid) {
-    return { error: magicVal.message };
-  }
-
   // Validate Form input
   const validation = lipDocumentSchema.safeParse({
     registrationId,
@@ -91,22 +73,40 @@ export async function uploadLipFileAndCreateAction(formData: FormData) {
 
   const nextVersion = existingLips && existingLips.length > 0 ? existingLips[0].version + 1 : 1;
 
-  // Generate storage path: registrations/{registration_id}/lip/{uuid}.{ext}
-  const fileExt = file.name.split(".").pop()?.toLowerCase() || "pdf";
-  const uniqueId = crypto.randomUUID();
-  const storagePath = `registrations/${registrationId}/lip/${uniqueId}.${fileExt}`;
+  let storagePath: string | null = null;
 
-  // Upload file to Supabase Private Storage Bucket `lip-documents`
-  const { error: uploadErr } = await supabase.storage
-    .from("lip-documents")
-    .upload(storagePath, buffer, {
-      contentType: file.type,
-      upsert: false,
-    });
+  // File is OPTIONAL to conserve storage quota & speed up admin workflow
+  if (file && file.size > 0) {
+    // Validate File metadata
+    const fileVal = validateFileMetadata(file.name, file.type, file.size);
+    if (!fileVal.valid) {
+      return { error: fileVal.message };
+    }
 
-  if (uploadErr) {
-    console.error("Storage upload error:", uploadErr);
-    return { error: "Gagal mengunggah file LIP ke penyimpanan: " + uploadErr.message };
+    // Server-Side Magic-Byte Signature Validation
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const magicVal = validateFileMagicBytes(buffer, file.name);
+    if (!magicVal.valid) {
+      return { error: magicVal.message };
+    }
+
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "pdf";
+    const uniqueId = crypto.randomUUID();
+    storagePath = `registrations/${registrationId}/lip/${uniqueId}.${fileExt}`;
+
+    // Upload file to Supabase Private Storage Bucket `lip-documents`
+    const { error: uploadErr } = await supabase.storage
+      .from("lip-documents")
+      .upload(storagePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadErr) {
+      console.error("Storage upload error:", uploadErr);
+      return { error: "Gagal mengunggah file LIP ke penyimpanan: " + uploadErr.message };
+    }
   }
 
   // Insert LIP record into database
@@ -124,9 +124,9 @@ export async function uploadLipFileAndCreateAction(formData: FormData) {
       issued_at: issuedAt,
       due_at: dueAt,
       storage_path: storagePath,
-      original_file_name: file.name,
-      mime_type: file.type,
-      file_size: file.size,
+      original_file_name: file ? file.name : null,
+      mime_type: file ? file.type : null,
+      file_size: file ? file.size : 0,
       status: "pending_verification",
       notes: notes?.trim() || null,
       created_by: profile.id,

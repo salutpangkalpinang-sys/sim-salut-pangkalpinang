@@ -161,15 +161,28 @@ export function LipTable({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSignedFile(lip)}
-                        disabled={loadingSignedId === lip.id}
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium disabled:opacity-50"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>{loadingSignedId === lip.id ? "Memuat..." : "Buka File"}</span>
-                      </button>
+                      {lip.storagePath ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSignedFile(lip)}
+                          disabled={loadingSignedId === lip.id}
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium disabled:opacity-50"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>{loadingSignedId === lip.id ? "Memuat..." : "Buka File"}</span>
+                        </button>
+                      ) : (
+                        <a
+                          href="https://myut.ut.ac.id"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 font-medium"
+                          title="Buka Portal MyUT resmi untuk lihat LIP digital"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                          <span>MyUT Portal</span>
+                        </a>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
