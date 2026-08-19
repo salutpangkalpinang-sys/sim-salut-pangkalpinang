@@ -29,7 +29,7 @@ export function InvoiceFormModal({
   onClose,
   onSuccess,
   defaultServiceFeeSnapshotAmount = 400000,
-  defaultServiceFeeSnapshotName = "Biaya Layanan SALUT",
+  defaultServiceFeeSnapshotName = "Biaya Layanan & Pendampingan SALUT",
 }: InvoiceFormModalProps) {
   const [dueAt, setDueAt] = useState("");
   const [notes, setNotes] = useState("");
