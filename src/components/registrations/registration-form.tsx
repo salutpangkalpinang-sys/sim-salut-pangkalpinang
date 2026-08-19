@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CandidateFeeRate, RegistrationType } from "@/types/registration";
 import { RegistrationFormInput, registrationSchema } from "@/lib/validation/registration";
 import { createRegistrationAction, getAvailableCandidateFeeRatesAction } from "@/features/registrations/actions";
-import { getOfficialUtTariff } from "@/lib/utils/ut-tariffs";
+import { getOfficialUtTariff, UT_OFFICIAL_GENERAL_FEES } from "@/lib/utils/ut-tariffs";
 import { X, FileCheck, Save, AlertCircle, Plus, Trash2, Calculator } from "lucide-react";
 
 interface RegistrationFormProps {
@@ -183,6 +183,75 @@ export function RegistrationForm({
         .catch(console.warn);
     }
   }, [studyProgramId, serviceSchemeId, academicPeriodId, credits, options.defaultSalutFee]);
+
+  const selectedProgram = options.studyPrograms.find((p) => p.id === studyProgramId);
+  const officialTariff = getOfficialUtTariff(selectedProgram?.name || selectedProgram?.code || "");
+
+  const mergedCandidateRates: CandidateFeeRate[] = [...candidateRates];
+
+  const generalFeeKeys = Object.keys(UT_OFFICIAL_GENERAL_FEES) as (keyof typeof UT_OFFICIAL_GENERAL_FEES)[];
+  generalFeeKeys.forEach((key) => {
+    const item = UT_OFFICIAL_GENERAL_FEES[key];
+    if (!mergedCandidateRates.some((r) => r.name.toLowerCase().includes(item.name.toLowerCase()))) {
+      mergedCandidateRates.push({
+        id: `opt-${key.toLowerCase()}`,
+        feeTypeId: getValidFeeTypeId(key, candidateRates?.[0]?.feeTypeId),
+        feeTypeName: item.name,
+        feeTypeCode: key,
+        feeTypeCategory: "UT_OFFICIAL",
+        name: item.name,
+        calculationType: "FIXED",
+        unitAmount: item.amount,
+        source: "SK Rektor UT Pedoman 2026/2027",
+        isPerSks: false,
+      });
+    }
+  });
+
+  if (officialTariff.praktikumReRegistrationFee > 0 && !mergedCandidateRates.some((r) => r.name.includes("Praktikum"))) {
+    mergedCandidateRates.push({
+      id: "opt-praktikum-re",
+      feeTypeId: getValidFeeTypeId("NON_SIPAS"),
+      feeTypeName: "Registrasi Ulang Praktik / Praktikum",
+      feeTypeCode: "PRAKTIKUM_RE",
+      feeTypeCategory: "UT_OFFICIAL",
+      name: `Registrasi Ulang Praktik / Praktikum (${selectedProgram?.name || "Prodi"})`,
+      calculationType: "FIXED",
+      unitAmount: officialTariff.praktikumReRegistrationFee,
+      source: "SK Rektor UT Pedoman 2026/2027",
+      isPerSks: false,
+    });
+  }
+
+  if (officialTariff.pkmPlpReRegistrationFee > 0 && !mergedCandidateRates.some((r) => r.name.includes("PKM"))) {
+    mergedCandidateRates.push({
+      id: "opt-pkm-plp-re",
+      feeTypeId: getValidFeeTypeId("NON_SIPAS"),
+      feeTypeName: "Registrasi Ulang PKM / PLP",
+      feeTypeCode: "PKM_PLP_RE",
+      feeTypeCategory: "UT_OFFICIAL",
+      name: `Registrasi Ulang PKM / PLP (${selectedProgram?.name || "Prodi"})`,
+      calculationType: "FIXED",
+      unitAmount: officialTariff.pkmPlpReRegistrationFee,
+      source: "SK Rektor UT Pedoman 2026/2027",
+      isPerSks: false,
+    });
+  }
+
+  if (officialTariff.studioReRegistrationFee > 0 && !mergedCandidateRates.some((r) => r.name.includes("Studio"))) {
+    mergedCandidateRates.push({
+      id: "opt-studio-re",
+      feeTypeId: getValidFeeTypeId("NON_SIPAS"),
+      feeTypeName: "Registrasi Ulang Praktik Studio",
+      feeTypeCode: "STUDIO_RE",
+      feeTypeCategory: "UT_OFFICIAL",
+      name: `Registrasi Ulang Praktik Studio (${selectedProgram?.name || "Prodi"})`,
+      calculationType: "FIXED",
+      unitAmount: officialTariff.studioReRegistrationFee,
+      source: "SK Rektor UT Pedoman 2026/2027",
+      isPerSks: false,
+    });
+  }
 
   if (!isOpen) return null;
 
@@ -444,7 +513,7 @@ export function RegistrationForm({
                 className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="">-- Pilih Komponen Biaya Opsional dari Master Tarif --</option>
-                {candidateRates.map((r) => (
+                {mergedCandidateRates.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name} — (Rp {r.unitAmount.toLocaleString("id-ID")})
                   </option>
@@ -454,7 +523,7 @@ export function RegistrationForm({
                 type="button"
                 disabled={!selectedCandidateRateId}
                 onClick={() => {
-                  const target = candidateRates.find((r) => r.id === selectedCandidateRateId);
+                  const target = mergedCandidateRates.find((r) => r.id === selectedCandidateRateId);
                   if (target) {
                     addCandidateRateToRows(target);
                     setSelectedCandidateRateId("");
