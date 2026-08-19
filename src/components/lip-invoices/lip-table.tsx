@@ -161,7 +161,7 @@ export function LipTable({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {lip.storagePath ? (
+                      {lip.storagePath && lip.storagePath !== "" ? (
                         <button
                           type="button"
                           onClick={() => handleOpenSignedFile(lip)}

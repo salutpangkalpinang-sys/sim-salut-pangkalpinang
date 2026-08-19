@@ -123,7 +123,7 @@ export async function uploadLipFileAndCreateAction(formData: FormData) {
       other_ut_amount: otherUtAmount,
       issued_at: issuedAt,
       due_at: dueAt,
-      storage_path: storagePath,
+      storage_path: storagePath || "",
       original_file_name: file ? file.name : null,
       mime_type: file ? file.type : null,
       file_size: file ? file.size : 0,
