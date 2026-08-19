@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { uploadLipFileAndCreateAction } from "@/features/lip-invoices/actions";
+import { formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
 import { X, FileText, Upload, AlertTriangle, AlertCircle, Save } from "lucide-react";
 
 interface LipFormModalProps {
@@ -192,16 +193,13 @@ export function LipFormModal({
                 Total Resmi Kewajiban UT (Rp) <span className="text-red-500">*</span>
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 required
-                min={0}
-                value={officialAmount === 0 ? "" : officialAmount}
+                value={formatThousandInput(officialAmount)}
                 placeholder="0"
                 onFocus={(e) => e.target.select()}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setOfficialAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
-                }}
+                onChange={(e) => setOfficialAmount(parseThousandInput(e.target.value))}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold text-emerald-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
@@ -216,15 +214,12 @@ export function LipFormModal({
               <div>
                 <label className="block text-slate-600 text-[11px] mb-1">SPP / Uang Kuliah</label>
                 <input
-                  type="number"
-                  min={0}
-                  value={tuitionAmount === 0 ? "" : tuitionAmount}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatThousandInput(tuitionAmount)}
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setTuitionAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
-                  }}
+                  onChange={(e) => setTuitionAmount(parseThousandInput(e.target.value))}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
@@ -232,15 +227,12 @@ export function LipFormModal({
               <div>
                 <label className="block text-slate-600 text-[11px] mb-1">Bahan Ajar / Buku</label>
                 <input
-                  type="number"
-                  min={0}
-                  value={bookAmount === 0 ? "" : bookAmount}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatThousandInput(bookAmount)}
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setBookAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
-                  }}
+                  onChange={(e) => setBookAmount(parseThousandInput(e.target.value))}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
@@ -248,15 +240,12 @@ export function LipFormModal({
               <div>
                 <label className="block text-slate-600 text-[11px] mb-1">Biaya Kirim</label>
                 <input
-                  type="number"
-                  min={0}
-                  value={shippingAmount === 0 ? "" : shippingAmount}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatThousandInput(shippingAmount)}
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setShippingAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
-                  }}
+                  onChange={(e) => setShippingAmount(parseThousandInput(e.target.value))}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>
@@ -264,15 +253,12 @@ export function LipFormModal({
               <div>
                 <label className="block text-slate-600 text-[11px] mb-1">Komponen Lainnya</label>
                 <input
-                  type="number"
-                  min={0}
-                  value={otherUtAmount === 0 ? "" : otherUtAmount}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatThousandInput(otherUtAmount)}
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setOtherUtAmount(val === "" ? 0 : Math.max(0, parseInt(val, 10) || 0));
-                  }}
+                  onChange={(e) => setOtherUtAmount(parseThousandInput(e.target.value))}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                 />
               </div>

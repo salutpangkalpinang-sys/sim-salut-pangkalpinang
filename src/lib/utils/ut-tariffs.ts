@@ -258,3 +258,22 @@ export const UT_OFFICIAL_GENERAL_FEES = {
   KTM_REPLACEMENT: { name: "Biaya Penggantian KTM Hilang/Rusak", amount: 50000, unit: "Per Kartu" },
   IKA_UT_ACTIVATION: { name: "Biaya Aktivasi Ikatan Keluarga Alumni (IKA-UT)", amount: 150000, unit: "Per Lulusan" },
 };
+
+/**
+ * Formats numbers into Indonesian thousand dot-separated string for UI input display (e.g. 1700000 -> "1.700.000")
+ */
+export function formatThousandInput(val: number | string | undefined | null): string {
+  if (val === undefined || val === null || val === "" || val === 0) return "";
+  const num = typeof val === "number" ? val : parseInt(val.toString().replace(/\D/g, ""), 10);
+  if (isNaN(num) || num === 0) return "";
+  return num.toLocaleString("id-ID");
+}
+
+/**
+ * Parses thousand dot-separated display string into raw integer number (e.g. "1.700.000" -> 1700000)
+ */
+export function parseThousandInput(str: string | undefined | null): number {
+  if (!str) return 0;
+  const clean = str.toString().replace(/\D/g, "");
+  return parseInt(clean, 10) || 0;
+}
