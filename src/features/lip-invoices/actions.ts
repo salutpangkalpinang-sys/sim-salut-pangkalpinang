@@ -70,6 +70,17 @@ export async function uploadLipFileAndCreateAction(formData: FormData) {
 
   const supabase = await createClient();
 
+  // Verify registration is active and not cancelled
+  const { data: regData } = await supabase
+    .from("registrations")
+    .select("status")
+    .eq("id", registrationId)
+    .single();
+
+  if (regData && ((regData.status as string).toLowerCase() === "cancelled" || (regData.status as string).toLowerCase() === "dibatalkan")) {
+    return { error: "Registrasi ini telah dibatalkan dan tidak dapat dibuatkan LIP tagihan baru." };
+  }
+
   // Determine current LIP version for this registration
   const { data: existingLips } = await supabase
     .from("lip_documents")
