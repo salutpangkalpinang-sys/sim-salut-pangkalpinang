@@ -24,6 +24,7 @@ interface RegistrationListContainerProps {
     serviceSchemes: { id: string; code: string; name: string }[];
     students: { id: string; nim: string | null; full_name: string; study_program_id: string | null; service_scheme_id: string | null }[];
     feeTypes?: { id: string; code: string; name: string }[];
+    defaultSalutFee?: number;
   };
   initialStatusFilter?: string;
 }

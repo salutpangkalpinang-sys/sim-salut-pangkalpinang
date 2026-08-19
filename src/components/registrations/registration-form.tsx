@@ -17,6 +17,7 @@ interface RegistrationFormProps {
     serviceSchemes: { id: string; code: string; name: string }[];
     students: { id: string; nim: string | null; full_name: string; study_program_id: string | null; service_scheme_id: string | null }[];
     feeTypes?: { id: string; code: string; name: string }[];
+    defaultSalutFee?: number;
   };
 }
 
@@ -161,21 +162,23 @@ export function RegistrationForm({
 
           // Biaya Layanan & Pendampingan SALUT Mega Cendekia (Internal)
           const salutRate = rates.find(r => (r.name || "").includes("SALUT") || (r.feeTypeCode || "").includes("SALUT"));
+          const salutAmount = options.defaultSalutFee ?? salutRate?.unitAmount ?? 400000;
+
           rows.push({
             sourceFeeRateId: salutRate?.id,
             feeTypeId: getValidFeeTypeId("SALUT", salutRate?.feeTypeId),
             feeNameSnapshot: "Biaya Layanan & Pendampingan SALUT",
             calculationType: "FIXED",
             quantity: 1,
-            unitAmount: salutRate?.unitAmount || 250000,
-            totalAmount: salutRate?.unitAmount || 250000,
+            unitAmount: salutAmount,
+            totalAmount: salutAmount,
           });
 
           setFeeRows(rows);
         })
         .catch(console.warn);
     }
-  }, [studyProgramId, serviceSchemeId, academicPeriodId, credits]);
+  }, [studyProgramId, serviceSchemeId, academicPeriodId, credits, options.defaultSalutFee]);
 
   if (!isOpen) return null;
 
@@ -466,11 +469,11 @@ export function RegistrationForm({
                 <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="px-3 py-2">Komponen Biaya</th>
-                    <th className="px-3 py-2">Metode Hitung</th>
-                    <th className="px-3 py-2 w-20">Qty</th>
-                    <th className="px-3 py-2">Satuan (Rp)</th>
-                    <th className="px-3 py-2">Total Snapshot</th>
-                    <th className="px-3 py-2 text-right">Aksi</th>
+                    <th className="px-3 py-2 w-20">Metode</th>
+                    <th className="px-3 py-2 w-16">Qty</th>
+                    <th className="px-3 py-2 w-28">Satuan (Rp)</th>
+                    <th className="px-3 py-2 whitespace-nowrap">Total</th>
+                    <th className="px-3 py-2 text-right w-10">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-normal">
@@ -484,8 +487,10 @@ export function RegistrationForm({
                           className="w-full bg-transparent border-b border-transparent focus:border-blue-500 focus:outline-none text-slate-900 font-medium"
                         />
                       </td>
-                      <td className="px-3 py-2 text-slate-500 text-[11px]">
-                        {row.calculationType}
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 text-slate-600 rounded">
+                          {row.calculationType}
+                        </span>
                       </td>
                       <td className="px-3 py-2">
                         <input
@@ -493,7 +498,7 @@ export function RegistrationForm({
                           min={1}
                           value={row.quantity}
                           onChange={(e) => updateFeeRow(idx, "quantity", e.target.value)}
-                          className="w-16 px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono text-center"
+                          className="w-14 px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono text-center"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -505,7 +510,7 @@ export function RegistrationForm({
                           className="w-28 px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono"
                         />
                       </td>
-                      <td className="px-3 py-2 font-mono font-semibold text-emerald-600">
+                      <td className="px-3 py-2 font-mono font-semibold text-emerald-600 whitespace-nowrap">
                         Rp {row.totalAmount.toLocaleString("id-ID")}
                       </td>
                       <td className="px-3 py-2 text-right">
