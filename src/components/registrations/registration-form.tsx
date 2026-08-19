@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { CandidateFeeRate, RegistrationType } from "@/types/registration";
 import { RegistrationFormInput, registrationSchema } from "@/lib/validation/registration";
 import { createRegistrationAction, getAvailableCandidateFeeRatesAction } from "@/features/registrations/actions";
+import { getOfficialUtTariff } from "@/lib/utils/ut-tariffs";
 import { X, FileCheck, Save, AlertCircle, Plus, Trash2, Calculator } from "lucide-react";
 
 interface RegistrationFormProps {
@@ -84,17 +85,20 @@ export function RegistrationForm({
           const selectedScheme = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
           const schemeCode = (selectedScheme?.code || selectedScheme?.name || "").toUpperCase();
 
+          const selectedProgram = options.studyPrograms.find((p) => p.id === studyProgramId);
+          const officialTariff = getOfficialUtTariff(selectedProgram?.name || selectedProgram?.code || "");
+
           const isNonSipas = schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS");
           const isSemi = schemeCode.includes("SEMI");
           const isNonTtm = schemeCode.includes("NON_TTM") || schemeCode.includes("NON-TTM");
 
-          // Formulasi Komponen Wajib persis sesuai 3 Contoh LIP Real SALUT Mega Cendekia
+          // Formulasi Komponen Wajib persis sesuai 3 Contoh LIP Real SALUT Mega Cendekia & SK Rektor 4478
           const rows: FeeSnapshotRow[] = [];
 
           if (isNonSipas) {
             // Non-SIPAS (LIP Contoh 3): SKS + Biaya Buku + Biaya Pengiriman
             const perSksRate = rates.find(r => (r.feeTypeCode || "").includes("PER_SKS") || r.isPerSks || (r.name || "").includes("SKS")) || rates[0];
-            const sksUnitPrice = perSksRate?.unitAmount || 40000;
+            const sksUnitPrice = officialTariff.sksRate; // Tarif resmi per SKS prodi (mis. 36.000 untuk Administrasi Negara/Publik)
             const sksQty = Math.max(1, credits || 20);
             rows.push({
               sourceFeeRateId: perSksRate?.id,
@@ -126,7 +130,7 @@ export function RegistrationForm({
           } else if (isSemi) {
             // SIPAS Semi (LIP Contoh 1): Paket Semester (Bahan Ajar & TTM Wajib Sudah Termasuk)
             const semiRate = rates.find(r => (r.feeTypeCode || "").includes("SEMI") || (r.name || "").includes("SEMI")) || rates[0];
-            const unitPrice = semiRate?.unitAmount || 1750000;
+            const unitPrice = officialTariff.sipasSemiPackage;
             rows.push({
               sourceFeeRateId: semiRate?.id,
               feeTypeId: getValidFeeTypeId("SEMI", semiRate?.feeTypeId),
@@ -139,7 +143,7 @@ export function RegistrationForm({
           } else if (isNonTtm) {
             // SIPAS Non TTM (LIP Contoh 2): Paket Semester + Biaya Pengiriman
             const nonTtmRate = rates.find(r => (r.feeTypeCode || "").includes("NON_TTM") || (r.name || "").includes("NON-TTM") || (r.name || "").includes("NON TTM")) || rates[0];
-            const unitPrice = nonTtmRate?.unitAmount || 1300000;
+            const unitPrice = officialTariff.sipasNonTtmPackage;
             rows.push({
               sourceFeeRateId: nonTtmRate?.id,
               feeTypeId: getValidFeeTypeId("NON_TTM", nonTtmRate?.feeTypeId),
