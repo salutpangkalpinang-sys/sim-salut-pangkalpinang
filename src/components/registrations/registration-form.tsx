@@ -10,10 +10,6 @@ interface RegistrationFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-interface RegistrationFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
   options: {
     academicPeriods: { id: string; code: string; name: string }[];
     registrationTypes: RegistrationType[];
