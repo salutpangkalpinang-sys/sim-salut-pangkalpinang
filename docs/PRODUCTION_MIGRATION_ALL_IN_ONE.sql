@@ -4989,3 +4989,111 @@ SELECT
   TRUE
 FROM public.fee_types ft
 ON CONFLICT DO NOTHING;
+
+-- ============================================================================
+-- STORED PROCEDURES FOR RESETTING SYSTEM TRANSACTIONS (SECURITY DEFINER)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.reset_all_system_transactions()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_ut_items INTEGER;
+    v_ut_voids INTEGER;
+    v_ut_rems INTEGER;
+    v_pay_alloc INTEGER;
+    v_payments INTEGER;
+    v_inv_items INTEGER;
+    v_invoices INTEGER;
+    v_lips INTEGER;
+    v_snapshots INTEGER;
+    v_regs INTEGER;
+    v_cash INTEGER;
+BEGIN
+    DELETE FROM public.ut_remittance_items;
+    GET DIAGNOSTICS v_ut_items = ROW_COUNT;
+
+    DELETE FROM public.ut_remittance_void_requests;
+    GET DIAGNOSTICS v_ut_voids = ROW_COUNT;
+
+    DELETE FROM public.ut_remittances;
+    GET DIAGNOSTICS v_ut_rems = ROW_COUNT;
+
+    DELETE FROM public.payment_allocations;
+    GET DIAGNOSTICS v_pay_alloc = ROW_COUNT;
+
+    DELETE FROM public.student_payments;
+    GET DIAGNOSTICS v_payments = ROW_COUNT;
+
+    DELETE FROM public.invoice_items;
+    GET DIAGNOSTICS v_inv_items = ROW_COUNT;
+
+    DELETE FROM public.invoices;
+    GET DIAGNOSTICS v_invoices = ROW_COUNT;
+
+    DELETE FROM public.lip_documents;
+    GET DIAGNOSTICS v_lips = ROW_COUNT;
+
+    DELETE FROM public.registration_fee_snapshots;
+    GET DIAGNOSTICS v_snapshots = ROW_COUNT;
+
+    DELETE FROM public.registrations;
+    GET DIAGNOSTICS v_regs = ROW_COUNT;
+
+    DELETE FROM public.cash_transactions;
+    GET DIAGNOSTICS v_cash = ROW_COUNT;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'deleted', jsonb_build_object(
+            'registrations', v_regs,
+            'lip_documents', v_lips,
+            'invoices', v_invoices,
+            'student_payments', v_payments,
+            'ut_remittances', v_ut_rems,
+            'cash_transactions', v_cash
+        )
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.reset_student_transactions(p_student_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_reg_ids UUID[];
+    v_pay_ids UUID[];
+    v_inv_ids UUID[];
+BEGIN
+    SELECT ARRAY_AGG(id) INTO v_reg_ids FROM public.registrations WHERE student_id = p_student_id;
+
+    IF v_reg_ids IS NOT NULL AND array_length(v_reg_ids, 1) > 0 THEN
+        DELETE FROM public.ut_remittance_items WHERE registration_id = ANY(v_reg_ids);
+
+        SELECT ARRAY_AGG(id) INTO v_pay_ids FROM public.student_payments WHERE registration_id = ANY(v_reg_ids);
+        IF v_pay_ids IS NOT NULL AND array_length(v_pay_ids, 1) > 0 THEN
+            DELETE FROM public.payment_allocations WHERE payment_id = ANY(v_pay_ids);
+            DELETE FROM public.student_payments WHERE id = ANY(v_pay_ids);
+        END IF;
+
+        SELECT ARRAY_AGG(id) INTO v_inv_ids FROM public.invoices WHERE registration_id = ANY(v_reg_ids);
+        IF v_inv_ids IS NOT NULL AND array_length(v_inv_ids, 1) > 0 THEN
+            DELETE FROM public.invoice_items WHERE invoice_id = ANY(v_inv_ids);
+            DELETE FROM public.invoices WHERE id = ANY(v_inv_ids);
+        END IF;
+
+        DELETE FROM public.lip_documents WHERE registration_id = ANY(v_reg_ids);
+        DELETE FROM public.registration_fee_snapshots WHERE registration_id = ANY(v_reg_ids);
+        DELETE FROM public.registrations WHERE id = ANY(v_reg_ids);
+    END IF;
+
+    RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.reset_all_system_transactions() TO authenticated, service_role, anon;
+GRANT EXECUTE ON FUNCTION public.reset_student_transactions(UUID) TO authenticated, service_role, anon;
+

@@ -185,50 +185,34 @@ export async function resetStudentTestTransactionsAction(studentQuery: string = 
     return { error: `Mahasiswa dengan nama "${studentQuery}" tidak ditemukan.` };
   }
 
-  const studentIds = students.map((s) => s.id);
+  for (const s of students) {
+    // Try stored procedure first (bypasses RLS)
+    const { error: rpcErr } = await supabase.rpc("reset_student_transactions", { p_student_id: s.id });
 
-  // Find registrations
-  const { data: regs } = await supabase
-    .from("registrations")
-    .select("id")
-    .in("student_id", studentIds);
-
-  const regIds = (regs || []).map((r) => r.id);
-
-  if (regIds.length > 0) {
-    // 1. Delete UT Remittance Items
-    await supabase.from("ut_remittance_items").delete().in("registration_id", regIds);
-
-    // 2. Delete Student Payments & Payment Allocations
-    const { data: payments } = await supabase
-      .from("student_payments")
-      .select("id")
-      .in("registration_id", regIds);
-
-    const paymentIds = (payments || []).map((p) => p.id);
-    if (paymentIds.length > 0) {
-      await supabase.from("payment_allocations").delete().in("payment_id", paymentIds);
-      await supabase.from("student_payments").delete().in("id", paymentIds);
+    if (rpcErr) {
+      console.warn("RPC reset_student_transactions fallback:", rpcErr);
+      // Fallback query
+      const { data: regs } = await supabase.from("registrations").select("id").eq("student_id", s.id);
+      const regIds = (regs || []).map((r) => r.id);
+      if (regIds.length > 0) {
+        await supabase.from("ut_remittance_items").delete().in("registration_id", regIds);
+        const { data: payments } = await supabase.from("student_payments").select("id").in("registration_id", regIds);
+        const paymentIds = (payments || []).map((p) => p.id);
+        if (paymentIds.length > 0) {
+          await supabase.from("payment_allocations").delete().in("payment_id", paymentIds);
+          await supabase.from("student_payments").delete().in("id", paymentIds);
+        }
+        const { data: invoices } = await supabase.from("invoices").select("id").in("registration_id", regIds);
+        const invoiceIds = (invoices || []).map((i) => i.id);
+        if (invoiceIds.length > 0) {
+          await supabase.from("invoice_items").delete().in("invoice_id", invoiceIds);
+          await supabase.from("invoices").delete().in("id", invoiceIds);
+        }
+        await supabase.from("lip_documents").delete().in("registration_id", regIds);
+        await supabase.from("registration_fee_snapshots").delete().in("registration_id", regIds);
+        await supabase.from("registrations").delete().in("id", regIds);
+      }
     }
-
-    // 3. Delete Invoice Items & Invoices
-    const { data: invoices } = await supabase
-      .from("invoices")
-      .select("id")
-      .in("registration_id", regIds);
-
-    const invoiceIds = (invoices || []).map((i) => i.id);
-    if (invoiceIds.length > 0) {
-      await supabase.from("invoice_items").delete().in("invoice_id", invoiceIds);
-      await supabase.from("invoices").delete().in("id", invoiceIds);
-    }
-
-    // 4. Delete LIP Documents
-    await supabase.from("lip_documents").delete().in("registration_id", regIds);
-
-    // 5. Delete Fee Snapshots & Registrations
-    await supabase.from("registration_fee_snapshots").delete().in("registration_id", regIds);
-    await supabase.from("registrations").delete().in("id", regIds);
   }
 
   revalidatePath("/registrasi");
@@ -252,28 +236,24 @@ export async function resetAllSystemTransactionsAction() {
 
   const supabase = await createClient();
 
-  // 1. Delete UT Remittance items, void requests, & remittances
-  await supabase.from("ut_remittance_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("ut_remittance_void_requests").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("ut_remittances").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  // Try stored procedure first (bypasses RLS)
+  const { error: rpcErr } = await supabase.rpc("reset_all_system_transactions");
 
-  // 2. Delete Student Payments & Payment Allocations
-  await supabase.from("payment_allocations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("student_payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-  // 3. Delete Invoice Items & Invoices
-  await supabase.from("invoice_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("invoices").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-  // 4. Delete LIP Documents
-  await supabase.from("lip_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-  // 5. Delete Registration Fee Snapshots & Registrations
-  await supabase.from("registration_fee_snapshots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase.from("registrations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-  // 6. Delete Operational Cash Transactions
-  await supabase.from("cash_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if (rpcErr) {
+    console.warn("RPC reset_all_system_transactions fallback:", rpcErr);
+    // Fallback queries
+    await supabase.from("ut_remittance_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("ut_remittance_void_requests").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("ut_remittances").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("payment_allocations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("student_payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("invoice_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("invoices").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("lip_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("registration_fee_snapshots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("registrations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("cash_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  }
 
   revalidatePath("/registrasi");
   revalidatePath("/lip-tagihan");
