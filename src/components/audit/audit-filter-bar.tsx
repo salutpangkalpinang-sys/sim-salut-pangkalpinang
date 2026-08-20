@@ -2,7 +2,8 @@
 
 import { AuditFilter } from "@/types/audit";
 import { RoleCode } from "@/lib/auth/types";
-import { Search, Filter, Calendar, RotateCcw } from "lucide-react";
+import { Search, Filter, RotateCcw } from "lucide-react";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface AuditFilterBarProps {
   filter: AuditFilter;
@@ -20,14 +21,6 @@ export function AuditFilterBar({ filter, onFilterChange }: AuditFilterBarProps) 
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onFilterChange({ ...filter, role: e.target.value as RoleCode | "ALL", page: 1 });
-  };
-
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onFilterChange({ ...filter, startDate: e.target.value, page: 1 });
-  };
-
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onFilterChange({ ...filter, endDate: e.target.value, page: 1 });
   };
 
   const handleReset = () => {
@@ -100,22 +93,19 @@ export function AuditFilterBar({ filter, onFilterChange }: AuditFilterBarProps) 
           </select>
 
           {/* Date Range Inputs */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <input
-              type="date"
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg p-1">
+            <DatePickerId
               value={filter.startDate || ""}
-              onChange={handleStartDateChange}
-              className="bg-transparent text-slate-800 focus:outline-none text-xs"
-              title="Tanggal Mulai"
+              onChange={(iso) => onFilterChange({ ...filter, startDate: iso, page: 1 })}
+              placeholder="Dari Tgl"
+              className="w-28 py-1 px-2 text-[11px]"
             />
             <span className="text-slate-400 font-mono text-[11px]">-</span>
-            <input
-              type="date"
+            <DatePickerId
               value={filter.endDate || ""}
-              onChange={handleEndDateChange}
-              className="bg-transparent text-slate-800 focus:outline-none text-xs"
-              title="Tanggal Selesai"
+              onChange={(iso) => onFilterChange({ ...filter, endDate: iso, page: 1 })}
+              placeholder="Sampai Tgl"
+              className="w-28 py-1 px-2 text-[11px]"
             />
           </div>
         </div>

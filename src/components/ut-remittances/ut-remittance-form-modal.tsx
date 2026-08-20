@@ -5,6 +5,7 @@ import { EligibleLipForRemittance } from "@/types/ut-remittance";
 import { createUtRemittanceAction } from "@/features/ut-remittances/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, Building2, Upload, AlertCircle, Save, Trash2 } from "lucide-react";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface UtRemittanceFormModalProps {
   isOpen: boolean;
@@ -167,18 +168,12 @@ export function UtRemittanceFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Header Info: Date, Cash Account, Reference */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div>
-              <label className="block text-slate-700 font-medium mb-1">
-                Tanggal Setor <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={paidAt}
-                onChange={(e) => setPaidAt(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
+            <DatePickerId
+              label="Tanggal Setor"
+              required
+              value={paidAt}
+              onChange={(iso) => setPaidAt(iso)}
+            />
 
             <div>
               <label className="block text-slate-700 font-medium mb-1">Sumber Rekening Kas</label>

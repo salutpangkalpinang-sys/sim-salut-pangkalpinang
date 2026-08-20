@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createStudentPaymentAction } from "@/features/payments/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, CreditCard, Upload, AlertCircle, Save } from "lucide-react";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface PaymentFormModalProps {
   isOpen: boolean;
@@ -213,18 +214,12 @@ export function PaymentFormModal({
               />
             </div>
 
-            <div>
-              <label className="block text-slate-700 font-medium mb-1">
-                Tanggal Bayar <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={paidAt}
-                onChange={(e) => setPaidAt(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              />
-            </div>
+            <DatePickerId
+              label="Tanggal Bayar"
+              required
+              value={paidAt}
+              onChange={(iso) => setPaidAt(iso)}
+            />
           </div>
 
           {/* Payment Method & Cash Account */}

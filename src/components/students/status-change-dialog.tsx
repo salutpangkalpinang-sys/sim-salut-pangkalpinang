@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Student, MasterOption } from "@/types/student";
 import { changeStudentStatusAction } from "@/features/students/actions";
 import { X, RefreshCw, AlertCircle } from "lucide-react";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface StatusChangeDialogProps {
   student: Student;
@@ -131,17 +132,11 @@ export function StatusChangeDialog({
             </select>
           </div>
 
-          <div>
-            <label className="block text-slate-700 font-medium mb-1">
-              Tanggal Efektif Status Baru
-            </label>
-            <input
-              type="date"
-              value={effectiveAt}
-              onChange={(e) => setEffectiveAt(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
+          <DatePickerId
+            label="Tanggal Efektif Status Baru"
+            value={effectiveAt}
+            onChange={(iso) => setEffectiveAt(iso)}
+          />
 
           <div>
             <label className="block text-slate-700 font-medium mb-1">

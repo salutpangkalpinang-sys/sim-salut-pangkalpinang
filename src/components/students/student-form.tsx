@@ -6,6 +6,7 @@ import { StudentFormInput, studentSchema } from "@/lib/validation/student";
 import { createStudentAction, updateStudentAction } from "@/features/students/actions";
 import { X, UserPlus, Save, AlertCircle, Sparkles } from "lucide-react";
 import { deriveUtMasaCode, formatUtMasaLabel, generateUtMasaOptions } from "@/lib/utils/ut-masa";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface StudentFormProps {
   initialData?: Student | null;
@@ -204,15 +205,11 @@ export function StudentForm({
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-medium mb-1">Tanggal Lahir</label>
-                <input
-                  type="date"
-                  value={formData.birthDate || ""}
-                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
+              <DatePickerId
+                label="Tanggal Lahir"
+                value={formData.birthDate || ""}
+                onChange={(iso) => setFormData({ ...formData, birthDate: iso })}
+              />
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">Jenis Kelamin</label>

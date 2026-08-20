@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LipDocument } from "@/types/lip-invoice";
 import { createInvoiceAction } from "@/features/lip-invoices/actions";
 import { X, Receipt, Plus, Trash2, AlertCircle, Save } from "lucide-react";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface InvoiceFormModalProps {
   lipDocument: LipDocument;
@@ -324,16 +325,11 @@ export function InvoiceFormModal({
             </div>
           )}
 
-          {/* Due Date */}
-          <div>
-            <label className="block text-slate-700 font-medium mb-1">Tanggal Jatuh Tempo Pembayaran</label>
-            <input
-              type="date"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
+          <DatePickerId
+            label="Tanggal Jatuh Tempo Pembayaran"
+            value={dueAt}
+            onChange={(iso) => setDueAt(iso)}
+          />
 
           {/* Notes */}
           <div>

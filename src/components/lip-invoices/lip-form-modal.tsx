@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { uploadLipFileAndCreateAction } from "@/features/lip-invoices/actions";
 import { formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
 import { X, FileText, Upload, AlertTriangle, AlertCircle, Save } from "lucide-react";
+import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface LipFormModalProps {
   isOpen: boolean;
@@ -281,24 +282,16 @@ export function LipFormModal({
 
           {/* Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-slate-700 font-medium mb-1">Tanggal Terbit</label>
-              <input
-                type="date"
-                value={issuedAt}
-                onChange={(e) => setIssuedAt(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-700 font-medium mb-1">Tanggal Jatuh Tempo</label>
-              <input
-                type="date"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
+            <DatePickerId
+              label="Tanggal Terbit"
+              value={issuedAt}
+              onChange={(iso) => setIssuedAt(iso)}
+            />
+            <DatePickerId
+              label="Tanggal Jatuh Tempo"
+              value={dueAt}
+              onChange={(iso) => setDueAt(iso)}
+            />
           </div>
 
           {/* File Picker */}
