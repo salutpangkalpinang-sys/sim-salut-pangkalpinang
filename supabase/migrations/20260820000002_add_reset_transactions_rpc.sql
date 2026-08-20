@@ -6,17 +6,18 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_ut_items INTEGER;
-    v_ut_voids INTEGER;
-    v_ut_rems INTEGER;
-    v_pay_alloc INTEGER;
-    v_payments INTEGER;
-    v_inv_items INTEGER;
-    v_invoices INTEGER;
-    v_lips INTEGER;
-    v_snapshots INTEGER;
-    v_regs INTEGER;
-    v_cash INTEGER;
+    v_ut_items INTEGER := 0;
+    v_ut_voids INTEGER := 0;
+    v_ut_rems INTEGER := 0;
+    v_pay_alloc INTEGER := 0;
+    v_payments INTEGER := 0;
+    v_inv_items INTEGER := 0;
+    v_invoices INTEGER := 0;
+    v_lips INTEGER := 0;
+    v_snapshots INTEGER := 0;
+    v_regs INTEGER := 0;
+    v_ops_voids INTEGER := 0;
+    v_ops_txns INTEGER := 0;
 BEGIN
     -- 1. Delete UT Remittance items, void requests, & remittances
     DELETE FROM public.ut_remittance_items;
@@ -53,9 +54,12 @@ BEGIN
     DELETE FROM public.registrations;
     GET DIAGNOSTICS v_regs = ROW_COUNT;
 
-    -- 6. Delete Operational Cash Transactions
-    DELETE FROM public.cash_transactions;
-    GET DIAGNOSTICS v_cash = ROW_COUNT;
+    -- 6. Delete Operational Transactions & Void Requests
+    DELETE FROM public.operational_transaction_void_requests;
+    GET DIAGNOSTICS v_ops_voids = ROW_COUNT;
+
+    DELETE FROM public.operational_transactions;
+    GET DIAGNOSTICS v_ops_txns = ROW_COUNT;
 
     RETURN jsonb_build_object(
         'success', true,
@@ -65,7 +69,7 @@ BEGIN
             'invoices', v_invoices,
             'student_payments', v_payments,
             'ut_remittances', v_ut_rems,
-            'cash_transactions', v_cash
+            'operational_transactions', v_ops_txns
         )
     );
 END;

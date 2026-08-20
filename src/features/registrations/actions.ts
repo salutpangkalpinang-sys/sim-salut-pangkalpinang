@@ -252,7 +252,8 @@ export async function resetAllSystemTransactionsAction() {
     await supabase.from("lip_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("registration_fee_snapshots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("registrations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase.from("cash_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("operational_transaction_void_requests").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("operational_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   }
 
   revalidatePath("/registrasi");

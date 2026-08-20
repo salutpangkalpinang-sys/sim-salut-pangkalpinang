@@ -25,12 +25,13 @@ export async function GET() {
     const { error: snapErr } = await supabase.from("registration_fee_snapshots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     const { error: regErr } = await supabase.from("registrations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-    // 6. Delete Cash Transactions
-    const { error: cashErr } = await supabase.from("cash_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    // 6. Delete Operational Transactions & Void Requests
+    const { error: opsVoidErr } = await supabase.from("operational_transaction_void_requests").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error: opsTxnErr } = await supabase.from("operational_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
     return NextResponse.json({
       success: true,
-      message: "SELURUH DATA TRANSAKSI SISTEM (Registrasi, LIP, Invoice, Pembayaran, Setoran UT, Kas Operasional) BERHASIL DIHAPUS BERSIH!",
+      message: "SELURUH DATA TRANSAKSI SISTEM (Registrasi, LIP, Invoice, Pembayaran, Setoran UT, & Kas Operasional) BERHASIL DIHAPUS BERSIH!",
       errors: {
         utItemErr,
         utVoidErr,
@@ -42,7 +43,8 @@ export async function GET() {
         lipErr,
         snapErr,
         regErr,
-        cashErr,
+        opsVoidErr,
+        opsTxnErr,
       },
     });
   } catch (err: any) {
