@@ -85,6 +85,21 @@ export async function createRegistrationAction(input: RegistrationFormInput) {
   const data = validation.data;
   const supabase = await createClient();
 
+  // Prevent duplicate active registration per student per academic period
+  const { data: existingReg } = await supabase
+    .from("registrations")
+    .select("id, registration_number")
+    .eq("student_id", data.studentId)
+    .eq("academic_period_id", data.academicPeriodId)
+    .not("status", "in", '("cancelled","dibatalkan")')
+    .limit(1);
+
+  if (existingReg && existingReg.length > 0) {
+    return {
+      error: `Mahasiswa ini sudah terdaftar pada periode akademik ini dengan Nomor Registrasi ${existingReg[0].registration_number}.`,
+    };
+  }
+
   const feeItemsPayload = data.feeSnapshots.map((item) => ({
     source_fee_rate_id: item.sourceFeeRateId || null,
     fee_type_id: item.feeTypeId,
