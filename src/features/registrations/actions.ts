@@ -163,3 +163,82 @@ export async function cancelRegistrationAction(input: CancelRegistrationFormInpu
 
   return { success: true };
 }
+
+export async function resetStudentTestTransactionsAction(studentQuery: string = "Dixit") {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "academic_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk mereset transaksi uji coba." };
+  }
+
+  const supabase = await createClient();
+
+  // Find student by name
+  let studentSearch = supabase.from("students").select("id, full_name");
+  if (studentQuery && studentQuery.trim() !== "") {
+    studentSearch = studentSearch.ilike("full_name", `%${studentQuery.trim()}%`);
+  }
+
+  const { data: students, error: sErr } = await studentSearch;
+
+  if (sErr || !students || students.length === 0) {
+    return { error: `Mahasiswa dengan nama "${studentQuery}" tidak ditemukan.` };
+  }
+
+  const studentIds = students.map((s) => s.id);
+
+  // Find registrations
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("id")
+    .in("student_id", studentIds);
+
+  const regIds = (regs || []).map((r) => r.id);
+
+  if (regIds.length > 0) {
+    // 1. Delete UT Remittance Items
+    await supabase.from("ut_remittance_items").delete().in("registration_id", regIds);
+
+    // 2. Delete Student Payments & Payment Allocations
+    const { data: payments } = await supabase
+      .from("student_payments")
+      .select("id")
+      .in("registration_id", regIds);
+
+    const paymentIds = (payments || []).map((p) => p.id);
+    if (paymentIds.length > 0) {
+      await supabase.from("payment_allocations").delete().in("payment_id", paymentIds);
+      await supabase.from("student_payments").delete().in("id", paymentIds);
+    }
+
+    // 3. Delete Invoice Items & Invoices
+    const { data: invoices } = await supabase
+      .from("invoices")
+      .select("id")
+      .in("registration_id", regIds);
+
+    const invoiceIds = (invoices || []).map((i) => i.id);
+    if (invoiceIds.length > 0) {
+      await supabase.from("invoice_items").delete().in("invoice_id", invoiceIds);
+      await supabase.from("invoices").delete().in("id", invoiceIds);
+    }
+
+    // 4. Delete LIP Documents
+    await supabase.from("lip_documents").delete().in("registration_id", regIds);
+
+    // 5. Delete Fee Snapshots & Registrations
+    await supabase.from("registration_fee_snapshots").delete().in("registration_id", regIds);
+    await supabase.from("registrations").delete().in("id", regIds);
+  }
+
+  revalidatePath("/registrasi");
+  revalidatePath("/lip-tagihan");
+  revalidatePath("/pembayaran");
+  revalidatePath("/setoran-ut");
+  revalidatePath("/mahasiswa");
+
+  return {
+    success: true,
+    message: `Data transaksi uji coba untuk ${students.map((s) => s.full_name).join(", ")} berhasil di-reset bersih!`,
+  };
+}
