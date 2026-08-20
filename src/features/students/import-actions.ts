@@ -221,26 +221,37 @@ export async function commitImportAction(
               }
             }
 
+            // Resolve targetStatusId if row.statusId is not set
+            let targetStatusId = row.statusId;
+            if (!targetStatusId) {
+              const { data: statuses } = await supabase.from("student_statuses").select("id, code");
+              if (row.nim && row.nim.trim() !== "") {
+                targetStatusId = statuses?.find((s) => s.code === "AKTIF")?.id || null;
+              } else {
+                targetStatusId = statuses?.find((s) => s.code === "CALON")?.id || null;
+              }
+            }
+
             // Insert into public.students
             const { data: newStudent, error: insertError } = await supabase
               .from("students")
               .insert({
                 full_name: row.fullName,
-                nim: row.nim,
-                nik: row.nik,
-                place_of_birth: row.placeOfBirth,
-                date_of_birth: row.dateOfBirth,
-                gender: row.gender,
-                whatsapp: row.whatsapp,
-                email: row.email,
-                address: row.address,
-                city: row.city,
+                nim: row.nim || null,
+                nik: row.nik || null,
+                birth_place: row.placeOfBirth || null,
+                birth_date: row.dateOfBirth || null,
+                gender: row.gender || null,
+                whatsapp: row.whatsapp || null,
+                email: row.email || null,
+                address: row.address || null,
+                city: row.city || "Pangkalpinang",
                 entry_year: row.entryYear,
-                faculty_id: row.facultyId,
-                study_program_id: row.studyProgramId,
-                service_scheme_id: row.serviceSchemeId,
-                status_id: row.statusId,
-                notes: row.notes,
+                faculty_id: row.facultyId || null,
+                study_program_id: row.studyProgramId || null,
+                service_scheme_id: row.serviceSchemeId || null,
+                status_id: targetStatusId,
+                internal_notes: row.notes || null,
                 created_by: profile.id,
                 updated_by: profile.id,
               })
@@ -248,6 +259,7 @@ export async function commitImportAction(
               .single();
 
             if (insertError || !newStudent) {
+              console.error("Import student insert error:", insertError);
               failedCount++;
               failedRows.push({
                 rowNumber: i + 1,
@@ -256,13 +268,14 @@ export async function commitImportAction(
               });
             } else {
               // Record initial status history
-              if (row.statusId) {
+              if (targetStatusId) {
                 await supabase.from("student_status_history").insert({
                   student_id: newStudent.id,
-                  status_id: row.statusId,
-                  effective_date: row.statusEffectiveDate || new Date().toISOString().split("T")[0],
+                  previous_status_id: null,
+                  new_status_id: targetStatusId,
+                  effective_at: row.statusEffectiveDate || new Date().toISOString(),
                   reason: `Initial status dari Mass Import CSV/Excel (${filename})`,
-                  created_by: profile.id,
+                  changed_by: profile.id,
                 });
               }
               successCount++;

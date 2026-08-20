@@ -446,6 +446,19 @@ export function ImportModal({ isOpen, onClose, defaultMode = "calon" }: ImportMo
                   <span className="text-xl font-bold font-mono text-red-800">{commitResult.failedCount}</span>
                 </div>
               </div>
+
+              {commitResult.failedCount > 0 && commitResult.failedRows && commitResult.failedRows.length > 0 && (
+                <div className="max-w-lg mx-auto p-3 bg-red-50 border border-red-200 rounded-xl text-left text-xs text-red-800 max-h-40 overflow-y-auto space-y-1">
+                  <span className="font-semibold text-red-900 block border-b border-red-200 pb-1">
+                    Detail Baris Gagal Commit:
+                  </span>
+                  {commitResult.failedRows.map((f, idx) => (
+                    <div key={idx} className="text-[11px]">
+                      • <strong>Baris {f.rowNumber} ({f.name})</strong>: {f.reason}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
