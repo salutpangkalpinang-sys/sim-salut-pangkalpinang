@@ -174,7 +174,28 @@ export function StudentForm({
                 <input
                   type="text"
                   value={formData.nim || ""}
-                  onChange={(e) => setFormData({ ...formData, nim: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const calonStatus = options.statuses.find((s) => s.code === "CALON");
+                    const aktifStatus = options.statuses.find((s) => s.code === "AKTIF");
+
+                    let newStatusId = formData.statusId;
+                    if (val.trim() !== "") {
+                      if (aktifStatus && (!formData.statusId || formData.statusId === calonStatus?.id)) {
+                        newStatusId = aktifStatus.id;
+                      }
+                    } else {
+                      if (calonStatus && (!formData.statusId || formData.statusId === aktifStatus?.id)) {
+                        newStatusId = calonStatus.id;
+                      }
+                    }
+
+                    setFormData((prev) => ({
+                      ...prev,
+                      nim: val,
+                      statusId: newStatusId,
+                    }));
+                  }}
                   placeholder="041234567"
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
                 />

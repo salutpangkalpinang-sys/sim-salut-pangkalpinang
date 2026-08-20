@@ -23,6 +23,22 @@ export async function createStudentAction(input: StudentFormInput) {
   const data = validation.data;
   const supabase = await createClient();
 
+  // Auto-resolve status: If NIM is provided, switch status from CALON to AKTIF
+  let targetStatusId = data.statusId;
+  const { data: statuses } = await supabase.from("student_statuses").select("id, code");
+  const calonStatus = statuses?.find((s) => s.code === "CALON");
+  const aktifStatus = statuses?.find((s) => s.code === "AKTIF");
+
+  if (data.nim && data.nim.trim() !== "") {
+    if (aktifStatus && (!targetStatusId || targetStatusId === calonStatus?.id)) {
+      targetStatusId = aktifStatus.id;
+    }
+  } else {
+    if (calonStatus && !targetStatusId) {
+      targetStatusId = calonStatus.id;
+    }
+  }
+
   const { data: inserted, error } = await supabase
     .from("students")
     .insert({
@@ -41,7 +57,7 @@ export async function createStudentAction(input: StudentFormInput) {
       study_level_id: data.studyLevelId,
       study_program_id: data.studyProgramId,
       service_scheme_id: data.serviceSchemeId,
-      status_id: data.statusId,
+      status_id: targetStatusId,
       internal_notes: data.internalNotes,
       created_by: profile.id,
       updated_by: profile.id,
@@ -86,6 +102,27 @@ export async function updateStudentAction(studentId: string, input: StudentFormI
   const data = validation.data;
   const supabase = await createClient();
 
+  // Auto-resolve status: If NIM is filled in, switch status from CALON to AKTIF
+  let targetStatusId = data.statusId;
+  const { data: statuses } = await supabase.from("student_statuses").select("id, code");
+  const calonStatus = statuses?.find((s) => s.code === "CALON");
+  const aktifStatus = statuses?.find((s) => s.code === "AKTIF");
+
+  if (data.nim && data.nim.trim() !== "") {
+    const { data: currentStudent } = await supabase
+      .from("students")
+      .select("status_id")
+      .eq("id", studentId)
+      .single();
+
+    if (
+      aktifStatus &&
+      (targetStatusId === calonStatus?.id || currentStudent?.status_id === calonStatus?.id)
+    ) {
+      targetStatusId = aktifStatus.id;
+    }
+  }
+
   const { error } = await supabase
     .from("students")
     .update({
@@ -104,7 +141,7 @@ export async function updateStudentAction(studentId: string, input: StudentFormI
       study_level_id: data.studyLevelId,
       study_program_id: data.studyProgramId,
       service_scheme_id: data.serviceSchemeId,
-      status_id: data.statusId,
+      status_id: targetStatusId,
       internal_notes: data.internalNotes,
       updated_by: profile.id,
       updated_at: new Date().toISOString(),
