@@ -155,6 +155,34 @@ export async function verifyLipDocumentAction(id: string) {
 
   const supabase = await createClient();
 
+  // 1. Fetch target LIP details
+  const { data: targetLip, error: fetchErr } = await supabase
+    .from("lip_documents")
+    .select("id, registration_id, lip_number")
+    .eq("id", id)
+    .single();
+
+  if (fetchErr || !targetLip) {
+    return { error: "Dokumen LIP tidak ditemukan." };
+  }
+
+  // 2. Automatically set any previous verified LIP for the same registration to 'superseded'
+  const { error: resetErr } = await supabase
+    .from("lip_documents")
+    .update({
+      status: "superseded",
+      updated_at: new Date().toISOString(),
+      updated_by: profile.id,
+    })
+    .eq("registration_id", targetLip.registration_id)
+    .eq("status", "verified")
+    .neq("id", id);
+
+  if (resetErr) {
+    console.error("Database reset previous verified LIP error:", resetErr);
+  }
+
+  // 3. Mark target LIP document as 'verified'
   const { error } = await supabase
     .from("lip_documents")
     .update({
@@ -172,6 +200,8 @@ export async function verifyLipDocumentAction(id: string) {
   }
 
   revalidatePath("/lip-tagihan");
+  revalidatePath("/registrasi");
+  revalidatePath("/setoran-ut");
 
   return { success: true };
 }
