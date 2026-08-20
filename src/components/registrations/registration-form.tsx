@@ -389,7 +389,7 @@ export function RegistrationForm({
                 <option value="">Pilih Mahasiswa Terdaftar</option>
                 {options.students.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.full_name} {s.nim ? `(NIM: ${s.nim})` : "(Calon Mahasiswa)"}
+                    {s.full_name} (NIM: {s.nim})
                   </option>
                 ))}
               </select>

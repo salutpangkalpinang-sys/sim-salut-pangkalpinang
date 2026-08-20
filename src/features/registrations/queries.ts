@@ -306,7 +306,7 @@ export async function getRegistrationMasterOptions() {
     supabase.from("registration_types").select("id, code, name").eq("is_active", true).order("name"),
     supabase.from("study_programs").select("id, code, name, faculty_id, study_level_id").eq("is_active", true).order("name"),
     supabase.from("service_schemes").select("id, code, name").eq("is_active", true).order("name"),
-    supabase.from("students").select("id, nim, full_name, study_program_id, service_scheme_id").order("full_name"),
+    supabase.from("students").select("id, nim, full_name, study_program_id, service_scheme_id").not("nim", "is", null).neq("nim", "").order("full_name"),
     supabase.from("fee_types").select("id, code, name").order("name"),
     getAppSettings(),
   ]);
