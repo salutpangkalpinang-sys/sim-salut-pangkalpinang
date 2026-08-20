@@ -5,28 +5,35 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    // Find student Dixit
-    const { data: students, error: sErr } = await supabase
-      .from("students")
-      .select("id, full_name")
-      .ilike("full_name", "%Dixit%");
+    // Fetch all students to match or list
+    const { data: allStudents } = await supabase.from("students").select("id, full_name, nim");
 
-    if (sErr || !students || students.length === 0) {
-      return NextResponse.json({ message: "Student Dixit not found", error: sErr });
+    const dixitStudents = (allStudents || []).filter(
+      (s) => s.full_name?.toLowerCase().includes("dixit") || s.full_name?.toLowerCase().includes("mutama")
+    );
+
+    const targetStudents = dixitStudents.length > 0 ? dixitStudents : allStudents || [];
+
+    if (targetStudents.length === 0) {
+      return NextResponse.json({ message: "No students found in system", allStudents });
     }
 
-    const studentIds = students.map((s) => s.id);
+    const studentIds = targetStudents.map((s) => s.id);
 
     // Find registrations
     const { data: regs } = await supabase
       .from("registrations")
-      .select("id")
+      .select("id, registration_number, student_id")
       .in("student_id", studentIds);
 
     const regIds = (regs || []).map((r) => r.id);
 
     if (regIds.length === 0) {
-      return NextResponse.json({ message: "No registrations found for Dixit" });
+      return NextResponse.json({
+        message: "No registrations found for target students",
+        targetStudents,
+        allStudents,
+      });
     }
 
     // 1. Delete UT Remittance Items
@@ -65,13 +72,14 @@ export async function GET() {
       .delete()
       .in("registration_id", regIds);
 
-    // 5. Delete Registration Fee Snapshots & Registrations (or reset status)
+    // 5. Delete Registration Fee Snapshots & Registrations
     await supabase.from("registration_fee_snapshots").delete().in("registration_id", regIds);
     const { error: regErr } = await supabase.from("registrations").delete().in("id", regIds);
 
     return NextResponse.json({
       success: true,
-      message: "Data transaksi uji coba a.n. Dixit Mutama Winanda berhasil di-reset bersih!",
+      message: "Data transaksi registrasi, LIP, invoice, pembayaran, & setoran UT berhasil di-reset bersih!",
+      resetStudents: targetStudents.map((s) => s.full_name),
       resetCount: {
         registrations: regIds.length,
         invoices: invoiceIds.length,
