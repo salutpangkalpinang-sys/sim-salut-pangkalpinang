@@ -34,12 +34,14 @@ export interface NormalizedStudentImportData {
   city: string | null;
   entryYear: number | null;
   facultyId: string | null;
+  studyLevelId: string | null;
   studyProgramId: string | null;
   serviceSchemeId: string | null;
   statusId: string | null;
   statusEffectiveDate: string | null;
   notes: string | null;
   // Display metadata
+  studyLevelName?: string;
   studyProgramName?: string;
   serviceSchemeName?: string;
   statusName?: string;
@@ -73,7 +75,8 @@ export interface ImportCommitResult {
 
 export interface MasterDataResolved {
   faculties: { id: string; code: string; name: string }[];
-  studyPrograms: { id: string; code: string; name: string; faculty_id?: string }[];
+  studyLevels: { id: string; code: string; name: string }[];
+  studyPrograms: { id: string; code: string; name: string; faculty_id?: string; study_level_id?: string }[];
   serviceSchemes: { id: string; code: string; name: string }[];
   studentStatuses: { id: string; code: string; name: string }[];
 }

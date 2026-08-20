@@ -20,15 +20,17 @@ export async function fetchMasterDataForImport(): Promise<MasterDataResolved> {
     try {
       const supabase = await createClient();
 
-      const [facRes, prodiRes, schemeRes, statusRes] = await Promise.all([
+      const [facRes, levelRes, prodiRes, schemeRes, statusRes] = await Promise.all([
         supabase.from("faculties").select("id, code, name"),
-        supabase.from("study_programs").select("id, code, name, faculty_id"),
+        supabase.from("study_levels").select("id, code, name"),
+        supabase.from("study_programs").select("id, code, name, faculty_id, study_level_id"),
         supabase.from("service_schemes").select("id, code, name"),
         supabase.from("student_statuses").select("id, code, name"),
       ]);
 
       return {
         faculties: facRes.data || [],
+        studyLevels: levelRes.data || [],
         studyPrograms: prodiRes.data || [],
         serviceSchemes: schemeRes.data || [],
         studentStatuses: statusRes.data || [],
@@ -47,11 +49,18 @@ export async function fetchMasterDataForImport(): Promise<MasterDataResolved> {
       { id: "f4", code: "FHISIP", name: "Fakultas Hukum, Ilmu Sosial dan Ilmu Politik" },
       { id: "f5", code: "SV", name: "Sekolah Vokasi" },
     ],
+    studyLevels: [
+      { id: "l1", code: "D3", name: "Diploma III" },
+      { id: "l2", code: "D4", name: "Diploma IV" },
+      { id: "l3", code: "S1", name: "Sarjana (S1)" },
+      { id: "l4", code: "S2", name: "Magister (S2)" },
+      { id: "l5", code: "S3", name: "Doktor (S3)" },
+    ],
     studyPrograms: [
-      { id: "sp1", code: "Manajemen", name: "Manajemen", faculty_id: "f2" },
-      { id: "sp2", code: "Akuntansi", name: "Akuntansi", faculty_id: "f2" },
-      { id: "sp3", code: "PGSD", name: "Pendidikan Guru Sekolah Dasar", faculty_id: "f1" },
-      { id: "sp4", code: "Ilmu Hukum", name: "Ilmu Hukum", faculty_id: "f4" },
+      { id: "sp1", code: "Manajemen", name: "Manajemen", faculty_id: "f2", study_level_id: "l3" },
+      { id: "sp2", code: "Akuntansi", name: "Akuntansi", faculty_id: "f2", study_level_id: "l3" },
+      { id: "sp3", code: "PGSD", name: "Pendidikan Guru Sekolah Dasar", faculty_id: "f1", study_level_id: "l3" },
+      { id: "sp4", code: "Ilmu Hukum", name: "Ilmu Hukum", faculty_id: "f4", study_level_id: "l3" },
     ],
     serviceSchemes: [
       { id: "ss1", code: "SIPAS", name: "Sistem Paket Semester (SIPAS)" },
@@ -248,6 +257,7 @@ export async function commitImportAction(
                 city: row.city || "Pangkalpinang",
                 entry_year: row.entryYear,
                 faculty_id: row.facultyId || null,
+                study_level_id: row.studyLevelId || null,
                 study_program_id: row.studyProgramId || null,
                 service_scheme_id: row.serviceSchemeId || null,
                 status_id: targetStatusId,

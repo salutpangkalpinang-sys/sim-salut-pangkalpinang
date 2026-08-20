@@ -104,6 +104,9 @@ const FIELD_ALIASES: Record<string, string[]> = {
   faculty: [
     "fakultas", "fak", "faculty"
   ],
+  studyLevel: [
+    "jenjang", "jenjang_studi", "jenjang studi", "level", "jenjang pendidikan", "strata", "degree"
+  ],
   studyProgram: [
     "program_studi", "program studi", "prodi", "jurusan", "progstudi",
     "nama prodi", "nama program studi"
@@ -319,6 +322,7 @@ export function parseStudentImportBuffer(
     const city = normalizeStringValue(row.city || row.kota || row.Kota) || null;
     const entryYearRaw = normalizeStringValue(row.entryYear || row.tahun_masuk || row["Tahun Masuk"]);
     const facultyStr = normalizeStringValue(row.faculty || row.fakultas || row.Fakultas);
+    const studyLevelStr = normalizeStringValue(row.studyLevel || row.jenjang || row.Jenjang || row["Jenjang Studi"] || row["Jenjang"]);
     const studyProgramStr = normalizeStringValue(row.studyProgram || row.program_studi || row["Program Studi"] || row.Prodi);
     const serviceSchemeStr = normalizeStringValue(row.serviceScheme || row.skema_layanan || row["Skema Layanan"]);
     const statusStr = normalizeStringValue(row.status || row.Status);
@@ -439,8 +443,38 @@ function normalizeProdiMatch(str: string): string {
       }
     }
 
+    // 8b. Master Data Matching — Study Level (Jenjang: S1, S2, S3, D3/DIII, D4/DIV)
+    let matchedLevel: { id: string; code: string; name: string } | undefined = undefined;
+    if (studyLevelStr) {
+      const lClean = cleanMatchKey(studyLevelStr);
+      matchedLevel = masterData.studyLevels.find((l) => {
+        const codeClean = cleanMatchKey(l.code);
+        const nameClean = cleanMatchKey(l.name);
+        return codeClean === lClean || nameClean === lClean;
+      });
+
+      // Flexible alias fallbacks (e.g. S1, S-1, Sarjana, D3, DIII, D4, DIV, S2, S3)
+      if (!matchedLevel) {
+        if (["s1", "s 1", "s-1", "sarjana", "strata 1", "strata-1"].some((a) => lClean === a || lClean.includes(a))) {
+          matchedLevel = masterData.studyLevels.find((l) => l.code.toUpperCase() === "S1");
+        } else if (["d3", "d 3", "d-3", "diii", "d iii", "d-iii", "diploma 3", "diploma iii"].some((a) => lClean === a || lClean.includes(a))) {
+          matchedLevel = masterData.studyLevels.find((l) => l.code.toUpperCase() === "D3");
+        } else if (["d4", "d 4", "d-4", "div", "d iv", "d-iv", "diploma 4", "diploma iv", "sarjana terapan"].some((a) => lClean === a || lClean.includes(a))) {
+          matchedLevel = masterData.studyLevels.find((l) => l.code.toUpperCase() === "D4");
+        } else if (["s2", "s 2", "s-2", "magister", "master", "strata 2"].some((a) => lClean === a || lClean.includes(a))) {
+          matchedLevel = masterData.studyLevels.find((l) => l.code.toUpperCase() === "S2");
+        } else if (["s3", "s 3", "s-3", "doktor", "doctor", "strata 3"].some((a) => lClean === a || lClean.includes(a))) {
+          matchedLevel = masterData.studyLevels.find((l) => l.code.toUpperCase() === "S3");
+        }
+      }
+
+      if (!matchedLevel) {
+        errors.push(`Jenjang studi '${studyLevelStr}' tidak ditemukan pada master data.`);
+      }
+    }
+
     // 9. Master Data Matching — Study Program
-    let matchedProdi: { id: string; code: string; name: string; faculty_id?: string } | undefined = undefined;
+    let matchedProdi: { id: string; code: string; name: string; faculty_id?: string; study_level_id?: string } | undefined = undefined;
     if (studyProgramStr) {
       const pClean = cleanMatchKey(studyProgramStr);
       const pNorm = normalizeProdiMatch(studyProgramStr);
@@ -462,8 +496,18 @@ function normalizeProdiMatch(str: string): string {
 
       if (!matchedProdi) {
         errors.push(`Program studi '${studyProgramStr}' tidak ditemukan pada master data.`);
-      } else if (matchedFaculty && matchedProdi.faculty_id && matchedProdi.faculty_id !== matchedFaculty.id) {
-        errors.push(`Program studi '${studyProgramStr}' tidak sesuai dengan Fakultas '${facultyStr}'.`);
+      } else {
+        // Auto-derive Faculty if omitted in CSV
+        if (!matchedFaculty && matchedProdi.faculty_id) {
+          matchedFaculty = masterData.faculties.find((f) => f.id === matchedProdi!.faculty_id);
+        } else if (matchedFaculty && matchedProdi.faculty_id && matchedProdi.faculty_id !== matchedFaculty.id) {
+          errors.push(`Program studi '${studyProgramStr}' tidak sesuai dengan Fakultas '${facultyStr}'.`);
+        }
+
+        // Auto-derive Study Level if omitted in CSV
+        if (!matchedLevel && matchedProdi.study_level_id) {
+          matchedLevel = masterData.studyLevels.find((l) => l.id === matchedProdi!.study_level_id);
+        }
       }
     } else {
       errors.push("Program studi wajib diisi.");
@@ -555,12 +599,14 @@ function normalizeProdiMatch(str: string): string {
           address,
           city,
           entryYear,
-          facultyId: matchedFaculty?.id || null,
+          facultyId: matchedFaculty?.id || matchedProdi?.faculty_id || null,
+          studyLevelId: matchedLevel?.id || matchedProdi?.study_level_id || null,
           studyProgramId: matchedProdi?.id || null,
           serviceSchemeId: matchedScheme?.id || null,
           statusId: matchedStatus?.id || null,
           statusEffectiveDate: statusEffectiveDate || new Date().toISOString().split("T")[0],
           notes,
+          studyLevelName: matchedLevel?.name || matchedLevel?.code,
           studyProgramName: matchedProdi?.name,
           serviceSchemeName: matchedScheme?.name,
           statusName: matchedStatus?.name,
