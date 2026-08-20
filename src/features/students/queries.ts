@@ -45,11 +45,13 @@ export async function getStudentsList(params: StudentFilterParams = {}) {
       { count: "exact" }
     );
 
-  // Calon Mahasiswa Filter (NIM IS NULL OR status = CALON)
-  if (params.isCalon) {
-    query = query.is("nim", null);
+  // Calon Mahasiswa Filter (isCalon = true) vs Mahasiswa Filter (isCalon = false)
+  if (params.isCalon === true) {
+    // Calon Mahasiswa: Only students WITHOUT NIM (nim IS NULL or empty string "")
+    query = query.or("nim.is.null,nim.eq.");
   } else if (params.isCalon === false) {
-    query = query.not("nim", "is", null);
+    // Mahasiswa: Only students WITH NIM (nim IS NOT NULL and not empty string "")
+    query = query.not("nim", "is", null).neq("nim", "");
   }
 
   // Multi-field Search (full_name, nim, nik, whatsapp)

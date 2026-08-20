@@ -10,8 +10,9 @@ export default async function MahasiswaPage() {
     redirect("/login");
   }
 
-  // Fetch all registered Mahasiswa list
+  // Fetch registered Mahasiswa list (isCalon = false)
   const { data: students, total, page, limit, totalPages } = await getStudentsList({
+    isCalon: false,
     page: 1,
     limit: 20,
   });
