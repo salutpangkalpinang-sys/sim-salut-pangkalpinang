@@ -212,6 +212,9 @@ export function LipFormModal({
                 onChange={(e) => setOfficialAmount(parseThousandInput(e.target.value))}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold text-emerald-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              <p className="text-[11px] text-amber-700 font-medium mt-1 leading-tight">
+                💡 Isi nominal MURNI dari lembaran LIP UT (tanpa menambahkan Biaya Layanan SALUT). Biaya Layanan SALUT Rp 400.000 akan digabungkan otomatis saat menerbitkan Invoice.
+              </p>
             </div>
           </div>
 
