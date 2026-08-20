@@ -54,7 +54,7 @@ export function Sidebar({ userRole, salutName, salutCity }: SidebarProps) {
   const brandSub = salutCity || "Pangkalpinang";
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 shrink-0 shadow-sm">
+    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 shrink-0 shadow-sm print:hidden">
       {/* Brand Header */}
       <div className="p-4 border-b border-slate-200 flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/20 shrink-0">

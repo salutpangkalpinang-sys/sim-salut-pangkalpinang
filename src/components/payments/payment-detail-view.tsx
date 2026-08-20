@@ -85,7 +85,7 @@ export function PaymentDetailView({
   return (
     <div className="space-y-6 text-xs text-slate-900">
       {/* Back Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <Link
           href="/pembayaran"
           className="inline-flex items-center gap-1.5 font-medium text-slate-500 hover:text-slate-800 transition"
@@ -96,7 +96,7 @@ export function PaymentDetailView({
       </div>
 
       {/* Main Header Card */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shrink-0">
             <CreditCard className="w-7 h-7" />
@@ -169,7 +169,7 @@ export function PaymentDetailView({
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-3 border-b border-slate-200 font-semibold">
+      <div className="flex items-center gap-3 border-b border-slate-200 font-semibold print:hidden">
         <button
           type="button"
           onClick={() => setActiveTab("detail")}
@@ -240,7 +240,7 @@ export function PaymentDetailView({
       {activeTab === "receipt" && receiptData ? (
         <PaymentReceipt receiptData={receiptData} />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
           {/* Left Column: Transaction Details */}
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3 shadow-sm">

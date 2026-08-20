@@ -27,7 +27,7 @@ export default async function DashboardLayout({
       />
       <div className="flex-1 flex flex-col min-w-0">
         <Header profile={profile} officialName={settings.salut_official_name} />
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-6 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">{children}</main>
       </div>
     </div>
   );

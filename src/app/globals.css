@@ -23,3 +23,31 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+@media print {
+  /* Hide sidebar, header, navigation, and explicit non-printable elements */
+  aside,
+  header,
+  nav,
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout containers for clean printing */
+  body, html, main {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 10mm 15mm;
+  }
+}

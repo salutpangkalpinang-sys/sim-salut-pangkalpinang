@@ -32,7 +32,7 @@ export function Header({ profile, officialName }: HeaderProps) {
   const roleBadge = ROLE_LABELS[profile?.role || "viewer"] || ROLE_LABELS.viewer;
 
   return (
-    <header className="h-16 bg-white/90 backdrop-blur border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs">
+    <header className="h-16 bg-white/90 backdrop-blur border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs print:hidden">
       <div className="flex items-center gap-3">
         <h1 className="text-sm font-semibold text-slate-800">
           {officialName || "Sentra Layanan UT Pangkalpinang"}
