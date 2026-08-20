@@ -222,14 +222,23 @@ export function LipTable({
                           </button>
                         )}
                         {canVerify && lip.status === "verified" && onCreateInvoice && (
-                          <button
-                            type="button"
-                            onClick={() => onCreateInvoice(lip)}
-                            className="px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition text-[11px] font-semibold shadow-xs"
-                            title="Terbitkan Tagihan Invoice"
-                          >
-                            + Invoice
-                          </button>
+                          lip.hasActiveInvoice ? (
+                            <span
+                              className="px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-mono font-semibold"
+                              title={`Invoice tagihan ${lip.activeInvoiceNumber || ""} sudah diterbitkan untuk LIP ini`}
+                            >
+                              {lip.activeInvoiceNumber || "Invoice Aktif"}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onCreateInvoice(lip)}
+                              className="px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition text-[11px] font-semibold shadow-xs"
+                              title="Terbitkan Tagihan Invoice"
+                            >
+                              + Invoice
+                            </button>
+                          )
                         )}
                         {canVerify && lip.status !== "cancelled" && onCancel && (
                           <button

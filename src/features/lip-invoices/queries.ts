@@ -24,6 +24,10 @@ export async function getLipDocumentsList(params: LipFilterParams = {}) {
         registration_number,
         academic_periods ( name ),
         students ( nim, full_name )
+      ),
+      invoices (
+        invoice_number,
+        status
       )
     `,
       { count: "exact" }
@@ -59,6 +63,10 @@ export async function getLipDocumentsList(params: LipFilterParams = {}) {
     const hasAmountMismatch = componentTotalAmount !== official;
     const mismatchDifference = Math.abs(componentTotalAmount - official);
 
+    const activeInv = (item.invoices || []).find((inv: any) => inv.status !== "cancelled");
+    const hasActiveInvoice = Boolean(activeInv);
+    const activeInvoiceNumber = activeInv?.invoice_number || null;
+
     return {
       id: item.id,
       registrationId: item.registration_id,
@@ -93,6 +101,8 @@ export async function getLipDocumentsList(params: LipFilterParams = {}) {
       studentName: item.registrations?.students?.full_name,
       studentNim: item.registrations?.students?.nim,
       academicPeriodName: item.registrations?.academic_periods?.name,
+      hasActiveInvoice,
+      activeInvoiceNumber,
     };
   });
 

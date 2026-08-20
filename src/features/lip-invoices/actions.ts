@@ -283,6 +283,20 @@ export async function createInvoiceAction(input: CreateInvoiceFormInput) {
     return { error: "Tagihan invoice HANYA dapat diterbitkan dari LIP yang berstatus Terverifikasi (verified)." };
   }
 
+  // Check if an active invoice already exists for this LIP document
+  const { data: existingInvoice } = await supabase
+    .from("invoices")
+    .select("invoice_number")
+    .eq("lip_document_id", data.lipDocumentId)
+    .neq("status", "cancelled")
+    .maybeSingle();
+
+  if (existingInvoice) {
+    return {
+      error: `Invoice tagihan untuk Dokumen LIP ini sudah pernah diterbitkan (${existingInvoice.invoice_number}). Hanya 1 invoice aktif yang diizinkan per Dokumen LIP.`,
+    };
+  }
+
   const itemsPayload = data.items.map((it: any) => ({
     item_type: it.itemType,
     fee_type_id: it.feeTypeId || null,
@@ -307,6 +321,11 @@ export async function createInvoiceAction(input: CreateInvoiceFormInput) {
 
   if (error) {
     console.error("Database RPC create_invoice_with_items error:", error);
+    if (error.message?.includes("idx_invoice_unique_active_per_lip") || error.code === "23505") {
+      return {
+        error: "Invoice tagihan untuk Dokumen LIP ini sudah pernah diterbitkan. Hanya 1 invoice aktif yang diizinkan per Dokumen LIP.",
+      };
+    }
     return { error: "Gagal menerbitkan invoice: " + error.message };
   }
 

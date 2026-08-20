@@ -40,6 +40,8 @@ export interface LipDocument {
   studentNim?: string | null;
   academicPeriodName?: string;
   signedUrl?: string | null;
+  hasActiveInvoice?: boolean;
+  activeInvoiceNumber?: string | null;
 }
 
 export interface InvoiceItem {
