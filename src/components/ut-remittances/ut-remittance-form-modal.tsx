@@ -5,6 +5,7 @@ import { EligibleLipForRemittance } from "@/types/ut-remittance";
 import { createUtRemittanceAction } from "@/features/ut-remittances/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, Building2, Upload, AlertCircle, Save, Trash2 } from "lucide-react";
+import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface UtRemittanceFormModalProps {
@@ -23,6 +24,14 @@ export function UtRemittanceFormModal({
   eligibleLips,
 }: UtRemittanceFormModalProps) {
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
+
+  const lipComboboxOptions: ComboboxOption[] = eligibleLips.map((lip) => ({
+    id: lip.id,
+    label: `${lip.studentName}`,
+    sublabel: `${lip.lipNumber} — ${lip.registrationNumber} (Outstanding UT: Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")})`,
+    badge: `Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")}`,
+    searchTerms: `${lip.studentName} ${lip.lipNumber} ${lip.registrationNumber}`,
+  }));
   const [cashAccountId, setCashAccountId] = useState(cashAccounts[0]?.id || "");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
@@ -214,26 +223,21 @@ export function UtRemittanceFormModal({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleAddItem(e.target.value);
-                    e.target.value = "";
+            <div>
+              <SearchableCombobox
+                options={lipComboboxOptions.map((o) => ({
+                  ...o,
+                  disabled: selectedItems.some((i) => i.lipDocumentId === o.id),
+                }))}
+                value=""
+                onChange={(id) => {
+                  if (id) {
+                    handleAddItem(id);
                   }
                 }}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="">-- Tambah LIP ke Daftar Setoran --</option>
-                {eligibleLips.map((lip) => {
-                  const isSelected = selectedItems.some((i) => i.lipDocumentId === lip.id);
-                  return (
-                    <option key={lip.id} value={lip.id} disabled={isSelected}>
-                      {lip.lipNumber} — {lip.studentName} ({lip.registrationNumber}) [Outstanding UT: Rp {lip.outstandingUtAmount.toLocaleString("id-ID")}]
-                    </option>
-                  );
-                })}
-              </select>
+                placeholder="Ketik Nama Mahasiswa, No. LIP, atau No. Reg untuk menambah setoran..."
+                selectedColor="blue"
+              />
             </div>
 
             {/* Table of Selected Items */}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { uploadLipFileAndCreateAction } from "@/features/lip-invoices/actions";
 import { formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
 import { X, FileText, Upload, AlertTriangle, AlertCircle, Save } from "lucide-react";
+import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface LipFormModalProps {
@@ -23,6 +24,14 @@ export function LipFormModal({
 }: LipFormModalProps) {
   const [registrationId, setRegistrationId] = useState(defaultRegistrationId || registrationsOptions[0]?.id || "");
   const [lipNumber, setLipNumber] = useState("");
+
+  const regComboboxOptions: ComboboxOption[] = registrationsOptions.map((r) => ({
+    id: r.id,
+    label: `${r.studentName}`,
+    sublabel: `${r.registrationNumber} — NIM: ${r.studentNim || "-"} (${r.academicPeriodName})`,
+    badge: r.academicPeriodName,
+    searchTerms: `${r.studentName} ${r.studentNim || ""} ${r.registrationNumber} ${r.academicPeriodName}`,
+  }));
   const [officialAmount, setOfficialAmount] = useState(0);
   const [tuitionAmount, setTuitionAmount] = useState(0);
   const [bookAmount, setBookAmount] = useState(0);
@@ -161,21 +170,16 @@ export function LipFormModal({
           {/* Registration Select */}
           <div className="space-y-1">
             <label className="block text-slate-700 font-medium mb-1">
-              Registrasi Mahasiswa <span className="text-red-500">*</span>
+              Registrasi Mahasiswa (Cari Nama / NIM / No. Reg) <span className="text-red-500">*</span>
             </label>
-            <select
-              required
+            <SearchableCombobox
+              options={regComboboxOptions}
               value={registrationId}
-              onChange={(e) => setRegistrationId(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="">Pilih Registrasi Semester</option>
-              {registrationsOptions.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.registrationNumber} — {r.studentName} ({r.academicPeriodName})
-                </option>
-              ))}
-            </select>
+              onChange={(id) => setRegistrationId(id)}
+              placeholder="Ketik Nama, NIM, atau No. Registrasi Mahasiswa..."
+              required
+              selectedColor="blue"
+            />
           </div>
 
           {/* LIP Number & Official Amount */}

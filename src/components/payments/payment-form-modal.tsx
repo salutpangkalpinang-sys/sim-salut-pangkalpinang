@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createStudentPaymentAction } from "@/features/payments/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, CreditCard, Upload, AlertCircle, Save } from "lucide-react";
+import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface PaymentFormModalProps {
@@ -36,6 +37,15 @@ export function PaymentFormModal({
   defaultInvoiceId = "",
 }: PaymentFormModalProps) {
   const [invoiceId, setInvoiceId] = useState(defaultInvoiceId || options.invoices[0]?.id || "");
+
+  const invComboboxOptions: ComboboxOption[] = options.invoices.map((inv) => ({
+    id: inv.id,
+    label: `${inv.studentName}`,
+    sublabel: `${inv.invoiceNumber} — NIM: ${inv.studentNim || "-"} (Sisa: Rp ${inv.remainingBalance.toLocaleString("id-ID")})`,
+    badge: `Rp ${inv.remainingBalance.toLocaleString("id-ID")}`,
+    searchTerms: `${inv.studentName} ${inv.studentNim || ""} ${inv.invoiceNumber} ${inv.registrationNumber}`,
+  }));
+
   const selectedInvoice = options.invoices.find((i) => i.id === invoiceId);
 
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
@@ -162,21 +172,16 @@ export function PaymentFormModal({
           {/* Target Invoice Select */}
           <div>
             <label className="block text-slate-700 font-medium mb-1">
-              Pilih Invoice Tagihan Mahasiswa <span className="text-red-500">*</span>
+              Pilih Invoice Tagihan Mahasiswa (Cari Nama / NIM / No. Inv) <span className="text-red-500">*</span>
             </label>
-            <select
-              required
+            <SearchableCombobox
+              options={invComboboxOptions}
               value={invoiceId}
-              onChange={(e) => handleInvoiceChange(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            >
-              <option value="">Pilih Invoice</option>
-              {options.invoices.map((inv) => (
-                <option key={inv.id} value={inv.id}>
-                  {inv.invoiceNumber} — {inv.studentName} (Sisa Tagihan: Rp {inv.remainingBalance.toLocaleString("id-ID")})
-                </option>
-              ))}
-            </select>
+              onChange={(id) => handleInvoiceChange(id)}
+              placeholder="Ketik Nama Mahasiswa, NIM, atau Nomor Invoice..."
+              required
+              selectedColor="emerald"
+            />
           </div>
 
           {/* Target Invoice Info Summary Banner */}
