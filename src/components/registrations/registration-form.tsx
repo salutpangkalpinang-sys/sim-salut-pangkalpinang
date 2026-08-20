@@ -6,6 +6,7 @@ import { RegistrationFormInput, registrationSchema } from "@/lib/validation/regi
 import { createRegistrationAction, getAvailableCandidateFeeRatesAction } from "@/features/registrations/actions";
 import { getOfficialUtTariff, UT_OFFICIAL_GENERAL_FEES, formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
 import { X, FileCheck, Save, AlertCircle, Plus, Trash2, Calculator } from "lucide-react";
+import { StudentCombobox } from "@/components/ui/student-combobox";
 
 interface RegistrationFormProps {
   isOpen: boolean;
@@ -378,21 +379,15 @@ export function RegistrationForm({
             </h3>
             <div>
               <label className="block text-slate-700 font-medium mb-1">
-                Mahasiswa <span className="text-red-500">*</span>
+                Mahasiswa (Cari Nama / NIM) <span className="text-red-500">*</span>
               </label>
-              <select
-                required
+              <StudentCombobox
+                students={options.students}
                 value={selectedStudentId}
-                onChange={(e) => handleStudentSelect(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="">Pilih Mahasiswa Terdaftar</option>
-                {options.students.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.full_name} (NIM: {s.nim})
-                  </option>
-                ))}
-              </select>
+                onChange={handleStudentSelect}
+                placeholder="Ketik Nama atau NIM Mahasiswa untuk mencari..."
+                required
+              />
             </div>
           </div>
 
