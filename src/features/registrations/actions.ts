@@ -242,3 +242,50 @@ export async function resetStudentTestTransactionsAction(studentQuery: string = 
     message: `Data transaksi uji coba untuk ${students.map((s) => s.full_name).join(", ")} berhasil di-reset bersih!`,
   };
 }
+
+export async function resetAllSystemTransactionsAction() {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || profile.role !== "owner") {
+    return { error: "Hanya role Owner yang memiliki wewenang untuk menghapus seluruh data transaksi sistem." };
+  }
+
+  const supabase = await createClient();
+
+  // 1. Delete UT Remittance items, void requests, & remittances
+  await supabase.from("ut_remittance_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await supabase.from("ut_remittance_void_requests").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await supabase.from("ut_remittances").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // 2. Delete Student Payments & Payment Allocations
+  await supabase.from("payment_allocations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await supabase.from("student_payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // 3. Delete Invoice Items & Invoices
+  await supabase.from("invoice_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await supabase.from("invoices").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // 4. Delete LIP Documents
+  await supabase.from("lip_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // 5. Delete Registration Fee Snapshots & Registrations
+  await supabase.from("registration_fee_snapshots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await supabase.from("registrations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // 6. Delete Operational Cash Transactions
+  await supabase.from("cash_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  revalidatePath("/registrasi");
+  revalidatePath("/lip-tagihan");
+  revalidatePath("/pembayaran");
+  revalidatePath("/setoran-ut");
+  revalidatePath("/kas-operasional");
+  revalidatePath("/dashboard");
+  revalidatePath("/laporan");
+  revalidatePath("/mahasiswa");
+
+  return {
+    success: true,
+    message: "SELURUH DATA TRANSAKSI SISTEM (Registrasi, LIP, Invoice, Pembayaran, Setoran UT, & Kas Operasional) BERHASIL DIHAPUS BERSIH!",
+  };
+}

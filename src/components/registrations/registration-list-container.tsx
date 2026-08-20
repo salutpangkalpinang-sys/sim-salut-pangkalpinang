@@ -100,7 +100,28 @@ export function RegistrationListContainer({
         </div>
 
         {canMutate && (
-          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={async () => {
+                if (confirm("⚠️ PERHATIAN OWNER: Apakah Anda yakin ingin MENGHAPUS BERSIH SELURUH DATA TRANSAKSI SISTEM (Registrasi, LIP, Invoice, Pembayaran, Setoran UT, & Kas Operasional)? Action ini tidak dapat dibatalkan!")) {
+                  const { resetAllSystemTransactionsAction } = await import("@/features/registrations/actions");
+                  const res = await resetAllSystemTransactionsAction();
+                  if (res.error) {
+                    alert(res.error);
+                  } else {
+                    alert(res.message);
+                    router.refresh();
+                  }
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs rounded-lg border border-red-300 transition"
+              title="Reset seluruh transaksi sistem (Wipe All)"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-red-600" />
+              <span>Reset Semua Transaksi</span>
+            </button>
+
             <button
               type="button"
               onClick={async () => {
@@ -119,7 +140,7 @@ export function RegistrationListContainer({
               title="Reset data transaksi uji coba a.n. Dixit"
             >
               <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
-              <span>Reset Uji Coba (Dixit)</span>
+              <span>Reset Dixit</span>
             </button>
 
             <button

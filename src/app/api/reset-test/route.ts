@@ -5,91 +5,47 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    // Fetch all students to match or list
-    const { data: allStudents } = await supabase.from("students").select("id, full_name, nim");
-
-    const dixitStudents = (allStudents || []).filter(
-      (s) => s.full_name?.toLowerCase().includes("dixit") || s.full_name?.toLowerCase().includes("mutama")
-    );
-
-    const targetStudents = dixitStudents.length > 0 ? dixitStudents : allStudents || [];
-
-    if (targetStudents.length === 0) {
-      return NextResponse.json({ message: "No students found in system", allStudents });
-    }
-
-    const studentIds = targetStudents.map((s) => s.id);
-
-    // Find registrations
-    const { data: regs } = await supabase
-      .from("registrations")
-      .select("id, registration_number, student_id")
-      .in("student_id", studentIds);
-
-    const regIds = (regs || []).map((r) => r.id);
-
-    if (regIds.length === 0) {
-      return NextResponse.json({
-        message: "No registrations found for target students",
-        targetStudents,
-        allStudents,
-      });
-    }
-
-    // 1. Delete UT Remittance Items
-    const { error: utErr } = await supabase
-      .from("ut_remittance_items")
-      .delete()
-      .in("registration_id", regIds);
+    // 1. Delete UT Remittance items, void requests, & remittances
+    const { error: utItemErr } = await supabase.from("ut_remittance_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error: utVoidErr } = await supabase.from("ut_remittance_void_requests").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error: utRemErr } = await supabase.from("ut_remittances").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
     // 2. Delete Student Payments & Payment Allocations
-    const { data: payments } = await supabase
-      .from("student_payments")
-      .select("id")
-      .in("registration_id", regIds);
-
-    const paymentIds = (payments || []).map((p) => p.id);
-    if (paymentIds.length > 0) {
-      await supabase.from("payment_allocations").delete().in("payment_id", paymentIds);
-      await supabase.from("student_payments").delete().in("id", paymentIds);
-    }
+    const { error: allocErr } = await supabase.from("payment_allocations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error: payErr } = await supabase.from("student_payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
     // 3. Delete Invoice Items & Invoices
-    const { data: invoices } = await supabase
-      .from("invoices")
-      .select("id")
-      .in("registration_id", regIds);
-
-    const invoiceIds = (invoices || []).map((i) => i.id);
-    if (invoiceIds.length > 0) {
-      await supabase.from("invoice_items").delete().in("invoice_id", invoiceIds);
-      await supabase.from("invoices").delete().in("id", invoiceIds);
-    }
+    const { error: invItemErr } = await supabase.from("invoice_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error: invErr } = await supabase.from("invoices").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
     // 4. Delete LIP Documents
-    const { error: lipErr } = await supabase
-      .from("lip_documents")
-      .delete()
-      .in("registration_id", regIds);
+    const { error: lipErr } = await supabase.from("lip_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-    // 5. Delete Registration Fee Snapshots & Registrations
-    await supabase.from("registration_fee_snapshots").delete().in("registration_id", regIds);
-    const { error: regErr } = await supabase.from("registrations").delete().in("id", regIds);
+    // 5. Delete Fee Snapshots & Registrations
+    const { error: snapErr } = await supabase.from("registration_fee_snapshots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error: regErr } = await supabase.from("registrations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 6. Delete Cash Transactions
+    const { error: cashErr } = await supabase.from("cash_transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
     return NextResponse.json({
       success: true,
-      message: "Data transaksi registrasi, LIP, invoice, pembayaran, & setoran UT berhasil di-reset bersih!",
-      resetStudents: targetStudents.map((s) => s.full_name),
-      resetCount: {
-        registrations: regIds.length,
-        invoices: invoiceIds.length,
-        payments: paymentIds.length,
-        utErr,
+      message: "SELURUH DATA TRANSAKSI SISTEM (Registrasi, LIP, Invoice, Pembayaran, Setoran UT, Kas Operasional) BERHASIL DIHAPUS BERSIH!",
+      errors: {
+        utItemErr,
+        utVoidErr,
+        utRemErr,
+        allocErr,
+        payErr,
+        invItemErr,
+        invErr,
         lipErr,
+        snapErr,
         regErr,
+        cashErr,
       },
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to reset test data" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Failed to wipe all system transactions" }, { status: 500 });
   }
 }
