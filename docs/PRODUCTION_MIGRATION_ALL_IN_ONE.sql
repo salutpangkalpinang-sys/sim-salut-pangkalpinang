@@ -5097,3 +5097,38 @@ $$;
 GRANT EXECUTE ON FUNCTION public.reset_all_system_transactions() TO authenticated, service_role, anon;
 GRANT EXECUTE ON FUNCTION public.reset_student_transactions(UUID) TO authenticated, service_role, anon;
 
+CREATE OR REPLACE FUNCTION public.delete_student_cascade(p_student_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    PERFORM public.reset_student_transactions(p_student_id);
+    DELETE FROM public.student_status_history WHERE student_id = p_student_id;
+    DELETE FROM public.students WHERE id = p_student_id;
+    RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_student_by_name(p_name_pattern TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_student_rec RECORD;
+    v_count INTEGER := 0;
+BEGIN
+    FOR v_student_rec IN SELECT id, full_name FROM public.students WHERE full_name ILIKE '%' || p_name_pattern || '%' LOOP
+        PERFORM public.delete_student_cascade(v_student_rec.id);
+        v_count := v_count + 1;
+    END LOOP;
+
+    RETURN jsonb_build_object('success', true, 'deleted_count', v_count);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.delete_student_cascade(UUID) TO authenticated, service_role, anon;
+GRANT EXECUTE ON FUNCTION public.delete_student_by_name(TEXT) TO authenticated, service_role, anon;
+
+

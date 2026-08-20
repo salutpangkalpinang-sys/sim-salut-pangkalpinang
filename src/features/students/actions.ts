@@ -171,3 +171,30 @@ export async function changeStudentStatusAction(input: StatusChangeFormInput) {
 
   return { success: true };
 }
+
+export async function deleteStudentAction(studentId: string) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "academic_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk menghapus data mahasiswa." };
+  }
+
+  const supabase = await createClient();
+
+  // Try stored procedure first (bypasses RLS)
+  const { error: rpcErr } = await supabase.rpc("delete_student_cascade", { p_student_id: studentId });
+
+  if (rpcErr) {
+    console.warn("RPC delete_student_cascade fallback:", rpcErr);
+    await supabase.from("student_status_history").delete().eq("student_id", studentId);
+    const { error: dbErr } = await supabase.from("students").delete().eq("id", studentId);
+    if (dbErr) {
+      return { error: "Gagal menghapus data mahasiswa: " + dbErr.message };
+    }
+  }
+
+  revalidatePath("/mahasiswa");
+  revalidatePath("/calon-mahasiswa");
+  revalidatePath("/registrasi");
+  return { success: true };
+}

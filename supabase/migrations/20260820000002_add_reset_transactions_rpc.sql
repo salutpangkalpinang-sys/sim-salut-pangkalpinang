@@ -1,4 +1,4 @@
--- Stored Procedures for Clean Transaction Reset (SECURITY DEFINER to bypass RLS)
+-- Stored Procedures for Clean Transaction Reset & Student Deletion (SECURITY DEFINER to bypass RLS)
 
 CREATE OR REPLACE FUNCTION public.reset_all_system_transactions()
 RETURNS JSONB
@@ -85,31 +85,24 @@ DECLARE
     v_pay_ids UUID[];
     v_inv_ids UUID[];
 BEGIN
-    -- Collect registration IDs for target student
     SELECT ARRAY_AGG(id) INTO v_reg_ids FROM public.registrations WHERE student_id = p_student_id;
 
     IF v_reg_ids IS NOT NULL AND array_length(v_reg_ids, 1) > 0 THEN
-        -- 1. UT Remittance items
         DELETE FROM public.ut_remittance_items WHERE registration_id = ANY(v_reg_ids);
 
-        -- 2. Student Payments & Payment Allocations
         SELECT ARRAY_AGG(id) INTO v_pay_ids FROM public.student_payments WHERE registration_id = ANY(v_reg_ids);
         IF v_pay_ids IS NOT NULL AND array_length(v_pay_ids, 1) > 0 THEN
             DELETE FROM public.payment_allocations WHERE payment_id = ANY(v_pay_ids);
             DELETE FROM public.student_payments WHERE id = ANY(v_pay_ids);
         END IF;
 
-        -- 3. Invoice Items & Invoices
         SELECT ARRAY_AGG(id) INTO v_inv_ids FROM public.invoices WHERE registration_id = ANY(v_reg_ids);
         IF v_inv_ids IS NOT NULL AND array_length(v_inv_ids, 1) > 0 THEN
             DELETE FROM public.invoice_items WHERE invoice_id = ANY(v_inv_ids);
             DELETE FROM public.invoices WHERE id = ANY(v_inv_ids);
         END IF;
 
-        -- 4. LIP Documents
         DELETE FROM public.lip_documents WHERE registration_id = ANY(v_reg_ids);
-
-        -- 5. Fee Snapshots & Registrations
         DELETE FROM public.registration_fee_snapshots WHERE registration_id = ANY(v_reg_ids);
         DELETE FROM public.registrations WHERE id = ANY(v_reg_ids);
     END IF;
@@ -118,5 +111,42 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.delete_student_cascade(p_student_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Reset all transactions first
+    PERFORM public.reset_student_transactions(p_student_id);
+
+    -- Delete Student Status History & Student row
+    DELETE FROM public.student_status_history WHERE student_id = p_student_id;
+    DELETE FROM public.students WHERE id = p_student_id;
+
+    RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_student_by_name(p_name_pattern TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_student_rec RECORD;
+    v_count INTEGER := 0;
+BEGIN
+    FOR v_student_rec IN SELECT id, full_name FROM public.students WHERE full_name ILIKE '%' || p_name_pattern || '%' LOOP
+        PERFORM public.delete_student_cascade(v_student_rec.id);
+        v_count := v_count + 1;
+    END LOOP;
+
+    RETURN jsonb_build_object('success', true, 'deleted_count', v_count);
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.reset_all_system_transactions() TO authenticated, service_role, anon;
 GRANT EXECUTE ON FUNCTION public.reset_student_transactions(UUID) TO authenticated, service_role, anon;
+GRANT EXECUTE ON FUNCTION public.delete_student_cascade(UUID) TO authenticated, service_role, anon;
+GRANT EXECUTE ON FUNCTION public.delete_student_by_name(TEXT) TO authenticated, service_role, anon;
