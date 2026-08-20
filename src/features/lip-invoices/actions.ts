@@ -155,7 +155,24 @@ export async function verifyLipDocumentAction(id: string) {
 
   const supabase = await createClient();
 
-  // 1. Fetch target LIP details
+  // Try SECURITY DEFINER RPC first (bypasses RLS and executes atomically in PostgreSQL)
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc("verify_lip_document", {
+      p_lip_id: id,
+      p_user_id: profile.id,
+    });
+
+    if (!rpcErr && rpcRes && rpcRes.success) {
+      revalidatePath("/lip-tagihan");
+      revalidatePath("/registrasi");
+      revalidatePath("/setoran-ut");
+      return { success: true };
+    }
+  } catch (err) {
+    console.warn("verify_lip_document RPC fallback:", err);
+  }
+
+  // Fallback: Direct query execution
   const { data: targetLip, error: fetchErr } = await supabase
     .from("lip_documents")
     .select("id, registration_id, lip_number")
@@ -166,8 +183,8 @@ export async function verifyLipDocumentAction(id: string) {
     return { error: "Dokumen LIP tidak ditemukan." };
   }
 
-  // 2. Automatically set any previous verified LIP for the same registration to 'superseded'
-  const { error: resetErr } = await supabase
+  // Automatically set any previous verified LIP for the same registration to 'superseded'
+  await supabase
     .from("lip_documents")
     .update({
       status: "superseded",
@@ -178,11 +195,7 @@ export async function verifyLipDocumentAction(id: string) {
     .eq("status", "verified")
     .neq("id", id);
 
-  if (resetErr) {
-    console.error("Database reset previous verified LIP error:", resetErr);
-  }
-
-  // 3. Mark target LIP document as 'verified'
+  // Mark target LIP document as 'verified'
   const { error } = await supabase
     .from("lip_documents")
     .update({
