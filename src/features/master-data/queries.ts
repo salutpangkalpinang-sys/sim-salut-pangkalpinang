@@ -59,6 +59,16 @@ export interface MasterFeeRate {
   isActive: boolean;
 }
 
+export interface MasterCashAccount {
+  id: string;
+  code: string;
+  name: string;
+  accountNumber: string | null;
+  bankName: string | null;
+  isActive: boolean;
+  createdAt?: string;
+}
+
 export async function getAllMasterData() {
   const supabase = await createClient();
 
@@ -70,6 +80,7 @@ export async function getAllMasterData() {
     { data: schemes },
     { data: statuses },
     { data: feeRates },
+    { data: cashAccounts },
   ] = await Promise.all([
     supabase.from("academic_periods").select("*").order("code", { ascending: false }),
     supabase.from("faculties").select("*").order("code", { ascending: true }),
@@ -78,6 +89,7 @@ export async function getAllMasterData() {
     supabase.from("service_schemes").select("*").order("code", { ascending: true }),
     supabase.from("student_statuses").select("*").order("code", { ascending: true }),
     supabase.from("fee_rates").select("*, fee_types(name, category), study_programs(name), service_schemes(name)").order("created_at", { ascending: false }),
+    supabase.from("cash_accounts").select("*").order("code", { ascending: true }),
   ]);
 
   const formattedPrograms: MasterStudyProgram[] = (programs || []).map((p: any) => ({
@@ -102,6 +114,16 @@ export async function getAllMasterData() {
     calculationType: f.calculation_type,
     amount: Number(f.amount || 0),
     isActive: f.is_active ?? true,
+  }));
+
+  const formattedCashAccounts: MasterCashAccount[] = (cashAccounts || []).map((c: any) => ({
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    accountNumber: c.account_number || null,
+    bankName: c.bank_name || null,
+    isActive: c.is_active ?? true,
+    createdAt: c.created_at,
   }));
 
   return {
@@ -137,5 +159,6 @@ export async function getAllMasterData() {
       name: st.name,
     })) as MasterStudentStatus[],
     feeRates: formattedFeeRates,
+    cashAccounts: formattedCashAccounts,
   };
 }

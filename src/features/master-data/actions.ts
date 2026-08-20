@@ -99,3 +99,107 @@ export async function createFeeRateAction(input: {
   revalidatePath("/master-data");
   return { success: true };
 }
+
+export async function createCashAccountAction(input: {
+  code: string;
+  name: string;
+  accountNumber?: string;
+  bankName?: string;
+}) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "finance_admin", "academic_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk mengelola akun kas/rekening." };
+  }
+
+  if (!input.code.trim() || !input.name.trim()) {
+    return { error: "Kode dan Nama Akun Kas / Rekening wajib diisi." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("cash_accounts").insert({
+    code: input.code.trim().toUpperCase(),
+    name: input.name.trim(),
+    account_number: input.accountNumber?.trim() || null,
+    bank_name: input.bankName?.trim() || null,
+    is_active: true,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Kode akun kas/rekening sudah digunakan." };
+    }
+    return { error: "Gagal menambahkan rekening baru: " + error.message };
+  }
+
+  revalidatePath("/master-data");
+  revalidatePath("/pembayaran");
+  revalidatePath("/kas-operasional");
+  revalidatePath("/setoran-ut");
+  return { success: true };
+}
+
+export async function updateCashAccountAction(input: {
+  id: string;
+  name: string;
+  accountNumber?: string;
+  bankName?: string;
+}) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "finance_admin", "academic_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk mengelola akun kas/rekening." };
+  }
+
+  if (!input.id || !input.name.trim()) {
+    return { error: "Nama Akun Kas / Rekening wajib diisi." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("cash_accounts")
+    .update({
+      name: input.name.trim(),
+      account_number: input.accountNumber?.trim() || null,
+      bank_name: input.bankName?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id);
+
+  if (error) {
+    return { error: "Gagal mengedit rekening: " + error.message };
+  }
+
+  revalidatePath("/master-data");
+  revalidatePath("/pembayaran");
+  revalidatePath("/kas-operasional");
+  revalidatePath("/setoran-ut");
+  return { success: true };
+}
+
+export async function toggleCashAccountActiveAction(id: string, setActive: boolean) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "finance_admin", "academic_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk mengelola akun kas/rekening." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("cash_accounts")
+    .update({ is_active: setActive, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    return { error: "Gagal memperbarui status rekening: " + error.message };
+  }
+
+  revalidatePath("/master-data");
+  revalidatePath("/pembayaran");
+  revalidatePath("/kas-operasional");
+  revalidatePath("/setoran-ut");
+  return { success: true };
+}

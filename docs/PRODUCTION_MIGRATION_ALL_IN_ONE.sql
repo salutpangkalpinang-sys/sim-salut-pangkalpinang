@@ -273,7 +273,8 @@ CREATE POLICY "Authenticated users can view payment_methods" ON public.payment_m
 DROP POLICY IF EXISTS "Authenticated users can view student_statuses" ON public.student_statuses;
 CREATE POLICY "Authenticated users can view student_statuses" ON public.student_statuses FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "Authenticated users can view cash_accounts" ON public.cash_accounts;
-CREATE POLICY "Authenticated users can view cash_accounts" ON public.cash_accounts FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Authenticated users can manage cash_accounts" ON public.cash_accounts;
+CREATE POLICY "Authenticated users can manage cash_accounts" ON public.cash_accounts FOR ALL TO authenticated USING (true) WITH CHECK (true);
 DROP POLICY IF EXISTS "Authenticated users can view operational_categories" ON public.operational_categories;
 CREATE POLICY "Authenticated users can view operational_categories" ON public.operational_categories FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "Authenticated users can view app_settings" ON public.app_settings;
