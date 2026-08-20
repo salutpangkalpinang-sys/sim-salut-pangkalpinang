@@ -176,6 +176,51 @@ export async function verifyLipDocumentAction(id: string) {
   return { success: true };
 }
 
+export async function updateLipDocumentAction(input: {
+  id: string;
+  officialAmount: number;
+  tuitionAmount?: number;
+  bookAmount?: number;
+  shippingAmount?: number;
+  otherUtAmount?: number;
+  notes?: string;
+}) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "academic_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk mengubah data LIP." };
+  }
+
+  if (!input.id || input.officialAmount <= 0) {
+    return { error: "Total Resmi Kewajiban UT wajib diisi dengan benar (lebih dari 0)." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("lip_documents")
+    .update({
+      official_amount: input.officialAmount,
+      tuition_amount: input.tuitionAmount || 0,
+      book_amount: input.bookAmount || 0,
+      shipping_amount: input.shippingAmount || 0,
+      other_ut_amount: input.otherUtAmount || 0,
+      notes: input.notes?.trim() || null,
+      updated_at: new Date().toISOString(),
+      updated_by: profile.id,
+    })
+    .eq("id", input.id);
+
+  if (error) {
+    console.error("Database update LIP error:", error);
+    return { error: "Gagal memperbarui data LIP: " + error.message };
+  }
+
+  revalidatePath("/lip-tagihan");
+  revalidatePath("/setoran-ut");
+  return { success: true };
+}
+
 export async function cancelLipDocumentAction(id: string, reason: string) {
   const profile = await getCurrentUserProfile();
 

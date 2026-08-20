@@ -147,6 +147,16 @@ export function LipFormModal({
         )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+          {/* Info Banner */}
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-[11px] space-y-1">
+            <strong className="block font-bold">💡 Catatan Penting Nominal LIP UT:</strong>
+            <p>
+              Nominal LIP di bawah ini adalah <strong>MURNI Kewajiban Resmi UT</strong> (SPP, Matakuliah, Bahan Ajar) yang akan disetor ke UT.
+              <br />
+              <strong>JANGAN memasukkan Biaya Layanan SALUT (Rp 400.000)</strong> ke dalam form LIP ini. Biaya Layanan SALUT akan otomatis ditambahkan oleh sistem saat penerbitan Invoice Tagihan Mahasiswa.
+            </p>
+          </div>
+
           {/* Registration Select */}
           <div className="space-y-1">
             <label className="block text-slate-700 font-medium mb-1">
