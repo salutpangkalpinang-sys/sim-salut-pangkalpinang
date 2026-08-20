@@ -9,6 +9,7 @@ import { RoleCode } from "@/lib/auth/types";
 import Link from "next/link";
 import { ArrowLeft, CreditCard, CheckCircle2, Ban, ExternalLink, ShieldAlert, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface PaymentDetailViewProps {
   payment: StudentPayment;
@@ -26,6 +27,7 @@ export function PaymentDetailView({
   const [activeTab, setActiveTab] = useState<"detail" | "receipt">("detail");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [isVoidDialogOpen, setIsVoidDialogOpen] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,14 +44,14 @@ export function PaymentDetailView({
     minute: "2-digit",
   });
 
-  const handleVerify = async () => {
-    if (!confirm(`Verifikasi Pembayaran ${payment.transactionNumber}?`)) return;
+  const handleConfirmVerify = async () => {
     setIsSubmitting(true);
     try {
       const res = await verifyStudentPaymentAction(payment.id);
       if (res.error) {
         setErrorMsg(res.error);
       } else {
+        setShowVerifyModal(false);
         router.refresh();
       }
     } finally {
@@ -143,7 +145,7 @@ export function PaymentDetailView({
               </button>
               <button
                 type="button"
-                onClick={handleVerify}
+                onClick={() => setShowVerifyModal(true)}
                 disabled={isSubmitting}
                 className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm transition"
               >
@@ -358,6 +360,19 @@ export function PaymentDetailView({
           userRole={userRole}
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={showVerifyModal}
+        variant="warning"
+        title="Verifikasi Transaksi Pembayaran"
+        description={`Apakah Anda yakin ingin memverifikasi transaksi pembayaran ${payment.transactionNumber} dari mahasiswa ${payment.studentName} sebesar Rp ${payment.amount.toLocaleString("id-ID")}?`}
+        confirmText="Ya, Verifikasi"
+        cancelText="Batal"
+        isLoading={isSubmitting}
+        onConfirm={handleConfirmVerify}
+        onClose={() => setShowVerifyModal(false)}
+      />
     </div>
   );
 }
