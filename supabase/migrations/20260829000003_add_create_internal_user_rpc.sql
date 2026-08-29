@@ -1,4 +1,4 @@
--- Migration: Full Fail-Safe create_internal_user RPC function matching GoTrue schema requirements
+-- Migration: Full Fail-Safe create_internal_user RPC function matching CREATE_OWNER_ACCOUNT GoTrue schema
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -71,11 +71,10 @@ BEGIN
             'authenticated'
         );
 
-        -- Insert into auth.identities
-        DELETE FROM auth.identities WHERE user_id = v_user_id OR identity_data->>'email' = p_email;
+        -- Insert into auth.identities (Identical to CREATE_OWNER_ACCOUNT.sql)
+        DELETE FROM auth.identities WHERE user_id = v_user_id;
         INSERT INTO auth.identities (
             id,
-            provider_id,
             user_id,
             identity_data,
             provider,
@@ -84,14 +83,13 @@ BEGIN
             updated_at
         ) VALUES (
             v_user_id,
-            v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
+            format('{"sub":"%s","email":"%s"}', v_user_id, p_email)::jsonb,
             'email',
             NOW(),
             NOW(),
             NOW()
-        );
+        ) ON CONFLICT DO NOTHING;
     ELSE
         -- Update password and GoTrue auth metadata for existing user
         UPDATE auth.users 
@@ -104,10 +102,9 @@ BEGIN
             aud = 'authenticated'
         WHERE id = v_user_id;
 
-        DELETE FROM auth.identities WHERE user_id = v_user_id OR identity_data->>'email' = p_email;
+        DELETE FROM auth.identities WHERE user_id = v_user_id;
         INSERT INTO auth.identities (
             id,
-            provider_id,
             user_id,
             identity_data,
             provider,
@@ -116,26 +113,25 @@ BEGIN
             updated_at
         ) VALUES (
             v_user_id,
-            v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
+            format('{"sub":"%s","email":"%s"}', v_user_id, p_email)::jsonb,
             'email',
             NOW(),
             NOW(),
             NOW()
-        );
+        ) ON CONFLICT DO NOTHING;
     END IF;
 
     -- 3. Upsert Profile
-    INSERT INTO public.profiles (id, full_name, is_active, created_at, updated_at)
-    VALUES (v_user_id, p_full_name, true, NOW(), NOW())
-    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, is_active = true, updated_at = NOW();
+    INSERT INTO public.profiles (id, full_name, is_active)
+    VALUES (v_user_id, p_full_name, true)
+    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, is_active = true;
 
     -- 4. Assign User Role
     DELETE FROM public.user_roles WHERE user_id = v_user_id;
-    INSERT INTO public.user_roles (user_id, role_id, created_at)
-    VALUES (v_user_id, v_role_id, NOW())
-    ON CONFLICT (user_id, role_id) DO NOTHING;
+    INSERT INTO public.user_roles (user_id, role_id)
+    VALUES (v_user_id, v_role_id)
+    ON CONFLICT DO NOTHING;
 
     RETURN v_user_id;
 END;
