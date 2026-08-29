@@ -39,14 +39,17 @@ export default async function LipTagihanPage({
   const registrationsOptions = (regsRes.data || [])
     .filter((r) => (r.status as string).toLowerCase() !== "cancelled" && (r.status as string).toLowerCase() !== "dibatalkan")
     .map((r) => {
-      const tuitionSnapshot = r.feeSnapshots?.find((s) => (s.feeNameSnapshot || "").toLowerCase().includes("mata kuliah") || (s.feeNameSnapshot || "").toLowerCase().includes("spp") || s.calculationType === "PER_SKS");
+      const salutSnapshot = r.feeSnapshots?.find((s) => (s.feeNameSnapshot || "").toLowerCase().includes("salut"));
+      const tuitionSnapshot = r.feeSnapshots?.find((s) => ((s.feeNameSnapshot || "").toLowerCase().includes("mata kuliah") || (s.feeNameSnapshot || "").toLowerCase().includes("spp") || s.calculationType === "PER_SKS") && !(s.feeNameSnapshot || "").toLowerCase().includes("salut"));
+      const rawTuition = tuitionSnapshot?.totalAmount || (salutSnapshot ? Math.max(0, (r.totalEstimateAmount || 0) - salutSnapshot.totalAmount) : (r.totalEstimateAmount || 0));
+
       return {
         id: r.id,
         registrationNumber: r.registrationNumber,
         studentName: r.studentName || "Mahasiswa",
         studentNim: r.studentNim || null,
         academicPeriodName: r.academicPeriodName || "-",
-        estimatedTuition: tuitionSnapshot?.totalAmount || r.totalEstimateAmount || 0,
+        estimatedTuition: rawTuition,
         estimatedTotal: r.totalEstimateAmount || 0,
       };
     });

@@ -63,6 +63,13 @@ export function LipFormModal({
     }
   }, [tuitionAmount, bookAmount, shippingAmount, otherUtAmount]);
 
+  const handleOfficialAmountChange = (val: number) => {
+    setOfficialAmount(val);
+    if (bookAmount === 0 && shippingAmount === 0 && otherUtAmount === 0) {
+      setTuitionAmount(val);
+    }
+  };
+
   if (!isOpen) return null;
 
   const componentTotal = tuitionAmount + bookAmount + shippingAmount + otherUtAmount;
@@ -209,7 +216,7 @@ export function LipFormModal({
                 value={formatThousandInput(officialAmount)}
                 placeholder="0"
                 onFocus={(e) => e.target.select()}
-                onChange={(e) => setOfficialAmount(parseThousandInput(e.target.value))}
+                onChange={(e) => handleOfficialAmountChange(parseThousandInput(e.target.value))}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold text-emerald-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               <p className="text-[11px] text-amber-700 font-medium mt-1 leading-tight">
