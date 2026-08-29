@@ -89,33 +89,21 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
         p_role_code: role,
       });
 
-      if (!rpcErr && rpcUserId) {
-        newUserId = rpcUserId as string;
-      } else {
-        // Fallback to table query if RPC is not yet applied
-        const { data: roleRow } = await supabase
-          .from("roles")
-          .select("id")
-          .eq("code", role)
-          .single();
-
-        if (roleRow) {
-          const { error: profErr } = await supabase.from("profiles").insert({
-            id: newUserId,
-            full_name: fullName,
-            is_active: true,
-          });
-
-          if (!profErr) {
-            await supabase.from("user_roles").insert({
-              user_id: newUserId,
-              role_id: roleRow.id,
-            });
-          }
-        }
+      if (rpcErr) {
+        console.error("RPC create_internal_user error:", rpcErr);
+        return {
+          error: `Gagal membuat akun pengguna di database Supabase: ${rpcErr.message}. Harap jalankan script SQL migrasi 20260829000003 di SQL Editor Supabase.`,
+        };
       }
-    } catch {
-      // Local dev mode fallback
+
+      if (rpcUserId) {
+        newUserId = rpcUserId as string;
+      }
+    } catch (err: any) {
+      console.error("Error creating user:", err);
+      return {
+        error: `Terjadi kesalahan saat memproses pembuatan pengguna: ${err?.message || err}`,
+      };
     }
   }
 
