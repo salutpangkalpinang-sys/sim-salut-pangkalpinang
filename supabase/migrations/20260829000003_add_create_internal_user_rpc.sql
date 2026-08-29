@@ -69,7 +69,7 @@ BEGIN
             'authenticated'
         );
 
-        -- Insert into auth.identities
+        -- Insert into auth.identities (omitting generated 'email' column)
         INSERT INTO auth.identities (
             id,
             user_id,
@@ -77,8 +77,7 @@ BEGIN
             provider,
             last_sign_in_at,
             created_at,
-            updated_at,
-            email
+            updated_at
         ) VALUES (
             v_user_id,
             v_user_id,
@@ -86,8 +85,7 @@ BEGIN
             'email',
             NOW(),
             NOW(),
-            NOW(),
-            p_email
+            NOW()
         ) ON CONFLICT (provider, id) DO NOTHING;
     END IF;
 
