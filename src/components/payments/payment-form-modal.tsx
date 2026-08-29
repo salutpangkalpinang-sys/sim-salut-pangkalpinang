@@ -36,7 +36,7 @@ export function PaymentFormModal({
   options,
   defaultInvoiceId = "",
 }: PaymentFormModalProps) {
-  const [invoiceId, setInvoiceId] = useState(defaultInvoiceId || options.invoices[0]?.id || "");
+  const [invoiceId, setInvoiceId] = useState(defaultInvoiceId || "");
 
   const invComboboxOptions: ComboboxOption[] = options.invoices.map((inv) => ({
     id: inv.id,
@@ -67,6 +67,8 @@ export function PaymentFormModal({
     const inv = options.invoices.find((i) => i.id === invId);
     if (inv) {
       setAmount(inv.remainingBalance > 0 ? inv.remainingBalance : inv.invoiceTotalAmount);
+    } else {
+      setAmount(0);
     }
   };
 
