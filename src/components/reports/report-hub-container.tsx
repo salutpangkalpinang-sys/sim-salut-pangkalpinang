@@ -126,6 +126,16 @@ export function ReportHubContainer({
     );
   });
 
+  const filteredServiceFees = (reportsData.serviceFees?.data || []).filter((sf: any) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      sf.invoiceNumber?.toLowerCase().includes(q) ||
+      sf.studentName?.toLowerCase().includes(q) ||
+      sf.nim?.toLowerCase().includes(q)
+    );
+  });
+
   const filteredUtOutstanding = (reportsData.utOutstanding?.data || []).filter((lip: any) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -478,6 +488,70 @@ export function ReportHubContainer({
                         </td>
                         <td className="px-3 py-2 font-mono text-slate-500">
                           {r.dueAt ? new Date(r.dueAt).toLocaleDateString("id-ID") : "-"}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    renderEmptyState(Boolean(searchQuery.trim()))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Laporan Pendapatan Jasa Layanan SALUT */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 shadow-sm text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Laporan Pendapatan Jasa Layanan SALUT</h2>
+                <p className="text-[11px] text-slate-500">Rincian pendapatan bersih jasa layanan SALUT (Rp 400.000 / mahasiswa) per invoice tagihan terbit</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleExportCsv("service-fees")}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition shadow-xs"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export CSV Jasa SALUT</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase text-[10px]">
+                  <tr>
+                    <th className="px-3 py-2">No. Invoice</th>
+                    <th className="px-3 py-2">NIM & Mahasiswa</th>
+                    <th className="px-3 py-2">Periode Akademik</th>
+                    <th className="px-3 py-2">Pendapatan Jasa SALUT (Rp)</th>
+                    <th className="px-3 py-2">Status Invoice</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-normal">
+                  {filteredServiceFees.length > 0 ? (
+                    filteredServiceFees.map((sf: any) => (
+                      <tr key={sf.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 font-mono font-bold text-blue-600">{sf.invoiceNumber}</td>
+                        <td className="px-3 py-2">
+                          <div className="font-semibold text-slate-900">{sf.studentName}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">NIM: {sf.nim}</div>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-slate-700">{sf.academicPeriodName}</td>
+                        <td className="px-3 py-2 font-mono font-bold text-emerald-600">
+                          Rp {sf.serviceFeeAmount.toLocaleString("id-ID")}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                              sf.invoiceStatus === "paid"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : sf.invoiceStatus === "partial"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {sf.invoiceStatus === "paid" ? "Lunas (Terkumpul)" : sf.invoiceStatus === "partial" ? "Sebagian" : "Belum Lunas"}
+                          </span>
                         </td>
                       </tr>
                     ))
