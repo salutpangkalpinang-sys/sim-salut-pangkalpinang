@@ -1,4 +1,4 @@
--- Migration: Full Fail-Safe create_internal_user RPC function linking auth.users, profiles & user_roles
+-- Migration: Full Fail-Safe create_internal_user RPC function with SECURITY DEFINER, search_path & postgres ownership
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -23,6 +23,7 @@ CREATE OR REPLACE FUNCTION public.create_internal_user(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
     v_user_id UUID;
@@ -69,7 +70,7 @@ BEGIN
             'authenticated'
         );
 
-        -- Insert into auth.identities (with provider_id)
+        -- Insert into auth.identities
         INSERT INTO auth.identities (
             id,
             provider_id,
@@ -106,4 +107,5 @@ BEGIN
 END;
 $$;
 
+ALTER FUNCTION public.create_internal_user(TEXT, TEXT, TEXT, TEXT) OWNER TO postgres;
 GRANT EXECUTE ON FUNCTION public.create_internal_user(TEXT, TEXT, TEXT, TEXT) TO authenticated, service_role, anon;
