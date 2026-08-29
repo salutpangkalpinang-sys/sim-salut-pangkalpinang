@@ -158,6 +158,27 @@ export async function updateCashAccountAction(input: {
 
   const supabase = await createClient();
 
+  // 1. Try SECURITY DEFINER RPC first (bypasses RLS atomically in PostgreSQL)
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc("update_cash_account", {
+      p_id: input.id,
+      p_name: input.name.trim(),
+      p_account_number: input.accountNumber?.trim() || null,
+      p_bank_name: input.bankName?.trim() || null,
+    });
+
+    if (!rpcErr && rpcRes && rpcRes.success) {
+      revalidatePath("/master-data");
+      revalidatePath("/pembayaran");
+      revalidatePath("/kas-operasional");
+      revalidatePath("/setoran-ut");
+      return { success: true };
+    }
+  } catch (err) {
+    console.warn("update_cash_account RPC fallback:", err);
+  }
+
+  // 2. Fallback: Direct table update
   const { data, error } = await supabase
     .from("cash_accounts")
     .update({
@@ -174,7 +195,7 @@ export async function updateCashAccountAction(input: {
   }
 
   if (!data || data.length === 0) {
-    return { error: "Gagal memperbarui rekening: Data tidak terupdate di database." };
+    return { error: "Gagal memperbarui rekening: RLS database memblokir perubahan. Mohon jalankan skrip migrasi SQL RLS." };
   }
 
   revalidatePath("/master-data");
