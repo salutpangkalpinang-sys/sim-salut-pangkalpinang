@@ -1,4 +1,4 @@
--- Migration: Full Fail-Safe create_internal_user RPC function with SECURITY DEFINER, search_path & postgres ownership
+-- Migration: Full Fail-Safe create_internal_user RPC function with password update support for existing users
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -13,7 +13,7 @@ CREATE POLICY "Owner can manage user roles" ON public.user_roles
 FOR ALL TO authenticated
 USING (public.get_current_user_role() = 'owner');
 
--- 2. Stored Procedure for atomic internal user creation in Supabase Auth & Profiles
+-- 2. Stored Procedure for atomic internal user creation & password update
 CREATE OR REPLACE FUNCTION public.create_internal_user(
     p_email TEXT,
     p_password TEXT,
@@ -90,6 +90,17 @@ BEGIN
             NOW(),
             NOW()
         ) ON CONFLICT DO NOTHING;
+    ELSE
+        -- Update password and user metadata for existing user if password is provided
+        IF p_password IS NOT NULL AND p_password <> '' THEN
+            v_encrypted_pw := crypt(p_password, gen_salt('bf'));
+            UPDATE auth.users 
+            SET encrypted_password = v_encrypted_pw,
+                email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+                raw_user_meta_data = jsonb_build_object('full_name', p_full_name),
+                updated_at = NOW()
+            WHERE id = v_user_id;
+        END IF;
     END IF;
 
     -- 3. Upsert Profile
