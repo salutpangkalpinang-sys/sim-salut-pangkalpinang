@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { calculateInvoicePaymentAllocation } from "@/lib/utils/payment-allocation";
 
 export async function getStudentReport(params: {
   page?: number;
@@ -437,12 +438,15 @@ export async function getServiceFeeReport(params: {
       id,
       amount,
       invoices (
+        id,
         invoice_number,
         status,
         registrations (
           academic_periods ( code, name ),
           students ( nim, full_name )
-        )
+        ),
+        invoice_items ( amount, item_type, approval_status ),
+        payment_allocations ( amount, student_payments ( status ) )
       )
     `,
       { count: "exact" }
@@ -454,17 +458,33 @@ export async function getServiceFeeReport(params: {
 
   const mapped = (data || [])
     .filter((item: any) => item.invoices?.status !== "cancelled")
-    .map((item: any) => ({
-      id: item.id,
-      invoiceNumber: item.invoices?.invoice_number || "-",
-      nim: item.invoices?.registrations?.students?.nim || "-",
-      studentName: item.invoices?.registrations?.students?.full_name || "Mahasiswa",
-      academicPeriodName: item.invoices?.registrations?.academic_periods
-        ? `${item.invoices.registrations.academic_periods.name} (${item.invoices.registrations.academic_periods.code})`
-        : "-",
-      serviceFeeAmount: Number(item.amount) || 0,
-      invoiceStatus: item.invoices?.status || "-",
-    }));
+    .map((item: any) => {
+      let verifiedAllocated = 0;
+      (item.invoices?.payment_allocations || []).forEach((alloc: any) => {
+        if (alloc.student_payments?.status === "verified") {
+          verifiedAllocated += Number(alloc.amount) || 0;
+        }
+      });
+
+      const allocBreakdown = calculateInvoicePaymentAllocation(
+        item.invoices?.invoice_items || [],
+        verifiedAllocated
+      );
+
+      return {
+        id: item.id,
+        invoiceNumber: item.invoices?.invoice_number || "-",
+        nim: item.invoices?.registrations?.students?.nim || "-",
+        studentName: item.invoices?.registrations?.students?.full_name || "Mahasiswa",
+        academicPeriodName: item.invoices?.registrations?.academic_periods
+          ? `${item.invoices.registrations.academic_periods.name} (${item.invoices.registrations.academic_periods.code})`
+          : "-",
+        serviceFeeAmount: Number(item.amount) || 0,
+        serviceFeePaid: allocBreakdown.serviceFeePaid,
+        serviceFeeStatus: allocBreakdown.serviceFeeStatus,
+        invoiceStatus: item.invoices?.status || "-",
+      };
+    });
 
   const total = count || 0;
   return { data: mapped, total, page, limit, totalPages: Math.ceil(total / limit) };

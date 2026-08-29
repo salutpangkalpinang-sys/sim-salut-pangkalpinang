@@ -523,8 +523,9 @@ export function ReportHubContainer({
                     <th className="px-3 py-2">No. Invoice</th>
                     <th className="px-3 py-2">NIM & Mahasiswa</th>
                     <th className="px-3 py-2">Periode Akademik</th>
-                    <th className="px-3 py-2">Pendapatan Jasa SALUT (Rp)</th>
-                    <th className="px-3 py-2">Status Invoice</th>
+                    <th className="px-3 py-2">Jasa SALUT (Tagihan)</th>
+                    <th className="px-3 py-2">Status Jasa SALUT</th>
+                    <th className="px-3 py-2">Status Total Invoice</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-normal">
@@ -543,14 +544,31 @@ export function ReportHubContainer({
                         <td className="px-3 py-2">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                              sf.invoiceStatus === "paid"
+                              sf.serviceFeeStatus === "paid" || sf.serviceFeePaid >= sf.serviceFeeAmount
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : sf.invoiceStatus === "partial"
+                                : sf.serviceFeeStatus === "partial" || sf.serviceFeePaid > 0
                                 ? "bg-blue-50 text-blue-700 border-blue-200"
                                 : "bg-amber-50 text-amber-700 border-amber-200"
                             }`}
                           >
-                            {sf.invoiceStatus === "paid" ? "Lunas (Terkumpul)" : sf.invoiceStatus === "partial" ? "Sebagian" : "Belum Lunas"}
+                            {sf.serviceFeeStatus === "paid" || sf.serviceFeePaid >= sf.serviceFeeAmount
+                              ? `🟢 Terbayar Lunas (Rp ${(sf.serviceFeePaid || sf.serviceFeeAmount).toLocaleString("id-ID")})`
+                              : sf.serviceFeeStatus === "partial" || sf.serviceFeePaid > 0
+                              ? `🟡 Partial (Rp ${(sf.serviceFeePaid || 0).toLocaleString("id-ID")})`
+                              : "⚪ Belum Dibayar"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                              sf.invoiceStatus === "paid"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : sf.invoiceStatus === "partial"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {sf.invoiceStatus === "paid" ? "Lunas" : sf.invoiceStatus === "partial" ? "Sebagian" : "Belum Lunas Total"}
                           </span>
                         </td>
                       </tr>
