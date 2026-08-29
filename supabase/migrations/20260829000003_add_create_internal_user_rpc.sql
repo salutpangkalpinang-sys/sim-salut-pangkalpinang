@@ -69,7 +69,7 @@ BEGIN
             'authenticated'
         );
 
-        -- Insert into auth.identities (omitting generated 'email' column)
+        -- Insert into auth.identities (ON CONFLICT DO NOTHING)
         INSERT INTO auth.identities (
             id,
             user_id,
@@ -86,7 +86,7 @@ BEGIN
             NOW(),
             NOW(),
             NOW()
-        ) ON CONFLICT (provider, id) DO NOTHING;
+        ) ON CONFLICT DO NOTHING;
     END IF;
 
     -- 3. Upsert Profile
