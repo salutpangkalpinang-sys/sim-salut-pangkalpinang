@@ -78,15 +78,15 @@ export async function getRegistrationReport(params: {
       `
       id,
       registration_number,
-      total_sks,
-      fee_estimate_amount,
+      credits,
       status,
       created_at,
       academic_periods ( code, name ),
       registration_types ( name ),
       study_programs ( name ),
       service_schemes ( name ),
-      students ( nim, full_name )
+      students ( nim, full_name ),
+      registration_fee_snapshots ( quantity, unit_amount )
     `,
       { count: "exact" }
     );
@@ -100,20 +100,27 @@ export async function getRegistrationReport(params: {
 
   if (error) return { data: [], total: 0, page, limit, totalPages: 0 };
 
-  const mapped = (data || []).map((r: any) => ({
-    id: r.id,
-    registrationNumber: r.registration_number,
-    nim: r.students?.nim || "-",
-    studentName: r.students?.full_name || "Mahasiswa",
-    academicPeriodName: r.academic_periods ? `${r.academic_periods.name} (${r.academic_periods.code})` : "-",
-    registrationTypeName: r.registration_types?.name || "-",
-    studyProgramName: r.study_programs?.name || "-",
-    serviceSchemeName: r.service_schemes?.name || "-",
-    totalSks: Number(r.total_sks) || 0,
-    feeEstimateAmount: Number(r.fee_estimate_amount) || 0,
-    status: r.status,
-    createdAt: r.created_at,
-  }));
+  const mapped = (data || []).map((r: any) => {
+    let feeEstimate = 0;
+    (r.registration_fee_snapshots || []).forEach((snap: any) => {
+      feeEstimate += (Number(snap.quantity) || 1) * (Number(snap.unit_amount) || 0);
+    });
+
+    return {
+      id: r.id,
+      registrationNumber: r.registration_number,
+      nim: r.students?.nim || "-",
+      studentName: r.students?.full_name || "Mahasiswa",
+      academicPeriodName: r.academic_periods ? `${r.academic_periods.name} (${r.academic_periods.code})` : "-",
+      registrationTypeName: r.registration_types?.name || "-",
+      studyProgramName: r.study_programs?.name || "-",
+      serviceSchemeName: r.service_schemes?.name || "-",
+      totalSks: Number(r.credits) || 0,
+      feeEstimateAmount: feeEstimate,
+      status: r.status,
+      createdAt: r.created_at,
+    };
+  });
 
   const total = count || 0;
   return { data: mapped, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -144,7 +151,7 @@ export async function getInvoiceReport(params: {
         academic_periods ( name, code ),
         students ( nim, full_name )
       ),
-      invoice_items ( amount, is_discount, is_approved ),
+      invoice_items ( amount, item_type, approval_status ),
       payment_allocations (
         amount,
         student_payments ( status )
@@ -164,8 +171,8 @@ export async function getInvoiceReport(params: {
     let invTotal = 0;
     (inv.invoice_items || []).forEach((item: any) => {
       const amt = Number(item.amount) || 0;
-      if (item.is_discount) {
-        if (item.is_approved) invTotal -= amt;
+      if (item.item_type === "discount") {
+        if (item.approval_status === "approved" || !item.approval_status) invTotal -= amt;
       } else {
         invTotal += amt;
       }
