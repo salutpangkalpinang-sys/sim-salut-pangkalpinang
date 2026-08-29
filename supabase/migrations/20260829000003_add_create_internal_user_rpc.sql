@@ -36,10 +36,10 @@ BEGIN
         RAISE EXCEPTION 'Role % not found', p_role_code;
     END IF;
 
+    v_encrypted_pw := crypt(COALESCE(p_password, 'suksesterus'), gen_salt('bf'));
+
     -- 2. Check if user already exists in auth.users
     SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
-
-    v_encrypted_pw := crypt(COALESCE(p_password, 'suksesterus'), gen_salt('bf'));
 
     IF v_user_id IS NULL THEN
         v_user_id := gen_random_uuid();
@@ -72,7 +72,7 @@ BEGIN
         );
 
         -- Insert into auth.identities
-        DELETE FROM auth.identities WHERE user_id = v_user_id;
+        DELETE FROM auth.identities WHERE user_id = v_user_id OR identity_data->>'email' = p_email;
         INSERT INTO auth.identities (
             id,
             provider_id,
@@ -96,7 +96,7 @@ BEGIN
         -- Update password and GoTrue auth metadata for existing user
         UPDATE auth.users 
         SET encrypted_password = v_encrypted_pw,
-            email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+            email_confirmed_at = NOW(),
             raw_app_meta_data = '{"provider":"email","providers":["email"]}',
             raw_user_meta_data = jsonb_build_object('full_name', p_full_name),
             updated_at = NOW(),
@@ -104,7 +104,7 @@ BEGIN
             aud = 'authenticated'
         WHERE id = v_user_id;
 
-        DELETE FROM auth.identities WHERE user_id = v_user_id;
+        DELETE FROM auth.identities WHERE user_id = v_user_id OR identity_data->>'email' = p_email;
         INSERT INTO auth.identities (
             id,
             provider_id,
