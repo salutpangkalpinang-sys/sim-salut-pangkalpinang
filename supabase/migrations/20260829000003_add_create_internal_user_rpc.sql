@@ -1,4 +1,4 @@
--- Migration: Full Fail-Safe create_internal_user RPC function with password update support for existing users
+-- Migration: Full Fail-Safe create_internal_user RPC function matching GoTrue schema requirements
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -13,7 +13,7 @@ CREATE POLICY "Owner can manage user roles" ON public.user_roles
 FOR ALL TO authenticated
 USING (public.get_current_user_role() = 'owner');
 
--- 2. Stored Procedure for atomic internal user creation & password update
+-- 2. Stored Procedure for atomic internal user creation in Supabase Auth & Profiles
 CREATE OR REPLACE FUNCTION public.create_internal_user(
     p_email TEXT,
     p_password TEXT,
@@ -39,9 +39,10 @@ BEGIN
     -- 2. Check if user already exists in auth.users
     SELECT id INTO v_user_id FROM auth.users WHERE email = p_email;
 
+    v_encrypted_pw := crypt(COALESCE(p_password, 'suksesterus'), gen_salt('bf'));
+
     IF v_user_id IS NULL THEN
         v_user_id := gen_random_uuid();
-        v_encrypted_pw := crypt(COALESCE(p_password, 'suksesterus'), gen_salt('bf'));
 
         -- Insert into auth.users
         INSERT INTO auth.users (
@@ -71,6 +72,7 @@ BEGIN
         );
 
         -- Insert into auth.identities
+        DELETE FROM auth.identities WHERE user_id = v_user_id;
         INSERT INTO auth.identities (
             id,
             provider_id,
@@ -84,23 +86,44 @@ BEGIN
             v_user_id,
             v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s"}', v_user_id, p_email)::jsonb,
+            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
             'email',
             NOW(),
             NOW(),
             NOW()
-        ) ON CONFLICT DO NOTHING;
+        );
     ELSE
-        -- Update password and user metadata for existing user if password is provided
-        IF p_password IS NOT NULL AND p_password <> '' THEN
-            v_encrypted_pw := crypt(p_password, gen_salt('bf'));
-            UPDATE auth.users 
-            SET encrypted_password = v_encrypted_pw,
-                email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
-                raw_user_meta_data = jsonb_build_object('full_name', p_full_name),
-                updated_at = NOW()
-            WHERE id = v_user_id;
-        END IF;
+        -- Update password and GoTrue auth metadata for existing user
+        UPDATE auth.users 
+        SET encrypted_password = v_encrypted_pw,
+            email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+            raw_app_meta_data = '{"provider":"email","providers":["email"]}',
+            raw_user_meta_data = jsonb_build_object('full_name', p_full_name),
+            updated_at = NOW(),
+            role = 'authenticated',
+            aud = 'authenticated'
+        WHERE id = v_user_id;
+
+        DELETE FROM auth.identities WHERE user_id = v_user_id;
+        INSERT INTO auth.identities (
+            id,
+            provider_id,
+            user_id,
+            identity_data,
+            provider,
+            last_sign_in_at,
+            created_at,
+            updated_at
+        ) VALUES (
+            v_user_id,
+            v_user_id::text,
+            v_user_id,
+            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
+            'email',
+            NOW(),
+            NOW(),
+            NOW()
+        );
     END IF;
 
     -- 3. Upsert Profile
