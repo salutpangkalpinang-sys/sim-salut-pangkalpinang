@@ -261,20 +261,6 @@ export function PaymentFormModal({
             </div>
           </div>
 
-          {/* Reference Number */}
-          <div>
-            <label className="block text-slate-700 font-medium mb-1">
-              Nomor Referensi Transaksi / Transfer <span className="text-slate-400 font-normal">(Opsional)</span>
-            </label>
-            <input
-              type="text"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              placeholder="Contoh: REF-889129031 / No. Struk Kasir"
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            />
-          </div>
-
           {/* Allocation Calculation Preview */}
           <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-1">
             <div className="flex items-center justify-between">
