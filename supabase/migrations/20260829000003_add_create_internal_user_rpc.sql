@@ -1,4 +1,4 @@
--- Migration: Full Fail-Safe create_internal_user RPC function matching CREATE_OWNER_ACCOUNT GoTrue schema
+-- Migration: Full Fail-Safe create_internal_user RPC function with explicit provider_id in auth.identities
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -71,10 +71,11 @@ BEGIN
             'authenticated'
         );
 
-        -- Insert into auth.identities (Identical to CREATE_OWNER_ACCOUNT.sql)
+        -- Insert into auth.identities with provider_id
         DELETE FROM auth.identities WHERE user_id = v_user_id;
         INSERT INTO auth.identities (
             id,
+            provider_id,
             user_id,
             identity_data,
             provider,
@@ -83,8 +84,9 @@ BEGIN
             updated_at
         ) VALUES (
             v_user_id,
+            v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s"}', v_user_id, p_email)::jsonb,
+            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
             'email',
             NOW(),
             NOW(),
@@ -105,6 +107,7 @@ BEGIN
         DELETE FROM auth.identities WHERE user_id = v_user_id;
         INSERT INTO auth.identities (
             id,
+            provider_id,
             user_id,
             identity_data,
             provider,
@@ -113,8 +116,9 @@ BEGIN
             updated_at
         ) VALUES (
             v_user_id,
+            v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s"}', v_user_id, p_email)::jsonb,
+            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
             'email',
             NOW(),
             NOW(),
