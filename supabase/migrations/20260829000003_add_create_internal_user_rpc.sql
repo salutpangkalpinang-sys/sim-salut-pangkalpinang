@@ -69,9 +69,10 @@ BEGIN
             'authenticated'
         );
 
-        -- Insert into auth.identities (ON CONFLICT DO NOTHING)
+        -- Insert into auth.identities (with provider_id)
         INSERT INTO auth.identities (
             id,
+            provider_id,
             user_id,
             identity_data,
             provider,
@@ -80,6 +81,7 @@ BEGIN
             updated_at
         ) VALUES (
             v_user_id,
+            v_user_id::text,
             v_user_id,
             format('{"sub":"%s","email":"%s"}', v_user_id, p_email)::jsonb,
             'email',
