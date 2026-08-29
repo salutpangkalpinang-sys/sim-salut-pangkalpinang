@@ -258,6 +258,12 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
         registration_number,
         students ( nim, full_name )
       ),
+      invoices (
+        id,
+        status,
+        invoice_items ( amount, item_type, approval_status ),
+        payment_allocations ( amount, student_payments ( status ) )
+      ),
       ut_remittance_items (
         amount,
         ut_remittances ( status )
@@ -280,6 +286,39 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
 
     const outstandingUtAmount = Math.max(0, officialAmount - alreadyVerifiedUtPaid);
 
+    let isInvoicePaid = false;
+    let invoiceStatus = "unpaid";
+
+    const invList = lip.invoices || [];
+    const inv = invList.find((i: any) => i.status !== "cancelled") || invList[0];
+
+    if (inv) {
+      let invTotal = 0;
+      (inv.invoice_items || []).forEach((item: any) => {
+        const amt = Number(item.amount) || 0;
+        if (item.item_type === "discount") {
+          if (item.approval_status === "approved" || !item.approval_status) invTotal -= amt;
+        } else {
+          invTotal += amt;
+        }
+      });
+
+      let verifiedAllocated = 0;
+      (inv.payment_allocations || []).forEach((alloc: any) => {
+        if (alloc.student_payments?.status === "verified") {
+          verifiedAllocated += Number(alloc.amount) || 0;
+        }
+      });
+
+      const remainingBalance = Math.max(0, invTotal - verifiedAllocated);
+      if (inv.status === "paid" || (invTotal > 0 && remainingBalance <= 0)) {
+        isInvoicePaid = true;
+        invoiceStatus = "paid";
+      } else {
+        invoiceStatus = inv.status || "unpaid";
+      }
+    }
+
     return {
       id: lip.id,
       registrationId: lip.registration_id,
@@ -290,6 +329,8 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
       officialAmount,
       alreadyVerifiedUtPaid,
       outstandingUtAmount,
+      isInvoicePaid,
+      invoiceStatus,
     };
   });
 

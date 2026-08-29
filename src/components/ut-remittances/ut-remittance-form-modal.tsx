@@ -25,11 +25,13 @@ export function UtRemittanceFormModal({
 }: UtRemittanceFormModalProps) {
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
 
-  const lipComboboxOptions: ComboboxOption[] = eligibleLips.map((lip) => ({
+  const sortedLips = [...eligibleLips].sort((a, b) => (b.isInvoicePaid ? 1 : 0) - (a.isInvoicePaid ? 1 : 0));
+
+  const lipComboboxOptions: ComboboxOption[] = sortedLips.map((lip) => ({
     id: lip.id,
-    label: `${lip.studentName}`,
-    sublabel: `${lip.lipNumber} — ${lip.registrationNumber} (Outstanding UT: Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")})`,
-    badge: `Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")}`,
+    label: `${lip.isInvoicePaid ? "🟢 [LUNAS DI SALUT] " : "🔴 [BELUM LUNAS] "}${lip.studentName}`,
+    sublabel: `${lip.lipNumber} — ${lip.registrationNumber} (Kewajiban UT: Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")})`,
+    badge: lip.isInvoicePaid ? "LUNAS DI SALUT" : "BELUM LUNAS",
     searchTerms: `${lip.studentName} ${lip.lipNumber} ${lip.registrationNumber}`,
   }));
   const [cashAccountId, setCashAccountId] = useState(cashAccounts[0]?.id || "");
@@ -262,7 +264,18 @@ export function UtRemittanceFormModal({
                         <tr key={item.lipDocumentId} className="hover:bg-slate-50">
                           <td className="px-3 py-2.5">
                             <div className="font-mono font-bold text-blue-600">{lip.lipNumber}</div>
-                            <div className="text-[11px] text-slate-900">{lip.studentName}</div>
+                            <div className="text-[11px] text-slate-900 flex items-center gap-1.5 mt-0.5">
+                              <span>{lip.studentName}</span>
+                              {lip.isInvoicePaid ? (
+                                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold text-[9px]">
+                                  🟢 Lunas di SALUT
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-semibold text-[9px]">
+                                  🔴 Belum Lunas di SALUT
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-3 py-2.5 font-mono text-slate-700">
                             Rp {lip.officialAmount.toLocaleString("id-ID")}

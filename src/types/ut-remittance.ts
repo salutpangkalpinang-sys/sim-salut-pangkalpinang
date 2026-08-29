@@ -78,4 +78,6 @@ export interface EligibleLipForRemittance {
   officialAmount: number;
   alreadyVerifiedUtPaid: number;
   outstandingUtAmount: number;
+  isInvoicePaid?: boolean;
+  invoiceStatus?: string;
 }
