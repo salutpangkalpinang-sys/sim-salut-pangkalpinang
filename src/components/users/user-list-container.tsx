@@ -32,18 +32,23 @@ export function UserListContainer({
   const [statusTargetActive, setStatusTargetActive] = useState<boolean>(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const refreshData = (newFilter?: UserFilter) => {
+  const refreshData = async (newFilter?: UserFilter) => {
     const activeFilter = newFilter !== undefined ? newFilter : filter;
-    startTransition(async () => {
+    setIsLoading(true);
+    try {
       const [updatedUsers, updatedSummary] = await Promise.all([
         fetchUsersListAction(activeFilter),
         fetchUsersSummaryAction(),
       ]);
       setUsers(updatedUsers);
       setSummary(updatedSummary);
-    });
+    } catch (err) {
+      console.warn("Failed to refresh user data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFilterChange = (newFilter: UserFilter) => {
@@ -54,9 +59,6 @@ export function UserListContainer({
   const handleActionSuccess = (message: string) => {
     setToastMessage(message);
     refreshData();
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
   };
 
   return (
@@ -69,8 +71,13 @@ export function UserListContainer({
             <span>{toastMessage}</span>
           </div>
           <button
-            onClick={() => setToastMessage(null)}
-            className="text-emerald-600 hover:text-emerald-800 text-xs font-bold px-2 py-0.5"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setToastMessage(null);
+            }}
+            className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 text-xs font-bold px-2 py-1 rounded-lg transition"
           >
             Tutup
           </button>
@@ -95,12 +102,13 @@ export function UserListContainer({
 
         <div className="flex items-center gap-2 shrink-0">
           <button
+            type="button"
             onClick={() => refreshData()}
-            disabled={isPending}
+            disabled={isLoading}
             className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition disabled:opacity-50"
             title="Refresh Data Pengguna"
           >
-            <RefreshCw className={`w-4 h-4 ${isPending ? "animate-spin text-blue-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-blue-600" : ""}`} />
           </button>
 
           <button

@@ -75,7 +75,7 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
 
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
 
-  let newUserId = `usr-${Date.now()}`;
+  let newUserId = crypto.randomUUID();
 
   if (!isPlaceholder) {
     try {
@@ -100,16 +100,18 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
           .single();
 
         if (roleRow) {
-          await supabase.from("profiles").upsert({
+          const { error: profErr } = await supabase.from("profiles").insert({
             id: newUserId,
             full_name: fullName,
             is_active: true,
           });
 
-          await supabase.from("user_roles").upsert({
-            user_id: newUserId,
-            role_id: roleRow.id,
-          });
+          if (!profErr) {
+            await supabase.from("user_roles").insert({
+              user_id: newUserId,
+              role_id: roleRow.id,
+            });
+          }
         }
       }
     } catch {
