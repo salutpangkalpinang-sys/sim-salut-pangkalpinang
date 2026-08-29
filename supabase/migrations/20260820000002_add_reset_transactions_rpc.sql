@@ -20,45 +20,47 @@ DECLARE
     v_ops_txns INTEGER := 0;
 BEGIN
     -- 1. Delete UT Remittance items, void requests, & remittances
-    DELETE FROM public.ut_remittance_items;
+    DELETE FROM public.ut_remittance_items WHERE true;
     GET DIAGNOSTICS v_ut_items = ROW_COUNT;
 
-    DELETE FROM public.ut_remittance_void_requests;
+    DELETE FROM public.ut_remittance_void_requests WHERE true;
     GET DIAGNOSTICS v_ut_voids = ROW_COUNT;
 
-    DELETE FROM public.ut_remittances;
+    DELETE FROM public.ut_remittances WHERE true;
     GET DIAGNOSTICS v_ut_rems = ROW_COUNT;
 
-    -- 2. Delete Student Payments & Payment Allocations
-    DELETE FROM public.payment_allocations;
+    -- 2. Delete Student Payments, Void Requests & Payment Allocations
+    DELETE FROM public.payment_allocations WHERE true;
     GET DIAGNOSTICS v_pay_alloc = ROW_COUNT;
 
-    DELETE FROM public.student_payments;
+    DELETE FROM public.payment_void_requests WHERE true;
+
+    DELETE FROM public.student_payments WHERE true;
     GET DIAGNOSTICS v_payments = ROW_COUNT;
 
     -- 3. Delete Invoice Items & Invoices
-    DELETE FROM public.invoice_items;
+    DELETE FROM public.invoice_items WHERE true;
     GET DIAGNOSTICS v_inv_items = ROW_COUNT;
 
-    DELETE FROM public.invoices;
+    DELETE FROM public.invoices WHERE true;
     GET DIAGNOSTICS v_invoices = ROW_COUNT;
 
     -- 4. Delete LIP Documents
-    DELETE FROM public.lip_documents;
+    DELETE FROM public.lip_documents WHERE true;
     GET DIAGNOSTICS v_lips = ROW_COUNT;
 
     -- 5. Delete Fee Snapshots & Registrations
-    DELETE FROM public.registration_fee_snapshots;
+    DELETE FROM public.registration_fee_snapshots WHERE true;
     GET DIAGNOSTICS v_snapshots = ROW_COUNT;
 
-    DELETE FROM public.registrations;
+    DELETE FROM public.registrations WHERE true;
     GET DIAGNOSTICS v_regs = ROW_COUNT;
 
     -- 6. Delete Operational Transactions & Void Requests
-    DELETE FROM public.operational_transaction_void_requests;
+    DELETE FROM public.operational_transaction_void_requests WHERE true;
     GET DIAGNOSTICS v_ops_voids = ROW_COUNT;
 
-    DELETE FROM public.operational_transactions;
+    DELETE FROM public.operational_transactions WHERE true;
     GET DIAGNOSTICS v_ops_txns = ROW_COUNT;
 
     RETURN jsonb_build_object(
