@@ -1,4 +1,4 @@
--- Migration: Full Fail-Safe create_internal_user RPC function with explicit provider_id in auth.identities
+-- Migration: Full Fail-Safe create_internal_user RPC function matching 100% exact GoTrue auth payload
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -44,34 +44,45 @@ BEGIN
     IF v_user_id IS NULL THEN
         v_user_id := gen_random_uuid();
 
-        -- Insert into auth.users
+        -- Insert into auth.users (100% Exact match to working GoTrue schema)
         INSERT INTO auth.users (
             id,
             instance_id,
             email,
             encrypted_password,
             email_confirmed_at,
+            confirmed_at,
             raw_app_meta_data,
             raw_user_meta_data,
             created_at,
             updated_at,
             role,
-            aud
+            aud,
+            email_change,
+            recovery_token,
+            confirmation_token,
+            email_change_token_new,
+            reauthentication_token,
+            phone_change_token,
+            phone_change,
+            email_change_token_current
         ) VALUES (
             v_user_id,
             '00000000-0000-0000-0000-000000000000',
             p_email,
             v_encrypted_pw,
             NOW(),
+            NOW(),
             '{"provider":"email","providers":["email"]}',
-            jsonb_build_object('full_name', p_full_name),
+            '{}',
             NOW(),
             NOW(),
             'authenticated',
-            'authenticated'
+            'authenticated',
+            '', '', '', '', '', '', '', ''
         );
 
-        -- Insert into auth.identities with provider_id
+        -- Insert into auth.identities with email_verified: false, phone_verified: false
         DELETE FROM auth.identities WHERE user_id = v_user_id;
         INSERT INTO auth.identities (
             id,
@@ -86,19 +97,33 @@ BEGIN
             v_user_id,
             v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
+            jsonb_build_object(
+                'sub', v_user_id::text,
+                'email', p_email,
+                'email_verified', false,
+                'phone_verified', false
+            ),
             'email',
             NOW(),
             NOW(),
             NOW()
-        ) ON CONFLICT DO NOTHING;
+        );
     ELSE
-        -- Update password and GoTrue auth metadata for existing user
+        -- Update existing user
         UPDATE auth.users 
         SET encrypted_password = v_encrypted_pw,
             email_confirmed_at = NOW(),
+            confirmed_at = NOW(),
+            email_change = '',
+            recovery_token = '',
+            confirmation_token = '',
+            email_change_token_new = '',
+            reauthentication_token = '',
+            phone_change_token = '',
+            phone_change = '',
+            email_change_token_current = '',
             raw_app_meta_data = '{"provider":"email","providers":["email"]}',
-            raw_user_meta_data = jsonb_build_object('full_name', p_full_name),
+            raw_user_meta_data = '{}',
             updated_at = NOW(),
             role = 'authenticated',
             aud = 'authenticated'
@@ -118,12 +143,17 @@ BEGIN
             v_user_id,
             v_user_id::text,
             v_user_id,
-            format('{"sub":"%s","email":"%s","email_verified":true}', v_user_id, p_email)::jsonb,
+            jsonb_build_object(
+                'sub', v_user_id::text,
+                'email', p_email,
+                'email_verified', false,
+                'phone_verified', false
+            ),
             'email',
             NOW(),
             NOW(),
             NOW()
-        ) ON CONFLICT DO NOTHING;
+        );
     END IF;
 
     -- 3. Upsert Profile
