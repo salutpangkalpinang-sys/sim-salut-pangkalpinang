@@ -11,6 +11,9 @@ const mockMasterData: MasterDataResolved = {
     { id: "f1", code: "FKIP", name: "Fakultas Keguruan dan Ilmu Pendidikan" },
     { id: "f2", code: "FEB", name: "Fakultas Ekonomi dan Bisnis" },
   ],
+  studyLevels: [
+    { id: "sl1", code: "S1", name: "Sarjana (S1)" },
+  ],
   studyPrograms: [
     { id: "sp1", code: "Manajemen", name: "Manajemen", faculty_id: "f2" },
     { id: "sp2", code: "PGSD", name: "Pendidikan Guru Sekolah Dasar", faculty_id: "f1" },

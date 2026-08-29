@@ -22,7 +22,7 @@ export function LipFormModal({
   registrationsOptions,
   defaultRegistrationId = "",
 }: LipFormModalProps) {
-  const [registrationId, setRegistrationId] = useState(defaultRegistrationId || registrationsOptions[0]?.id || "");
+  const [registrationId, setRegistrationId] = useState(defaultRegistrationId || "");
   const [lipNumber, setLipNumber] = useState("");
 
   const regComboboxOptions: ComboboxOption[] = registrationsOptions.map((r) => ({
