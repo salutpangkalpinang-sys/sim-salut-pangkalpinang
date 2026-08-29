@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   MasterAcademicPeriod,
   MasterFaculty,
@@ -46,6 +47,7 @@ interface MasterDataContainerProps {
 }
 
 export function MasterDataContainer({ data, userRole }: MasterDataContainerProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<
     "periods" | "programs" | "schemes" | "statuses" | "rates" | "accounts"
   >("periods");
@@ -83,6 +85,7 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
         setMessage({ type: "error", text: res.error });
       } else {
         setMessage({ type: "success", text: "Status periode akademik berhasil diperbarui." });
+        router.refresh();
       }
     });
   };
@@ -99,6 +102,7 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
         setShowAddPeriod(false);
         setNewPeriodCode("");
         setNewPeriodName("");
+        router.refresh();
       }
     });
   };
@@ -123,6 +127,7 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
         setNewAccountName("");
         setNewAccountNumber("");
         setNewBankName("");
+        router.refresh();
       }
     });
   };
@@ -150,6 +155,7 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
       } else {
         setMessage({ type: "success", text: "Data rekening berhasil diperbarui." });
         setEditingAccount(null);
+        router.refresh();
       }
     });
   };
@@ -162,6 +168,7 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
         setMessage({ type: "error", text: res.error });
       } else {
         setMessage({ type: "success", text: "Status keaktifan rekening berhasil diperbarui." });
+        router.refresh();
       }
     });
   };
