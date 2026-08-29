@@ -158,7 +158,7 @@ export async function updateCashAccountAction(input: {
 
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("cash_accounts")
     .update({
       name: input.name.trim(),
@@ -166,17 +166,22 @@ export async function updateCashAccountAction(input: {
       bank_name: input.bankName?.trim() || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", input.id);
+    .eq("id", input.id)
+    .select();
 
   if (error) {
     return { error: "Gagal mengedit rekening: " + error.message };
+  }
+
+  if (!data || data.length === 0) {
+    return { error: "Gagal memperbarui rekening: Data tidak terupdate di database." };
   }
 
   revalidatePath("/master-data");
   revalidatePath("/pembayaran");
   revalidatePath("/kas-operasional");
   revalidatePath("/setoran-ut");
-  return { success: true };
+  return { success: true, updated: data[0] };
 }
 
 export async function toggleCashAccountActiveAction(id: string, setActive: boolean) {

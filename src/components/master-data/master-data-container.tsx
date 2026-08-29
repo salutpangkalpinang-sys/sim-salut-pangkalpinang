@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   MasterAcademicPeriod,
@@ -75,7 +75,11 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
   const canManageAcademic = hasPermission(userRole, ["owner", "academic_admin"]);
   const canManageCash = hasPermission(userRole, ["owner", "finance_admin", "academic_admin"]);
 
-  const cashAccountsList = data.cashAccounts || [];
+  const [cashAccountsList, setCashAccountsList] = useState<MasterCashAccount[]>(data.cashAccounts || []);
+
+  useEffect(() => {
+    setCashAccountsList(data.cashAccounts || []);
+  }, [data.cashAccounts]);
 
   const handleTogglePeriod = (periodId: string, currentActive: boolean) => {
     setMessage(null);
@@ -153,6 +157,18 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
       if (res.error) {
         setMessage({ type: "error", text: res.error });
       } else {
+        setCashAccountsList((prev) =>
+          prev.map((acc) =>
+            acc.id === editingAccount.id
+              ? {
+                  ...acc,
+                  name: editAccountName.trim(),
+                  accountNumber: editAccountNumber.trim() || null,
+                  bankName: editBankName.trim() || null,
+                }
+              : acc
+          )
+        );
         setMessage({ type: "success", text: "Data rekening berhasil diperbarui." });
         setEditingAccount(null);
         router.refresh();
@@ -167,6 +183,9 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
       if (res.error) {
         setMessage({ type: "error", text: res.error });
       } else {
+        setCashAccountsList((prev) =>
+          prev.map((acc) => (acc.id === id ? { ...acc, isActive: !currentActive } : acc))
+        );
         setMessage({ type: "success", text: "Status keaktifan rekening berhasil diperbarui." });
         router.refresh();
       }
