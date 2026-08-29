@@ -165,20 +165,6 @@ export function RegistrationForm({
             });
           }
 
-          // Biaya Layanan & Pendampingan SALUT Mega Cendekia (Internal)
-          const salutRate = rates.find(r => (r.name || "").includes("SALUT") || (r.feeTypeCode || "").includes("SALUT"));
-          const salutAmount = options.defaultSalutFee ?? salutRate?.unitAmount ?? 400000;
-
-          rows.push({
-            sourceFeeRateId: salutRate?.id,
-            feeTypeId: getValidFeeTypeId("SALUT", salutRate?.feeTypeId),
-            feeNameSnapshot: "Biaya Layanan & Pendampingan SALUT",
-            calculationType: "FIXED",
-            quantity: 1,
-            unitAmount: salutAmount,
-            totalAmount: salutAmount,
-          });
-
           setFeeRows(rows);
         })
         .catch(console.warn);
