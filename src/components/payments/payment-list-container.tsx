@@ -54,7 +54,7 @@ export function PaymentListContainer({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [voidingPayment, setVoidingPayment] = useState<StudentPayment | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "academic_admin";
+  const canMutate = userRole === "owner" || userRole === "finance_admin";
 
   const handleResetFilters = () => {
     setSearch("");

@@ -57,7 +57,7 @@ export function PaymentTable({
   const [verifyingPayment, setVerifyingPayment] = useState<StudentPayment | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "academic_admin";
+  const canVerify = userRole === "owner" || userRole === "finance_admin";
 
   const handleConfirmVerify = async () => {
     if (!verifyingPayment) return;

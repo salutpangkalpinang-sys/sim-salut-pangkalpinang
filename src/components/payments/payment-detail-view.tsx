@@ -33,7 +33,7 @@ export function PaymentDetailView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "academic_admin";
+  const canVerify = userRole === "owner" || userRole === "finance_admin";
   const isOwner = userRole === "owner";
 
   const formattedPaidAt = new Date(payment.paidAt).toLocaleDateString("id-ID", {
