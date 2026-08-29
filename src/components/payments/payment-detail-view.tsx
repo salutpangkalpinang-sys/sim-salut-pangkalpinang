@@ -336,6 +336,68 @@ export function PaymentDetailView({
                 </table>
               </div>
 
+              {/* Priority Component Breakdown Banner */}
+              {receiptData && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Rincian Prioritas Alokasi Komponen Tagihan
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* Priority 1: Service Fee */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1">
+                      <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                        <span>1. Jasa Layanan SALUT (Prioritas Utuh)</span>
+                        <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                          (receiptData.serviceFeeRemaining || 0) <= 0
+                            ? "bg-emerald-100 text-emerald-800"
+                            : (receiptData.serviceFeePaid || 0) > 0
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-slate-100 text-slate-700"
+                        }`}>
+                          {(receiptData.serviceFeeRemaining || 0) <= 0
+                            ? "Lunas"
+                            : (receiptData.serviceFeePaid || 0) > 0
+                            ? "Terbayar Sebagian"
+                            : "Belum Dibayar"}
+                        </span>
+                      </div>
+                      <div className="font-mono font-bold text-slate-900 text-sm">
+                        Rp {(receiptData.serviceFeePaid || 0).toLocaleString("id-ID")}{" "}
+                        <span className="text-slate-400 font-normal text-xs">
+                          / Rp {(receiptData.serviceFeeTotal || 0).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Priority 2: UT Liability */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1">
+                      <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                        <span>2. Iuran / Biaya UT (Setoran UT)</span>
+                        <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                          (receiptData.utLiabilityRemaining || 0) <= 0
+                            ? "bg-emerald-100 text-emerald-800"
+                            : (receiptData.utLiabilityPaid || 0) > 0
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-slate-100 text-slate-700"
+                        }`}>
+                          {(receiptData.utLiabilityRemaining || 0) <= 0
+                            ? "Lunas"
+                            : (receiptData.utLiabilityPaid || 0) > 0
+                            ? "Terbayar Sebagian"
+                            : "Belum Dibayar"}
+                        </span>
+                      </div>
+                      <div className="font-mono font-bold text-slate-900 text-sm">
+                        Rp {(receiptData.utLiabilityPaid || 0).toLocaleString("id-ID")}{" "}
+                        <span className="text-slate-400 font-normal text-xs">
+                          / Rp {(receiptData.utLiabilityTotal || 0).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Overpayment Summary Banner */}
               {payment.unallocatedAmount && payment.unallocatedAmount > 0 ? (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 space-y-1 shadow-xs">

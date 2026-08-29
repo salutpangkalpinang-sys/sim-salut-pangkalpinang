@@ -262,13 +262,16 @@ export function PaymentFormModal({
           </div>
 
           {/* Allocation Calculation Preview */}
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-1">
+          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-slate-600">Dialokasikan ke Invoice #{selectedInvoice?.invoiceNumber}:</span>
               <span className="font-mono font-bold text-emerald-600">Rp {allocatedAmount.toLocaleString("id-ID")}</span>
             </div>
+            <p className="text-[10px] text-slate-500 italic border-t border-slate-200 pt-1">
+              * Otomatis memprioritaskan pelunasan <strong>Jasa Layanan SALUT (Rp 400.000)</strong> terlebih dahulu, lalu sisanya dialokasikan ke <strong>Iuran / Biaya UT</strong>.
+            </p>
             {unallocatedAmount > 0 && (
-              <div className="flex items-center justify-between text-amber-700 border-t border-slate-200 pt-1 mt-1 font-semibold">
+              <div className="flex items-center justify-between text-amber-700 border-t border-slate-200 pt-1.5 font-semibold">
                 <span>Kelebihan / Belum Dialokasikan (Overpayment):</span>
                 <span className="font-mono font-bold">Rp {unallocatedAmount.toLocaleString("id-ID")}</span>
               </div>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { calculateInvoicePaymentAllocation } from "@/lib/utils/payment-allocation";
 import {
   StudentPayment,
   PaymentAllocation,
@@ -309,7 +310,9 @@ export async function getPaymentReceiptData(paymentId: string): Promise<PaymentR
     }
   });
 
-  const remainingBalance = Math.max(0, invoiceTotalAmount - cumulativeVerifiedPaid);
+  const allocBreakdown = calculateInvoicePaymentAllocation(item.invoice_items || [], cumulativeVerifiedPaid);
+
+  const remainingBalance = Math.max(0, allocBreakdown.invoiceTotalAmount - cumulativeVerifiedPaid);
 
   let verifierName: string | null = null;
   if (payment.verifiedBy) {
@@ -337,10 +340,16 @@ export async function getPaymentReceiptData(paymentId: string): Promise<PaymentR
     invoiceNumber: item.invoice_number,
     registrationNumber: item.registrations?.registration_number || "-",
     academicPeriodName: item.registrations?.academic_periods?.name || "-",
-    invoiceTotalAmount,
+    invoiceTotalAmount: allocBreakdown.invoiceTotalAmount,
     cumulativeVerifiedPaid,
     remainingBalance,
     verifierName,
+    serviceFeeTotal: allocBreakdown.serviceFeeTotal,
+    serviceFeePaid: allocBreakdown.serviceFeePaid,
+    serviceFeeRemaining: allocBreakdown.serviceFeeRemaining,
+    utLiabilityTotal: allocBreakdown.utLiabilityTotal,
+    utLiabilityPaid: allocBreakdown.utLiabilityPaid,
+    utLiabilityRemaining: allocBreakdown.utLiabilityRemaining,
     receiptHeaderName: settings?.receipt_header_name || "SALUT MEGA CENDEKIA",
     receiptAddress: settings?.receipt_address || "Jl. Utama No. 12, Pangkalpinang, Bangka Belitung",
     receiptLeaderName: settings?.receipt_leader_name || "Drs. H. Ahmad Subagyo, M.M.",

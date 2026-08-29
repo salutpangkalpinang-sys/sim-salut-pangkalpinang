@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { calculateInvoicePaymentAllocation } from "@/lib/utils/payment-allocation";
 import {
   UtRemittance,
   UtRemittanceItem,
@@ -293,16 +294,6 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
     const inv = invList.find((i: any) => i.status !== "cancelled") || invList[0];
 
     if (inv) {
-      let invTotal = 0;
-      (inv.invoice_items || []).forEach((item: any) => {
-        const amt = Number(item.amount) || 0;
-        if (item.item_type === "discount") {
-          if (item.approval_status === "approved" || !item.approval_status) invTotal -= amt;
-        } else {
-          invTotal += amt;
-        }
-      });
-
       let verifiedAllocated = 0;
       (inv.payment_allocations || []).forEach((alloc: any) => {
         if (alloc.student_payments?.status === "verified") {
@@ -310,8 +301,9 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
         }
       });
 
-      const remainingBalance = Math.max(0, invTotal - verifiedAllocated);
-      if (inv.status === "paid" || (invTotal > 0 && remainingBalance <= 0)) {
+      const allocBreakdown = calculateInvoicePaymentAllocation(inv.invoice_items || [], verifiedAllocated);
+
+      if (inv.status === "paid" || (allocBreakdown.invoiceTotalAmount > 0 && allocBreakdown.remainingInvoiceBalance <= 0)) {
         isInvoicePaid = true;
         invoiceStatus = "paid";
       } else {
