@@ -1783,10 +1783,11 @@ DECLARE
     v_rem_number VARCHAR(50);
     v_actor_id UUID;
     v_user_role VARCHAR;
+    v_items_array JSONB;
     v_item JSONB;
     v_sum_items BIGINT := 0;
     v_existing_id UUID;
-    v_lip_status VARCHAR(20);
+    v_lip_status VARCHAR(30);
     v_lip_official BIGINT;
     v_already_verified BIGINT;
     v_outstanding BIGINT;
@@ -1822,12 +1823,19 @@ BEGIN
         END IF;
     END IF;
 
+    -- Handle scalar JSON string vs JSON array defensive conversion
+    IF jsonb_typeof(p_items) = 'string' THEN
+        v_items_array := (p_items#>>'{}')::jsonb;
+    ELSE
+        v_items_array := p_items;
+    END IF;
+
     -- Validate Items array and SUM(items.amount) == p_amount
-    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+    FOR v_item IN SELECT * FROM jsonb_array_elements(v_items_array)
     LOOP
         v_item_amount := (v_item->>'amount')::BIGINT;
-        v_lip_id := (v_item->>'lip_document_id')::UUID;
-        v_reg_id := (v_item->>'registration_id')::UUID;
+        v_lip_id := COALESCE(v_item->>'lip_document_id', v_item->>'lipDocumentId')::UUID;
+        v_reg_id := COALESCE(v_item->>'registration_id', v_item->>'registrationId')::UUID;
 
         IF v_item_amount <= 0 THEN
             RAISE EXCEPTION 'Item allocation amount must be greater than 0';

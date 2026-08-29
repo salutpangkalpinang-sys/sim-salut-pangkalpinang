@@ -95,6 +95,12 @@ export async function createUtRemittanceAction(formData: FormData) {
     }
   }
 
+  const itemsPayload = data.items.map((it) => ({
+    lip_document_id: it.lipDocumentId,
+    registration_id: it.registrationId,
+    amount: it.amount,
+  }));
+
   // Call atomic PostgreSQL stored procedure `create_ut_remittance_with_items`
   const { data: remittanceId, error: rpcErr } = await supabase.rpc("create_ut_remittance_with_items", {
     p_paid_at: data.paidAt,
@@ -108,7 +114,7 @@ export async function createUtRemittanceAction(formData: FormData) {
     p_notes: data.notes || null,
     p_created_by: profile.id,
     p_idempotency_key: idempotencyKey,
-    p_items: JSON.stringify(data.items),
+    p_items: itemsPayload,
   });
 
   if (rpcErr) {
