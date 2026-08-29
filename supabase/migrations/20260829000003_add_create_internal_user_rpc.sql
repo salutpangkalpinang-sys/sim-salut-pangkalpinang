@@ -51,7 +51,6 @@ BEGIN
             email,
             encrypted_password,
             email_confirmed_at,
-            confirmed_at,
             raw_app_meta_data,
             raw_user_meta_data,
             created_at,
@@ -71,7 +70,6 @@ BEGIN
             '00000000-0000-0000-0000-000000000000',
             p_email,
             v_encrypted_pw,
-            NOW(),
             NOW(),
             '{"provider":"email","providers":["email"]}',
             '{}',
@@ -113,7 +111,6 @@ BEGIN
         UPDATE auth.users 
         SET encrypted_password = v_encrypted_pw,
             email_confirmed_at = NOW(),
-            confirmed_at = NOW(),
             email_change = '',
             recovery_token = '',
             confirmation_token = '',
