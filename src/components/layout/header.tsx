@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { logoutAction } from "@/app/(auth)/actions";
 import { UserProfile } from "@/lib/auth/types";
 import { LogOut, UserCheck } from "lucide-react";
@@ -29,7 +30,20 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export function Header({ profile, officialName }: HeaderProps) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const roleBadge = ROLE_LABELS[profile?.role || "viewer"] || ROLE_LABELS.viewer;
+
+  const handleLogout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingOut(true);
+    try {
+      await logoutAction();
+    } catch {
+      // Ignore
+    } finally {
+      window.location.href = "/login";
+    }
+  };
 
   return (
     <header className="h-16 bg-white/90 backdrop-blur border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs print:hidden">
@@ -56,14 +70,15 @@ export function Header({ profile, officialName }: HeaderProps) {
           </div>
         </div>
 
-        <form action={logoutAction}>
+        <form onSubmit={handleLogout}>
           <button
             type="submit"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg border border-slate-200 hover:border-red-200 transition"
+            disabled={isLoggingOut}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg border border-slate-200 hover:border-red-200 transition disabled:opacity-50"
             title="Keluar dari akun"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar</span>
+            <LogOut className={`w-3.5 h-3.5 ${isLoggingOut ? "animate-spin" : ""}`} />
+            <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>
           </button>
         </form>
       </div>

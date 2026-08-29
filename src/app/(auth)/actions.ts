@@ -66,7 +66,12 @@ export async function logoutAction() {
     }
   }
 
-  const cookieStore = await cookies();
-  cookieStore.delete("salut_dev_role");
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete("salut_dev_role");
+  } catch {
+    // Ignore cookie error
+  }
+
   redirect("/login");
 }
