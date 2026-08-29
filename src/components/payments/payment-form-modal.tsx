@@ -6,6 +6,7 @@ import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, CreditCard, Upload, AlertCircle, Save } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { DatePickerId } from "@/components/ui/date-picker-id";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 
 interface PaymentFormModalProps {
   isOpen: boolean;
@@ -206,12 +207,11 @@ export function PaymentFormModal({
               <label className="block text-slate-700 font-medium mb-1">
                 Nominal Pembayaran (Rp) <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
+              <FormattedNumberInput
                 required
                 min={1}
                 value={amount}
-                onChange={(e) => setAmount(parseInt(e.target.value, 10) || 0)}
+                onChange={(val) => setAmount(val)}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>

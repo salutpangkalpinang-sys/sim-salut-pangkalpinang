@@ -6,6 +6,7 @@ import { createOperationalTransactionAction } from "@/features/operational/actio
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, Wallet, Upload, AlertCircle, Save, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { DatePickerId } from "@/components/ui/date-picker-id";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 
 interface OperationalFormModalProps {
   isOpen: boolean;
@@ -215,14 +216,12 @@ export function OperationalFormModal({
               <label className="block text-slate-700 font-medium mb-1">
                 Nominal (Integer Rupiah) <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
+              <FormattedNumberInput
                 required
                 min={1}
-                step={1}
-                value={amount || ""}
-                onChange={(e) => setAmount(parseInt(e.target.value, 10) || 0)}
-                placeholder="Contoh: 150000"
+                value={amount}
+                onChange={(val) => setAmount(val)}
+                placeholder="Contoh: 150.000"
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-emerald-600 font-mono font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>

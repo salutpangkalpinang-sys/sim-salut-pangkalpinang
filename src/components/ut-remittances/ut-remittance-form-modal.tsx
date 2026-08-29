@@ -7,6 +7,7 @@ import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, Building2, Upload, AlertCircle, Save, Trash2 } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { DatePickerId } from "@/components/ui/date-picker-id";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 
 interface UtRemittanceFormModalProps {
   isOpen: boolean;
@@ -284,16 +285,12 @@ export function UtRemittanceFormModal({
                             Rp {lip.outstandingUtAmount.toLocaleString("id-ID")}
                           </td>
                           <td className="px-3 py-2.5">
-                            <input
-                              type="number"
+                            <FormattedNumberInput
                               min={1}
                               max={lip.outstandingUtAmount}
                               value={item.amount}
-                              onChange={(e) =>
-                                handleItemAmountChange(
-                                  item.lipDocumentId,
-                                  parseInt(e.target.value, 10) || 0
-                                )
+                              onChange={(val) =>
+                                handleItemAmountChange(item.lipDocumentId, val)
                               }
                               className="w-36 px-2.5 py-1 bg-white border border-slate-300 rounded text-emerald-600 font-mono font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                             />

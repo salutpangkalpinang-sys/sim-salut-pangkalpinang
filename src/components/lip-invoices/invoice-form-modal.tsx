@@ -5,6 +5,7 @@ import { LipDocument } from "@/types/lip-invoice";
 import { createInvoiceAction } from "@/features/lip-invoices/actions";
 import { X, Receipt, Plus, Trash2, AlertCircle, Save } from "lucide-react";
 import { DatePickerId } from "@/components/ui/date-picker-id";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 
 interface InvoiceFormModalProps {
   lipDocument: LipDocument;
@@ -284,12 +285,11 @@ export function InvoiceFormModal({
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="number"
+                      <FormattedNumberInput
                         min={0}
                         disabled={row.itemType === "ut_liability"}
                         value={row.unitAmount}
-                        onChange={(e) => updateItemRow(idx, "unitAmount", e.target.value)}
+                        onChange={(val) => updateItemRow(idx, "unitAmount", val)}
                         className="w-28 px-2 py-1 bg-white border border-slate-300 rounded text-slate-900 font-mono disabled:opacity-80"
                       />
                     </td>
