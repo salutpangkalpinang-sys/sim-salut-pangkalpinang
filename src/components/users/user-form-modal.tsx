@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createUserAction } from "@/features/users/actions";
-import { UserPlus, X, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { UserPlus, X, ShieldAlert, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface UserFormModalProps {
 
 export function UserFormModal({ isOpen, onClose, onSuccess }: UserFormModalProps) {
   const [state, formAction, isPending] = useActionState(createUserAction, null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (state?.success && state.message) {
@@ -79,6 +80,32 @@ export function UserFormModal({ isOpen, onClose, onSuccess }: UserFormModalProps
             />
             <p className="text-[11px] text-slate-400 mt-1">
               Jika memasukkan username tanpa @, sistem akan otomatis menggunakan domain <code>@salut-pangkalpinang.ac.id</code>.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block font-semibold text-slate-700 mb-1">
+              Password Login
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Masukkan password (default: suksesterus)"
+                className="w-full px-3 py-2 pr-10 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                title={showPassword ? "Sembunyikan Password" : "Tampilkan Password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Password minimal 6 karakter. Jika dikosongkan, sistem menetapkan password default: <code>suksesterus</code>.
             </p>
           </div>
 

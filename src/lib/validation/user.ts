@@ -4,6 +4,7 @@ import { UserItem } from "@/types/user";
 export const createUserSchema = z.object({
   fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
   email: z.string().min(2, "Username atau Email wajib diisi"),
+  password: z.string().min(6, "Password minimal 6 karakter").optional().or(z.literal("")),
   role: z.enum(["owner", "academic_admin", "finance_admin", "viewer"] as const, {
     errorMap: () => ({ message: "Role tidak valid" }),
   }),

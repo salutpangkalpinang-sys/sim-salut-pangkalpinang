@@ -48,11 +48,13 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
 
   const rawFullName = formData.get("fullName") as string;
   const rawEmail = formData.get("email") as string;
+  const rawPassword = (formData.get("password") as string)?.trim() || "suksesterus";
   const rawRole = formData.get("role") as RoleCode;
 
   const validation = createUserSchema.safeParse({
     fullName: rawFullName,
     email: rawEmail,
+    password: rawPassword,
     role: rawRole,
   });
 
@@ -64,6 +66,7 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
 
   const fullName = validation.data.fullName.trim();
   const email = normalizeUserEmailInput(validation.data.email);
+  const password = rawPassword;
   const role = validation.data.role;
 
   const existingUsers = await getUsersList();
@@ -84,7 +87,7 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
       // Call secure RPC function
       const { data: rpcUserId, error: rpcErr } = await supabase.rpc("create_internal_user", {
         p_email: email,
-        p_password: "suksesterus",
+        p_password: password,
         p_full_name: fullName,
         p_role_code: role,
       });
