@@ -1973,11 +1973,20 @@ BEGIN
         RAISE EXCEPTION 'UT Remittance not found';
     END IF;
 
-    IF v_status <> 'pending_verification' THEN
-        RAISE EXCEPTION 'Only pending remittances can be verified';
+    IF v_status <> 'pending_verification' AND v_status <> 'unverified' THEN
+        RAISE EXCEPTION 'Only pending or unverified remittances can be verified';
     END IF;
 
-    -- Lock LIP records & re-verify concurrency over-remittance protection
+    -- 1. Update Remittance Header to 'verified' FIRST
+    UPDATE public.ut_remittances
+    SET status = 'verified',
+        verified_at = NOW(),
+        verified_by = v_actor_id,
+        updated_at = NOW(),
+        updated_by = v_actor_id
+    WHERE id = p_remittance_id;
+
+    -- 2. Lock LIP records & update LIP status to paid_to_ut if fully paid to UT
     FOR v_item IN 
         SELECT ri.lip_document_id, ri.amount 
         FROM public.ut_remittance_items ri 
@@ -1989,18 +1998,17 @@ BEGIN
         WHERE id = v_item.lip_document_id
         FOR UPDATE;
 
-        -- Re-calculate verified UT paid within transaction
+        -- Calculate verified UT paid within transaction (now includes this verified remittance)
         SELECT COALESCE(SUM(ri.amount), 0) INTO v_already_verified
         FROM public.ut_remittance_items ri
         JOIN public.ut_remittances r ON ri.remittance_id = r.id
         WHERE ri.lip_document_id = v_item.lip_document_id
-          AND r.status = 'verified'
-          AND r.id <> p_remittance_id;
+          AND r.status = 'verified';
 
-        v_new_verified_total := v_already_verified + v_item.amount;
+        v_new_verified_total := v_already_verified;
 
         IF v_new_verified_total > v_lip_official THEN
-            RAISE EXCEPTION 'Over-remittance protection: Concurrent verification caused total setoran (Rp %) to exceed LIP official amount (Rp %)',
+            RAISE EXCEPTION 'Over-remittance protection: Total setoran (Rp %) exceeds LIP official amount (Rp %)',
                 v_new_verified_total, v_lip_official;
         END IF;
 
@@ -2013,15 +2021,6 @@ BEGIN
             WHERE id = v_item.lip_document_id;
         END IF;
     END LOOP;
-
-    -- Update Remittance Header
-    UPDATE public.ut_remittances
-    SET status = 'verified',
-        verified_at = NOW(),
-        verified_by = v_actor_id,
-        updated_at = NOW(),
-        updated_by = v_actor_id
-    WHERE id = p_remittance_id;
 
     RETURN TRUE;
 END;
