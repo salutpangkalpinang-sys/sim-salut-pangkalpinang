@@ -105,11 +105,6 @@ export function PaymentFormModal({
       return;
     }
 
-    if (selectedMethod?.requires_reference && !referenceNumber.trim()) {
-      setErrorMsg("Nomor referensi / bukti transfer wajib diisi untuk metode ini.");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -269,7 +264,7 @@ export function PaymentFormModal({
           {/* Reference Number */}
           <div>
             <label className="block text-slate-700 font-medium mb-1">
-              Nomor Referensi Transaksi / Transfer {selectedMethod?.requires_reference && <span className="text-red-500">*</span>}
+              Nomor Referensi Transaksi / Transfer <span className="text-slate-400 font-normal">(Opsional)</span>
             </label>
             <input
               type="text"
