@@ -482,7 +482,10 @@ export async function getServiceFeeReport(params: {
         serviceFeeAmount: Number(item.amount) || 0,
         serviceFeePaid: allocBreakdown.serviceFeePaid,
         serviceFeeStatus: allocBreakdown.serviceFeeStatus,
-        invoiceStatus: item.invoices?.status || "-",
+        invoiceStatus:
+          item.invoices?.status === "cancelled"
+            ? "cancelled"
+            : allocBreakdown.invoicePaymentStatus,
       };
     });
 
