@@ -5218,5 +5218,93 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.update_cash_account(UUID, VARCHAR, VARCHAR, VARCHAR) TO authenticated, service_role, anon;
 
+-- ============================================================================
+-- SYSTEM RESET RPC PROCEDURE (Wipes ALL student & transaction data)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.reset_all_system_data()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_ut_items INTEGER := 0;
+    v_ut_voids INTEGER := 0;
+    v_ut_rems INTEGER := 0;
+    v_pay_alloc INTEGER := 0;
+    v_pay_voids INTEGER := 0;
+    v_payments INTEGER := 0;
+    v_inv_items INTEGER := 0;
+    v_invoices INTEGER := 0;
+    v_lips INTEGER := 0;
+    v_snapshots INTEGER := 0;
+    v_regs INTEGER := 0;
+    v_ops_voids INTEGER := 0;
+    v_ops_txns INTEGER := 0;
+    v_hist INTEGER := 0;
+    v_students INTEGER := 0;
+BEGIN
+    DELETE FROM public.ut_remittance_items WHERE true;
+    GET DIAGNOSTICS v_ut_items = ROW_COUNT;
+
+    DELETE FROM public.ut_remittance_void_requests WHERE true;
+    GET DIAGNOSTICS v_ut_voids = ROW_COUNT;
+
+    DELETE FROM public.ut_remittances WHERE true;
+    GET DIAGNOSTICS v_ut_rems = ROW_COUNT;
+
+    DELETE FROM public.payment_allocations WHERE true;
+    GET DIAGNOSTICS v_pay_alloc = ROW_COUNT;
+
+    DELETE FROM public.payment_void_requests WHERE true;
+    GET DIAGNOSTICS v_pay_voids = ROW_COUNT;
+
+    DELETE FROM public.student_payments WHERE true;
+    GET DIAGNOSTICS v_payments = ROW_COUNT;
+
+    DELETE FROM public.invoice_items WHERE true;
+    GET DIAGNOSTICS v_inv_items = ROW_COUNT;
+
+    DELETE FROM public.invoices WHERE true;
+    GET DIAGNOSTICS v_invoices = ROW_COUNT;
+
+    DELETE FROM public.lip_documents WHERE true;
+    GET DIAGNOSTICS v_lips = ROW_COUNT;
+
+    DELETE FROM public.registration_fee_snapshots WHERE true;
+    GET DIAGNOSTICS v_snapshots = ROW_COUNT;
+
+    DELETE FROM public.registrations WHERE true;
+    GET DIAGNOSTICS v_regs = ROW_COUNT;
+
+    DELETE FROM public.operational_transaction_void_requests WHERE true;
+    GET DIAGNOSTICS v_ops_voids = ROW_COUNT;
+
+    DELETE FROM public.operational_transactions WHERE true;
+    GET DIAGNOSTICS v_ops_txns = ROW_COUNT;
+
+    DELETE FROM public.student_status_history WHERE true;
+    GET DIAGNOSTICS v_hist = ROW_COUNT;
+
+    DELETE FROM public.students WHERE true;
+    GET DIAGNOSTICS v_students = ROW_COUNT;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'deleted', jsonb_build_object(
+            'students', v_students,
+            'registrations', v_regs,
+            'lip_documents', v_lips,
+            'invoices', v_invoices,
+            'student_payments', v_payments,
+            'ut_remittances', v_ut_rems,
+            'operational_transactions', v_ops_txns
+        )
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.reset_all_system_data() TO authenticated, service_role, anon;
+
+
 
 
