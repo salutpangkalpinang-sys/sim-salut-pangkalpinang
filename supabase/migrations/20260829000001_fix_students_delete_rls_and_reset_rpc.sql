@@ -88,13 +88,14 @@ BEGIN
 END;
 $$;
 
--- 5. Comprehensive Reset All System Data function (Wipes ALL students & transactions)
+-- 5. Comprehensive Reset All System Data function (Wipes ALL students, transactions & non-owner users)
 CREATE OR REPLACE FUNCTION public.reset_all_system_data()
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
+    v_owner_role_id UUID;
     v_ut_items INTEGER := 0;
     v_ut_voids INTEGER := 0;
     v_ut_rems INTEGER := 0;
@@ -110,6 +111,7 @@ DECLARE
     v_ops_txns INTEGER := 0;
     v_hist INTEGER := 0;
     v_students INTEGER := 0;
+    v_non_owner_users INTEGER := 0;
 BEGIN
     -- 1. Delete UT Remittance items, void requests, & remittances
     DELETE FROM public.ut_remittance_items WHERE true;
@@ -163,6 +165,27 @@ BEGIN
     DELETE FROM public.students WHERE true;
     GET DIAGNOSTICS v_students = ROW_COUNT;
 
+    -- 8. Delete Non-Owner Users (Admin Akademik, Admin Keuangan, Viewer, dsb.)
+    SELECT id INTO v_owner_role_id FROM public.roles WHERE code = 'owner';
+
+    IF v_owner_role_id IS NOT NULL THEN
+        DELETE FROM public.user_roles 
+        WHERE user_id NOT IN (
+            SELECT user_id FROM public.user_roles WHERE role_id = v_owner_role_id
+        );
+
+        DELETE FROM public.profiles 
+        WHERE id NOT IN (
+            SELECT user_id FROM public.user_roles WHERE role_id = v_owner_role_id
+        );
+
+        DELETE FROM auth.users 
+        WHERE id NOT IN (
+            SELECT user_id FROM public.user_roles WHERE role_id = v_owner_role_id
+        );
+        GET DIAGNOSTICS v_non_owner_users = ROW_COUNT;
+    END IF;
+
     RETURN jsonb_build_object(
         'success', true,
         'deleted', jsonb_build_object(
@@ -172,7 +195,8 @@ BEGIN
             'invoices', v_invoices,
             'student_payments', v_payments,
             'ut_remittances', v_ut_rems,
-            'operational_transactions', v_ops_txns
+            'operational_transactions', v_ops_txns,
+            'non_owner_users', v_non_owner_users
         )
     );
 END;
