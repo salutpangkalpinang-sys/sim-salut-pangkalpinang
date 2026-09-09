@@ -209,6 +209,7 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
 
   let items: AuditLogItem[] = [];
+  let isDbQueried = false;
 
   if (!isPlaceholder) {
     try {
@@ -251,6 +252,7 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
       const { data: dbLogs, error } = await query;
 
       if (!error && dbLogs) {
+        isDbQueried = true;
         items = dbLogs.map((log) => {
           const profileObj = log.profiles as unknown as { full_name?: string; user_roles?: Array<{ roles?: { code?: RoleCode } }> };
           const actorName = profileObj?.full_name || "Sistem / Anonymous";
@@ -290,7 +292,8 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
     }
   }
 
-  if (items.length === 0) {
+  // Only fallback to mock store if database query was not executed (placeholder or offline mock)
+  if (!isDbQueried && items.length === 0) {
     // Sanitize mock store items
     items = MOCK_AUDIT_STORE.map((item) => ({
       ...item,
