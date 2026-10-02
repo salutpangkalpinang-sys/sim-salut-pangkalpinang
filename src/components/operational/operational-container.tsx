@@ -18,6 +18,7 @@ interface OperationalContainerProps {
   userRole: RoleCode;
   cashAccounts: { id: string; code: string; name: string }[];
   categories: OperationalCategory[];
+  currentUserId?: string;
 }
 
 export function OperationalContainer({
@@ -29,6 +30,7 @@ export function OperationalContainer({
   userRole,
   cashAccounts,
   categories,
+  currentUserId,
 }: OperationalContainerProps) {
   const router = useRouter();
 
@@ -42,7 +44,7 @@ export function OperationalContainer({
   const [formDefaultType, setFormDefaultType] = useState<"income" | "expense">("expense");
   const [voidingTransaction, setVoidingTransaction] = useState<OperationalTransaction | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "finance_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
 
   const handleResetFilters = () => {
     setSearch("");
@@ -205,6 +207,7 @@ export function OperationalContainer({
           onClose={() => setVoidingTransaction(null)}
           onSuccess={() => router.refresh()}
           userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
     </div>

@@ -36,6 +36,7 @@ export default async function SetoranUtPage({
       userRole={profile.role}
       cashAccounts={masterOptions.cashAccounts}
       eligibleLips={eligibleLips}
+      currentUserId={profile.id}
     />
   );
 }

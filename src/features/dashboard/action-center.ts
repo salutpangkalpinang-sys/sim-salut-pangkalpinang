@@ -198,8 +198,8 @@ export async function getActionCenterSummary(userRole: RoleCode): Promise<Action
   // Construct Action Items list based on User Role Scope
   const allItems: ActionCenterItem[] = [];
 
-  // Item 1: Pembayaran Menunggu Verifikasi (Owner & Finance Admin)
-  if ((userRole === "owner" || userRole === "finance_admin" || userRole === "viewer") && pendingPaymentsCount > 0) {
+  // Item 1: Pembayaran Menunggu Verifikasi (Owner, Admin & Finance Admin)
+  if ((userRole === "owner" || userRole === "admin" || userRole === "finance_admin" || userRole === "viewer") && pendingPaymentsCount > 0) {
     allItems.push({
       category: "pending_payments",
       title: "Pembayaran Menunggu Verifikasi",
@@ -214,8 +214,8 @@ export async function getActionCenterSummary(userRole: RoleCode): Promise<Action
     });
   }
 
-  // Item 2: LIP Menunggu Verifikasi (Owner, Academic Admin, Viewer)
-  if ((userRole === "owner" || userRole === "academic_admin" || userRole === "viewer") && pendingLipsCount > 0) {
+  // Item 2: LIP Menunggu Verifikasi (Owner, Admin, Academic Admin, Viewer)
+  if ((userRole === "owner" || userRole === "admin" || userRole === "academic_admin" || userRole === "viewer") && pendingLipsCount > 0) {
     allItems.push({
       category: "pending_lips",
       title: "LIP Menunggu Verifikasi",
@@ -229,8 +229,8 @@ export async function getActionCenterSummary(userRole: RoleCode): Promise<Action
     });
   }
 
-  // Item 3: Piutang Mahasiswa (Owner, Finance Admin, Viewer)
-  if ((userRole === "owner" || userRole === "finance_admin" || userRole === "viewer") && receivablesCount > 0) {
+  // Item 3: Piutang Mahasiswa (Owner, Admin, Finance Admin, Viewer)
+  if ((userRole === "owner" || userRole === "admin" || userRole === "finance_admin" || userRole === "viewer") && receivablesCount > 0) {
     allItems.push({
       category: "student_receivables",
       title: "Piutang Mahasiswa Perlu Ditindak",
@@ -244,8 +244,8 @@ export async function getActionCenterSummary(userRole: RoleCode): Promise<Action
     });
   }
 
-  // Item 4: Outstanding Setoran UT (Owner, Finance Admin, Viewer)
-  if ((userRole === "owner" || userRole === "finance_admin" || userRole === "viewer") && outstandingUtCount > 0) {
+  // Item 4: Outstanding Setoran UT (Owner, Admin, Finance Admin, Viewer)
+  if ((userRole === "owner" || userRole === "admin" || userRole === "finance_admin" || userRole === "viewer") && outstandingUtCount > 0) {
     allItems.push({
       category: "outstanding_ut",
       title: "Outstanding Setoran SALUT ke UT",
@@ -258,8 +258,8 @@ export async function getActionCenterSummary(userRole: RoleCode): Promise<Action
     });
   }
 
-  // Item 5: Registrasi Draft (Owner, Academic Admin, Viewer)
-  if ((userRole === "owner" || userRole === "academic_admin" || userRole === "viewer") && draftRegsCount > 0) {
+  // Item 5: Registrasi Draft (Owner, Admin, Academic Admin, Viewer)
+  if ((userRole === "owner" || userRole === "admin" || userRole === "academic_admin" || userRole === "viewer") && draftRegsCount > 0) {
     allItems.push({
       category: "draft_registrations",
       title: "Registrasi Draft Perlu Dilengkapi",

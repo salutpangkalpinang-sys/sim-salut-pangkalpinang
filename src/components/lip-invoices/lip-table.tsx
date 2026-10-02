@@ -58,7 +58,7 @@ export function LipTable({
   const [verifyingLip, setVerifyingLip] = useState<LipDocument | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "academic_admin";
+  const canVerify = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   const handleOpenSignedFile = async (lip: LipDocument) => {
     if (!lip.storagePath) return;

@@ -260,10 +260,10 @@ export async function reviewOperationalVoidAction(
 ) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
     return {
       error:
-        "Hanya role Owner yang memiliki wewenang untuk memproses persetujuan void transaksi operasional.",
+        "Hanya role Owner dan Admin yang memiliki wewenang untuk memproses persetujuan void transaksi operasional.",
     };
   }
 
@@ -277,6 +277,23 @@ export async function reviewOperationalVoidAction(
 
   const data = validation.data;
   const supabase = await createClient();
+
+  // Maker-Checker Security Rule: Requester cannot approve their own void request
+  const { data: voidReq, error: reqErr } = await supabase
+    .from("operational_void_requests")
+    .select("id, requested_by, status")
+    .eq("id", data.voidRequestId)
+    .single();
+
+  if (reqErr || !voidReq) {
+    return { error: "Permintaan void tidak ditemukan." };
+  }
+
+  if (voidReq.requested_by === profile.id && data.action === "approve") {
+    return {
+      error: "Prinsip Maker-Checker: Anda tidak dapat menyetujui permohonan void yang Anda ajukan sendiri. Persetujuan harus dilakukan oleh Owner atau Admin lain.",
+    };
+  }
 
   const { error } = await supabase.rpc(
     "approve_operational_transaction_void_request",

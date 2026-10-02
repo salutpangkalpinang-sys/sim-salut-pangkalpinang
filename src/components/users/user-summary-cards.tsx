@@ -1,5 +1,5 @@
 import { UserSummary } from "@/types/user";
-import { Users, ShieldAlert, GraduationCap, Wallet, Eye, UserX } from "lucide-react";
+import { Users, ShieldAlert, ShieldCheck, GraduationCap, Wallet, Eye, UserX } from "lucide-react";
 
 interface UserSummaryCardsProps {
   summary: UserSummary;
@@ -17,13 +17,22 @@ export function UserSummaryCards({ summary }: UserSummaryCardsProps) {
       borderColor: "border-blue-200",
     },
     {
-      title: "Owner / Pimpinan",
+      title: "Owner (Dartika)",
       value: summary.ownerCount,
-      subtext: "Penerima laporan & approval",
+      subtext: "Pimpinan & pengambil keputusan",
       icon: ShieldAlert,
       bgColor: "bg-purple-50",
       textColor: "text-purple-600",
       borderColor: "border-purple-200",
+    },
+    {
+      title: "Admin (Akses Penuh)",
+      value: summary.adminCount,
+      subtext: "Akses penuh operasional & menu",
+      icon: ShieldCheck,
+      bgColor: "bg-indigo-50",
+      textColor: "text-indigo-600",
+      borderColor: "border-indigo-200",
     },
     {
       title: "Admin Akademik",

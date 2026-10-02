@@ -14,6 +14,7 @@ export interface UserItem {
 export interface UserSummary {
   totalUsers: number;
   ownerCount: number;
+  adminCount: number;
   academicAdminCount: number;
   financeAdminCount: number;
   viewerCount: number;

@@ -18,6 +18,7 @@ interface UtRemittanceContainerProps {
   userRole: RoleCode;
   cashAccounts: { id: string; code: string; name: string }[];
   eligibleLips: EligibleLipForRemittance[];
+  currentUserId?: string;
 }
 
 export function UtRemittanceContainer({
@@ -29,6 +30,7 @@ export function UtRemittanceContainer({
   userRole,
   cashAccounts,
   eligibleLips,
+  currentUserId,
 }: UtRemittanceContainerProps) {
   const router = useRouter();
 
@@ -39,7 +41,7 @@ export function UtRemittanceContainer({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [voidingRemittance, setVoidingRemittance] = useState<UtRemittance | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "finance_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
 
   const handleResetFilters = () => {
     setSearch("");
@@ -153,6 +155,7 @@ export function UtRemittanceContainer({
           onClose={() => setVoidingRemittance(null)}
           onSuccess={() => router.refresh()}
           userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
     </div>

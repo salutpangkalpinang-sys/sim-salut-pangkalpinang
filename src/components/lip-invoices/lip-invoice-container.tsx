@@ -39,7 +39,7 @@ export function LipInvoiceContainer({
   const [isLipModalOpen, setIsLipModalOpen] = useState(false);
   const [selectedLipForInvoice, setSelectedLipForInvoice] = useState<LipDocument | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "academic_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   const filteredLips = initialLips.filter((lip) => {
     if (search.trim()) {

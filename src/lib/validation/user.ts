@@ -3,16 +3,23 @@ import { UserItem } from "@/types/user";
 
 export const createUserSchema = z.object({
   fullName: z.string().min(2, "Nama lengkap minimal 2 karakter"),
-  email: z.string().min(2, "Username atau Email wajib diisi"),
-  password: z.string().min(6, "Password minimal 6 karakter").optional().or(z.literal("")),
-  role: z.enum(["owner", "academic_admin", "finance_admin", "viewer"] as const, {
+  email: z
+    .string()
+    .min(2, "Username atau Email wajib diisi")
+    .refine((val) => !/\s/.test(val.trim()), {
+      message: "Username atau email tidak boleh mengandung spasi (gunakan format tanpa spasi, misal: admin_yolan atau yolanda).",
+    }),
+  password: z
+    .string()
+    .min(12, "Password wajib diisi dan minimal 12 karakter untuk standar keamanan institusi"),
+  role: z.enum(["owner", "admin", "academic_admin", "finance_admin", "viewer"] as const, {
     errorMap: () => ({ message: "Role tidak valid" }),
   }),
 });
 
 export const changeRoleSchema = z.object({
   userId: z.string().uuid("ID Pengguna tidak valid"),
-  newRole: z.enum(["owner", "academic_admin", "finance_admin", "viewer"] as const, {
+  newRole: z.enum(["owner", "admin", "academic_admin", "finance_admin", "viewer"] as const, {
     errorMap: () => ({ message: "Role baru tidak valid" }),
   }),
 });
@@ -61,7 +68,7 @@ export function validateLastActiveOwnerGuard(
 }
 
 export function normalizeUserEmailInput(input: string): string {
-  const trimmed = input.trim();
+  const trimmed = input.trim().toLowerCase();
   if (!trimmed.includes("@")) {
     return `${trimmed}@salut-pangkalpinang.ac.id`;
   }

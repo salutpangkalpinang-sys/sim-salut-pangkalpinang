@@ -31,6 +31,7 @@ export default async function PaymentDetailPage({
       payment={payment}
       receiptData={receiptData}
       userRole={profile.role}
+      currentUserId={profile.id}
     />
   );
 }

@@ -57,7 +57,7 @@ export function OperationalTable({
   const [verifyingTx, setVerifyingTx] = useState<OperationalTransaction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "finance_admin";
+  const canVerify = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
 
   const handleConfirmVerify = async () => {
     if (!verifyingTx) return;

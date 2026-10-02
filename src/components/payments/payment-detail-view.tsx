@@ -15,12 +15,14 @@ interface PaymentDetailViewProps {
   payment: StudentPayment;
   receiptData: PaymentReceiptData | null;
   userRole: RoleCode;
+  currentUserId?: string;
 }
 
 export function PaymentDetailView({
   payment,
   receiptData,
   userRole,
+  currentUserId,
 }: PaymentDetailViewProps) {
   const router = useRouter();
 
@@ -33,8 +35,8 @@ export function PaymentDetailView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "finance_admin";
-  const isOwner = userRole === "owner";
+  const canVerify = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
+  const isOwner = userRole === "owner" || userRole === "admin";
 
   const formattedPaidAt = new Date(payment.paidAt).toLocaleDateString("id-ID", {
     day: "numeric",
@@ -420,6 +422,7 @@ export function PaymentDetailView({
           onClose={() => setIsVoidDialogOpen(false)}
           onSuccess={() => router.refresh()}
           userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
 

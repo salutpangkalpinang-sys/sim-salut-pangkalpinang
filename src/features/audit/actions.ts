@@ -7,9 +7,9 @@ import { AuditFilter } from "@/types/audit";
 export async function fetchAuditLogsAction(filter?: AuditFilter) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || (profile.role !== "owner" && profile.role !== "viewer")) {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin" && profile.role !== "viewer")) {
     return {
-      error: "Hanya role Owner dan Viewer yang memiliki izin melihat Audit Log.",
+      error: "Hanya role Owner, Admin, dan Viewer yang memiliki izin melihat Audit Log.",
       data: [],
       totalCount: 0,
       page: 1,
@@ -24,7 +24,7 @@ export async function fetchAuditLogsAction(filter?: AuditFilter) {
 export async function fetchAuditSummaryAction() {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || (profile.role !== "owner" && profile.role !== "viewer")) {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin" && profile.role !== "viewer")) {
     return {
       todayCount: 0,
       last7DaysCount: 0,

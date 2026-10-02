@@ -5,6 +5,7 @@ import { formatWibTimestamp, sanitizeAuditPayload, maskNikInText } from "@/lib/a
 
 const ROLE_LABELS: Record<RoleCode, string> = {
   owner: "Owner / Pimpinan",
+  admin: "Admin (Akses Penuh)",
   academic_admin: "Admin Akademik",
   finance_admin: "Admin Keuangan / Kasir",
   viewer: "Viewer / Auditor",
@@ -232,6 +233,9 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
             full_name,
             user_roles (
               roles (code)
+            ),
+            user_emails (
+              email
             )
           )
         `, { count: "exact" })
@@ -254,8 +258,12 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
       if (!error && dbLogs) {
         isDbQueried = true;
         items = dbLogs.map((log) => {
-          const profileObj = log.profiles as unknown as { full_name?: string; user_roles?: Array<{ roles?: { code?: RoleCode } }> };
+          const profileObj = log.profiles as unknown as { full_name?: string; email?: string; user_emails?: { email?: string } | Array<{ email?: string }>; user_roles?: Array<{ roles?: { code?: RoleCode } }> };
           const actorName = profileObj?.full_name || "Sistem / Anonymous";
+          const userEmailObj = profileObj?.user_emails;
+          const actorEmail = Array.isArray(userEmailObj)
+            ? userEmailObj[0]?.email?.trim() || "-"
+            : userEmailObj?.email?.trim() || profileObj?.email?.trim() || "-";
           const roleCode: RoleCode = profileObj?.user_roles?.[0]?.roles?.code || "viewer";
 
           const actionMeta = ACTION_MODULE_MAP[log.action] || {
@@ -268,7 +276,7 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
             id: log.id,
             actorUserId: log.actor_user_id,
             actorName,
-            actorEmail: `${roleCode}@salut-pangkalpinang.ac.id`,
+            actorEmail,
             actorRole: roleCode,
             actorRoleName: ROLE_LABELS[roleCode] || "Pengguna",
             action: log.action,

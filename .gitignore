@@ -32,3 +32,10 @@ next-env.d.ts
 *.pem
 .idea/
 .vscode/
+
+# Supabase CLI local
+supabase/.temp/
+supabase/.branches/
+
+# Local UAT Artifacts
+uat_testing_roadmap_step_by_step (1).pdf

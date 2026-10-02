@@ -15,6 +15,7 @@ interface ChangeRoleDialogProps {
 
 const ROLE_LABELS: Record<RoleCode, string> = {
   owner: "Owner / Pimpinan",
+  admin: "Admin (Akses Penuh)",
   academic_admin: "Admin Akademik",
   finance_admin: "Admin Keuangan / Kasir",
   viewer: "Viewer / Auditor",
@@ -26,13 +27,13 @@ export function ChangeRoleDialog({
   onClose,
   onSuccess,
 }: ChangeRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<RoleCode>("academic_admin");
+  const [selectedRole, setSelectedRole] = useState<RoleCode>("admin");
   const [state, formAction, isPending] = useActionState(changeUserRoleAction, null);
 
   useEffect(() => {
     if (user) {
-      // Default new role selection to a different role if currently owner
-      setSelectedRole(user.role === "owner" ? "academic_admin" : "owner");
+      // Default new role selection
+      setSelectedRole(user.role === "admin" ? "academic_admin" : "admin");
     }
   }, [user]);
 
@@ -94,7 +95,7 @@ export function ChangeRoleDialog({
             <ArrowRight className="w-4 h-4 text-purple-400 shrink-0" />
 
             <div className="space-y-0.5 text-right">
-              <span className="text-[10px] text-purple-600 font-mono block">Role Baru Baru</span>
+              <span className="text-[10px] text-purple-600 font-mono block">Role Baru</span>
               <span className="font-bold text-purple-700">{ROLE_LABELS[selectedRole]}</span>
             </div>
           </div>
@@ -110,7 +111,7 @@ export function ChangeRoleDialog({
               onChange={(e) => setSelectedRole(e.target.value as RoleCode)}
               className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium"
             >
-              <option value="owner">Owner / Pimpinan (Akses Penuh & Approval)</option>
+              <option value="admin">Admin (Akses Penuh ke Seluruh Menu & Fitur)</option>
               <option value="academic_admin">Admin Akademik (Kelola Mahasiswa & Registrasi)</option>
               <option value="finance_admin">Admin Keuangan / Kasir (Kelola Bayar & Kas)</option>
               <option value="viewer">Viewer / Auditor (Akses Lihat Saja)</option>

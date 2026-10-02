@@ -41,7 +41,7 @@ export function StudentTable({
   onChangeStatus,
   isCalonView = false,
 }: StudentTableProps) {
-  const canEdit = userRole === "owner" || userRole === "academic_admin";
+  const canEdit = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   if (students.length === 0) {
     return (

@@ -32,6 +32,7 @@ interface PaymentListContainerProps {
     }[];
   };
   initialStatusFilter?: string;
+  currentUserId?: string;
 }
 
 export function PaymentListContainer({
@@ -43,6 +44,7 @@ export function PaymentListContainer({
   userRole,
   options,
   initialStatusFilter,
+  currentUserId,
 }: PaymentListContainerProps) {
   const router = useRouter();
 
@@ -54,7 +56,7 @@ export function PaymentListContainer({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [voidingPayment, setVoidingPayment] = useState<StudentPayment | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "finance_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
 
   const handleResetFilters = () => {
     setSearch("");
@@ -183,6 +185,7 @@ export function PaymentListContainer({
           onClose={() => setVoidingPayment(null)}
           onSuccess={() => router.refresh()}
           userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
     </div>

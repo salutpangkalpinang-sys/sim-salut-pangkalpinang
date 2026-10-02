@@ -38,122 +38,141 @@ async function logAuditEvent(payload: AuditEventPayload): Promise<void> {
 }
 
 export async function createUserAction(prevState: unknown, formData: FormData) {
-  const profile = await getCurrentUserProfile();
+  try {
+    const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
-    return {
-      error: "Hanya role Owner yang memiliki izin mengelola dan menambah pengguna.",
-    };
-  }
-
-  const rawFullName = formData.get("fullName") as string;
-  const rawEmail = formData.get("email") as string;
-  const rawPassword = (formData.get("password") as string)?.trim() || "suksesterus";
-  const rawRole = formData.get("role") as RoleCode;
-
-  const validation = createUserSchema.safeParse({
-    fullName: rawFullName,
-    email: rawEmail,
-    password: rawPassword,
-    role: rawRole,
-  });
-
-  if (!validation.success) {
-    return {
-      error: validation.error.errors[0]?.message || "Data masukan tidak valid",
-    };
-  }
-
-  const fullName = validation.data.fullName.trim();
-  const email = normalizeUserEmailInput(validation.data.email);
-  const password = rawPassword;
-  const role = validation.data.role;
-
-  const existingUsers = await getUsersList();
-  if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-    return {
-      error: `Pengguna dengan email/username "${email}" sudah terdaftar dalam sistem.`,
-    };
-  }
-
-  const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
-
-  let newUserId = crypto.randomUUID();
-
-  if (!isPlaceholder) {
-    try {
-      const supabase = await createClient();
-
-      // Call secure RPC function
-      const { data: rpcUserId, error: rpcErr } = await supabase.rpc("create_internal_user", {
-        p_email: email,
-        p_password: password,
-        p_full_name: fullName,
-        p_role_code: role,
-      });
-
-      if (rpcErr) {
-        console.error("RPC create_internal_user error:", rpcErr);
-        return {
-          error: `Gagal membuat akun pengguna di database Supabase: ${rpcErr.message}. Harap jalankan script SQL migrasi 20260829000003 di SQL Editor Supabase.`,
-        };
-      }
-
-      if (rpcUserId) {
-        newUserId = rpcUserId as string;
-      }
-    } catch (err: any) {
-      console.error("Error creating user:", err);
+    if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
       return {
-        error: `Terjadi kesalahan saat memproses pembuatan pengguna: ${err?.message || err}`,
+        error: "Hanya role Owner dan Admin yang memiliki izin mengelola dan menambah pengguna.",
       };
     }
+
+    const rawFullName = formData.get("fullName") as string;
+    const rawEmail = formData.get("email") as string;
+    const rawPassword = (formData.get("password") as string)?.trim() || "";
+    const rawRole = formData.get("role") as RoleCode;
+
+    const validation = createUserSchema.safeParse({
+      fullName: rawFullName,
+      email: rawEmail,
+      password: rawPassword,
+      role: rawRole,
+    });
+
+    if (!validation.success) {
+      return {
+        error: validation.error.errors[0]?.message || "Data masukan tidak valid",
+      };
+    }
+
+    const fullName = validation.data.fullName.trim();
+    const email = normalizeUserEmailInput(validation.data.email);
+    const password = rawPassword;
+    const role = validation.data.role;
+
+    // Strict Owner Boundary: Admin cannot create an Owner account
+    if (role === "owner" && profile.role !== "owner") {
+      return {
+        error: "Hanya Owner yang berhak membuat akun dengan peran Owner.",
+      };
+    }
+
+    const existingUsers = await getUsersList();
+    if (existingUsers.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+      return {
+        error: `Pengguna dengan email/username "${email}" sudah terdaftar dalam sistem.`,
+      };
+    }
+
+    const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
+
+    let newUserId = crypto.randomUUID();
+
+    if (!isPlaceholder) {
+      try {
+        const supabase = await createClient();
+
+        // Call secure RPC function
+        const { data: rpcUserId, error: rpcErr } = await supabase.rpc("create_internal_user", {
+          p_email: email,
+          p_password: password,
+          p_full_name: fullName,
+          p_role_code: role,
+        });
+
+        if (rpcErr) {
+          console.error("RPC create_internal_user error:", rpcErr);
+          return {
+            error: `Gagal membuat akun pengguna di database Supabase: ${rpcErr.message}. Harap jalankan script SQL migrasi 20260829000003 di SQL Editor Supabase.`,
+          };
+        }
+
+        if (rpcUserId) {
+          newUserId = rpcUserId as string;
+        }
+      } catch (err: any) {
+        console.error("Error creating user:", err);
+        return {
+          error: `Terjadi kesalahan saat memproses pembuatan pengguna: ${err?.message || err}`,
+        };
+      }
+    }
+
+    // Update in-memory dev mock store if offline
+    const mockStore = getMockUsersStore();
+    const ROLE_LABELS: Record<RoleCode, string> = {
+      owner: "Owner / Pimpinan",
+      admin: "Admin (Akses Penuh)",
+      academic_admin: "Admin Akademik",
+      finance_admin: "Admin Keuangan / Kasir",
+      viewer: "Viewer / Auditor",
+    };
+
+    mockStore.push({
+      id: newUserId,
+      fullName,
+      email,
+      role,
+      roleName: ROLE_LABELS[role],
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      lastSignInAt: null,
+    });
+
+    // Log audit event
+    await logAuditEvent({
+      actorUserId: profile.id,
+      action: "user_invited",
+      entityType: "user",
+      entityId: newUserId,
+      newData: { fullName, email, role },
+      reason: "Pendaftaran/Undangan Pengguna Baru oleh Owner",
+    });
+
+    try {
+      revalidatePath("/pengguna");
+    } catch {
+      // Ignore revalidatePath in non-standard context
+    }
+
+    return {
+      success: true,
+      message: `Pengguna "${fullName}" (${email}) berhasil ditambahkan dengan peran ${ROLE_LABELS[role]}.`,
+    };
+  } catch (err: any) {
+    console.error("Unhandled error in createUserAction:", err);
+    return {
+      error: `Terjadi kesalahan server: ${err?.message || "Gagal memproses data pengguna"}.`,
+    };
   }
-
-  // Update in-memory dev mock store if offline
-  const mockStore = getMockUsersStore();
-  const ROLE_LABELS: Record<RoleCode, string> = {
-    owner: "Owner / Pimpinan",
-    academic_admin: "Admin Akademik",
-    finance_admin: "Admin Keuangan / Kasir",
-    viewer: "Viewer / Auditor",
-  };
-
-  mockStore.push({
-    id: newUserId,
-    fullName,
-    email,
-    role,
-    roleName: ROLE_LABELS[role],
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    lastSignInAt: null,
-  });
-
-  // Log audit event
-  await logAuditEvent({
-    actorUserId: profile.id,
-    action: "user_invited",
-    entityType: "user",
-    entityId: newUserId,
-    newData: { fullName, email, role },
-    reason: "Pendaftaran/Undangan Pengguna Baru oleh Owner",
-  });
-
-  revalidatePath("/pengguna");
-
-  return {
-    success: true,
-    message: `Pengguna "${fullName}" (${email}) berhasil ditambahkan dengan peran ${ROLE_LABELS[role]}.`,
-  };
 }
 
 export async function changeUserRoleAction(prevState: unknown, formData: FormData) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
     return {
-      error: "Hanya role Owner yang memiliki izin mengubah peran pengguna.",
+      error: "Hanya role Owner dan Admin yang memiliki izin mengubah peran pengguna.",
     };
   }
 
@@ -180,6 +199,19 @@ export async function changeUserRoleAction(prevState: unknown, formData: FormDat
 
   const targetUser = allUsers.find((u) => u.id === userId);
   const oldRole = targetUser?.role || "viewer";
+
+  // Strict Owner Boundary: Admin cannot modify an Owner account or promote anyone to Owner
+  if (targetUser?.role === "owner" && profile.role !== "owner") {
+    return {
+      error: "Peran akun Owner tidak dapat diubah oleh Admin.",
+    };
+  }
+
+  if (newRole === "owner" && profile.role !== "owner") {
+    return {
+      error: "Hanya Owner yang berhak memberikan hak akses Owner kepada pengguna.",
+    };
+  }
 
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
   if (!isPlaceholder) {
@@ -232,9 +264,9 @@ export async function changeUserRoleAction(prevState: unknown, formData: FormDat
 export async function toggleUserStatusAction(prevState: unknown, formData: FormData) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
     return {
-      error: "Hanya role Owner yang memiliki izin menonaktifkan/mengaktifkan pengguna.",
+      error: "Hanya role Owner dan Admin yang memiliki izin menonaktifkan/mengaktifkan pengguna.",
     };
   }
 
@@ -262,6 +294,13 @@ export async function toggleUserStatusAction(prevState: unknown, formData: FormD
   }
 
   const targetUser = allUsers.find((u) => u.id === userId);
+
+  // Strict Owner Boundary: Admin cannot deactivate an Owner account
+  if (targetUser?.role === "owner" && profile.role !== "owner") {
+    return {
+      error: "Akun Owner tidak dapat dinonaktifkan oleh Admin.",
+    };
+  }
 
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
   if (!isPlaceholder) {

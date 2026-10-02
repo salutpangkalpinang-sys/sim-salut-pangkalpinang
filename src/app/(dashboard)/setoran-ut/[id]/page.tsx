@@ -25,6 +25,7 @@ export default async function SetoranUtDetailPage({
     <UtRemittanceDetailView
       remittance={remittance}
       userRole={profile.role}
+      currentUserId={profile.id}
     />
   );
 }

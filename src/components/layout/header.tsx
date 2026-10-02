@@ -15,6 +15,10 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
     label: "Owner / Pimpinan",
     color: "bg-purple-50 text-purple-700 border-purple-200",
   },
+  admin: {
+    label: "Admin (Akses Penuh)",
+    color: "bg-blue-50 text-blue-700 border-blue-200",
+  },
   academic_admin: {
     label: "Admin Akademik",
     color: "bg-blue-50 text-blue-700 border-blue-200",
@@ -31,7 +35,10 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 
 export function Header({ profile, officialName }: HeaderProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const roleBadge = ROLE_LABELS[profile?.role || "viewer"] || ROLE_LABELS.viewer;
+  const roleBadge = (profile?.role && ROLE_LABELS[profile.role]) || {
+    label: "Role Tidak Dikenal",
+    color: "bg-rose-50 text-rose-700 border-rose-200",
+  };
 
   const handleLogout = async (e: React.FormEvent) => {
     e.preventDefault();

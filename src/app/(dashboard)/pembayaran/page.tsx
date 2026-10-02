@@ -35,6 +35,7 @@ export default async function PembayaranPage({
       userRole={profile.role}
       options={masterOptions}
       initialStatusFilter={status}
+      currentUserId={profile.id}
     />
   );
 }

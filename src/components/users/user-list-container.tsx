@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { UserItem, UserSummary, UserFilter } from "@/types/user";
 import { fetchUsersListAction, fetchUsersSummaryAction } from "@/features/users/actions";
 import { UserSummaryCards } from "./user-summary-cards";

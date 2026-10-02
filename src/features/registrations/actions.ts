@@ -245,8 +245,8 @@ export async function resetStudentTestTransactionsAction(studentQuery: string = 
 export async function resetAllSystemTransactionsAction() {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
-    return { error: "Hanya role Owner yang memiliki wewenang untuk menghapus seluruh data transaksi sistem." };
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
+    return { error: "Hanya role Owner dan Admin yang memiliki wewenang untuk menghapus seluruh data transaksi sistem." };
   }
 
   const supabase = await createClient();

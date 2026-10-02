@@ -79,10 +79,10 @@ export async function parseAndValidateImportFileAction(
 ): Promise<{ success: boolean; data?: ImportPreviewResult; error?: string }> {
   // 1. RBAC Check
   const profile = await getCurrentUserProfile();
-  if (!profile || (profile.role !== "owner" && profile.role !== "academic_admin")) {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin" && profile.role !== "academic_admin")) {
     return {
       success: false,
-      error: "Hanya role Owner dan Admin Akademik yang memiliki izin melakukan import data mahasiswa.",
+      error: "Hanya role Owner, Admin, dan Admin Akademik yang memiliki izin melakukan import data mahasiswa.",
     };
   }
 
@@ -176,10 +176,10 @@ export async function commitImportAction(
 ): Promise<{ success: boolean; data?: ImportCommitResult; error?: string }> {
   // 1. RBAC Check
   const profile = await getCurrentUserProfile();
-  if (!profile || (profile.role !== "owner" && profile.role !== "academic_admin")) {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin" && profile.role !== "academic_admin")) {
     return {
       success: false,
-      error: "Hanya role Owner dan Admin Akademik yang memiliki izin melakukan commit import mahasiswa.",
+      error: "Hanya role Owner, Admin, dan Admin Akademik yang memiliki izin melakukan commit import mahasiswa.",
     };
   }
 

@@ -27,7 +27,15 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
           .single(),
       ]);
 
-      const roleCode = (userRole?.roles as unknown as { code: RoleCode })?.code || "viewer";
+      const rawRole = (userRole?.roles as unknown as { code: RoleCode })?.code;
+      const knownRoles: RoleCode[] = ["owner", "admin", "academic_admin", "finance_admin", "viewer"];
+      let roleCode: RoleCode;
+      if (rawRole && knownRoles.includes(rawRole)) {
+        roleCode = rawRole;
+      } else {
+        console.error(`[Security Warning] Unrecognized role "${rawRole}" for authenticated user ${user.id}`);
+        roleCode = (rawRole as RoleCode) || ("viewer" as RoleCode);
+      }
 
       return {
         id: user.id,
@@ -46,6 +54,7 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
     const activeRole = devRole || "owner";
     const roleLabels: Record<RoleCode, string> = {
       owner: "Pimpinan SALUT",
+      admin: "Admin (Akses Penuh)",
       academic_admin: "Admin Akademik",
       finance_admin: "Admin Keuangan / Kasir",
       viewer: "Viewer / Auditor",
@@ -58,7 +67,7 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
       fullName: roleLabels[activeRole] || "Pengguna SALUT",
       isActive: true,
       role: activeRole,
-      email: activeRole === "owner" ? devEmail : `${activeRole}@salut-pangkalpinang.ac.id`,
+      email: devEmail,
     };
   }
 

@@ -54,7 +54,7 @@ export function RegistrationListContainer({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [cancellingRegistration, setCancellingRegistration] = useState<Registration | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "academic_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   const handleResetFilters = () => {
     setSearch("");

@@ -11,8 +11,8 @@ export default async function AuditLogPage() {
     redirect("/login");
   }
 
-  // Server-Side Authorization: Owner and Viewer ONLY
-  if (profile.role !== "owner" && profile.role !== "viewer") {
+  // Server-Side Authorization: Owner, Admin, and Viewer ONLY
+  if (profile.role !== "owner" && profile.role !== "admin" && profile.role !== "viewer") {
     return (
       <div className="bg-white border border-red-200 rounded-xl p-8 text-center space-y-3 shadow-sm my-6">
         <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center border border-red-200">
@@ -20,7 +20,7 @@ export default async function AuditLogPage() {
         </div>
         <h2 className="text-base font-bold text-slate-900">Akses Dibatasi (403 Forbidden)</h2>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Peran Anda (<strong>{profile.role}</strong>) tidak memiliki izin server-side untuk melihat Audit Log Global. Modul ini hanya dapat diakses oleh **Owner / Pimpinan** dan **Viewer / Auditor**.
+          Peran Anda (<strong>{profile.role}</strong>) tidak memiliki izin server-side untuk melihat Audit Log Global. Modul ini hanya dapat diakses oleh **Owner / Pimpinan**, **Admin**, dan **Viewer / Auditor**.
         </p>
       </div>
     );

@@ -14,6 +14,10 @@ const ROLE_BADGES: Record<RoleCode, { label: string; badgeStyle: string }> = {
     label: "Owner / Pimpinan",
     badgeStyle: "bg-purple-50 text-purple-700 border-purple-200",
   },
+  admin: {
+    label: "Admin (Akses Penuh)",
+    badgeStyle: "bg-blue-50 text-blue-700 border-blue-200",
+  },
   academic_admin: {
     label: "Admin Akademik",
     badgeStyle: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -64,7 +68,10 @@ export function UserTable({
           </thead>
           <tbody className="divide-y divide-slate-100 font-normal">
             {users.map((user) => {
-              const roleMeta = ROLE_BADGES[user.role] || ROLE_BADGES.viewer;
+              const roleMeta = ROLE_BADGES[user.role] || {
+                label: user.roleName && user.roleName !== "Viewer / Auditor" ? user.roleName : "Role Tidak Dikenal",
+                badgeStyle: "bg-rose-50 text-rose-700 border-rose-200",
+              };
               const isSelf = user.id === currentUserId;
 
               const createdAtFormatted = new Date(user.createdAt).toLocaleDateString("id-ID", {
@@ -149,8 +156,14 @@ export function UserTable({
                     {/* Change Role Button */}
                     <button
                       onClick={() => onEditRole(user)}
-                      disabled={isSelf}
-                      title={isSelf ? "Tidak dapat mengubah peran akun Anda sendiri" : "Ubah Peran Hak Akses"}
+                      disabled={isSelf || user.role === "owner"}
+                      title={
+                        isSelf
+                          ? "Tidak dapat mengubah peran akun Anda sendiri"
+                          : user.role === "owner"
+                          ? "Peran akun Owner (Dartika) dilindungi dan tidak dapat diubah"
+                          : "Ubah Peran Hak Akses"
+                      }
                       className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
@@ -161,8 +174,14 @@ export function UserTable({
                     {user.isActive ? (
                       <button
                         onClick={() => onToggleStatus(user, false)}
-                        disabled={isSelf}
-                        title={isSelf ? "Tidak dapat menonaktifkan akun Anda sendiri" : "Nonaktifkan Akses"}
+                        disabled={isSelf || user.role === "owner"}
+                        title={
+                          isSelf
+                            ? "Tidak dapat menonaktifkan akun Anda sendiri"
+                            : user.role === "owner"
+                            ? "Akun Owner (Dartika) dilindungi dan tidak dapat dinonaktifkan"
+                            : "Nonaktifkan Akses"
+                        }
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <UserX className="w-3.5 h-3.5" />

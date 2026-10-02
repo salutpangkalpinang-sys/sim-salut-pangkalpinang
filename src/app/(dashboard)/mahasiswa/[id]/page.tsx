@@ -34,7 +34,7 @@ export default async function StudentDetailPage({
     getStudentPaymentsHistory(id),
   ]);
 
-  const canEdit = profile.role === "owner" || profile.role === "academic_admin";
+  const canEdit = profile.role === "owner" || profile.role === "admin" || profile.role === "academic_admin";
 
   const birthDateFormatted = student.birthDate
     ? new Date(student.birthDate).toLocaleDateString("id-ID", {

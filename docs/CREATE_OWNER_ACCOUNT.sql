@@ -2,7 +2,7 @@
 -- SIM-SALUT Pangkalpinang Fail-Safe Owner Account Creator
 -- Username: admin
 -- Real Auth Email: admin@salut-pangkalpinang.ac.id
--- Password: suksesterus
+-- Password: YOUR_SECURE_PASSWORD (Set your strong password)
 -- Role: Owner / Pimpinan (Full Access)
 -- ============================================================================
 
@@ -14,7 +14,7 @@ DECLARE
     v_encrypted_pw TEXT;
     v_role_id UUID;
     v_email TEXT := 'admin@salut-pangkalpinang.ac.id';
-    v_password TEXT := 'suksesterus';
+    v_password TEXT := 'YOUR_SECURE_PASSWORD'; -- GANTI DENGAN PASSWORD KUAT ANDA
 BEGIN
     v_encrypted_pw := crypt(v_password, gen_salt('bf'));
 

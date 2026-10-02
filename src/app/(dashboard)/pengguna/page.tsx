@@ -11,8 +11,8 @@ export default async function PenggunaPage() {
     redirect("/login");
   }
 
-  // Server-Side Authorization: Owner ONLY
-  if (profile.role !== "owner") {
+  // Server-Side Authorization: Owner and Admin ONLY
+  if (profile.role !== "owner" && profile.role !== "admin") {
     return (
       <div className="bg-white border border-red-200 rounded-xl p-8 text-center space-y-3 shadow-sm my-6">
         <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center border border-red-200">
@@ -20,7 +20,7 @@ export default async function PenggunaPage() {
         </div>
         <h2 className="text-base font-bold text-slate-900">Akses Dibatasi (403 Forbidden)</h2>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Peran Anda (<strong>{profile.role}</strong>) tidak memiliki izin server-side untuk mengelola pengguna dan hak akses internal SIM-SALUT. Modul ini hanya dapat diakses oleh **Owner / Pimpinan**.
+          Peran Anda (<strong>{profile.role}</strong>) tidak memiliki izin server-side untuk mengelola pengguna dan hak akses internal SIM-SALUT. Modul ini hanya dapat diakses oleh **Owner / Pimpinan** dan **Admin**.
         </p>
       </div>
     );

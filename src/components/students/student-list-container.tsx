@@ -56,7 +56,7 @@ export function StudentListContainer({
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [statusStudent, setStatusStudent] = useState<Student | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "academic_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   const handleResetFilters = () => {
     setSearch("");

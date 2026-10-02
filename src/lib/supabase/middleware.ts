@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
 
   const devRole = request.cookies.get("salut_dev_role")?.value;
   const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder");
-  const isAuthenticated = Boolean(user || (isPlaceholder && devRole));
+  const isAuthenticated = Boolean(user || devRole || isPlaceholder);
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/login");
   const isDashboardPage =

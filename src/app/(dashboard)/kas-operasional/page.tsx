@@ -56,6 +56,7 @@ export default async function KasOperasionalPage({
       userRole={profile.role}
       cashAccounts={masterOptions.cashAccounts}
       categories={categories}
+      currentUserId={profile.id}
     />
   );
 }

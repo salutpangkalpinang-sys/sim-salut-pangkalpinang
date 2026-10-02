@@ -41,7 +41,7 @@ export function RegistrationTable({
   onPageChange,
   onCancel,
 }: RegistrationTableProps) {
-  const canMutate = userRole === "owner" || userRole === "academic_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   if (registrations.length === 0) {
     return (

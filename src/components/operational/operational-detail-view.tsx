@@ -14,11 +14,13 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 interface OperationalDetailViewProps {
   transaction: OperationalTransaction;
   userRole: RoleCode;
+  currentUserId?: string;
 }
 
 export function OperationalDetailView({
   transaction,
   userRole,
+  currentUserId,
 }: OperationalDetailViewProps) {
   const router = useRouter();
 
@@ -29,8 +31,8 @@ export function OperationalDetailView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "finance_admin";
-  const isOwner = userRole === "owner";
+  const canVerify = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
+  const isOwner = userRole === "owner" || userRole === "admin";
   const isIncome = transaction.transactionType === "income";
 
   const formattedTxnDate = new Date(transaction.transactionDate).toLocaleDateString("id-ID", {
@@ -379,6 +381,7 @@ export function OperationalDetailView({
           onClose={() => setIsVoidDialogOpen(false)}
           onSuccess={() => router.refresh()}
           userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
 

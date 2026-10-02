@@ -13,11 +13,13 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 interface UtRemittanceDetailViewProps {
   remittance: UtRemittance;
   userRole: RoleCode;
+  currentUserId?: string;
 }
 
 export function UtRemittanceDetailView({
   remittance,
   userRole,
+  currentUserId,
 }: UtRemittanceDetailViewProps) {
   const router = useRouter();
 
@@ -29,8 +31,8 @@ export function UtRemittanceDetailView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const canVerify = userRole === "owner" || userRole === "finance_admin";
-  const isOwner = userRole === "owner";
+  const canVerify = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
+  const isOwner = userRole === "owner" || userRole === "admin";
 
   const formattedPaidAt = new Date(remittance.paidAt).toLocaleDateString("id-ID", {
     day: "numeric",
@@ -308,6 +310,7 @@ export function UtRemittanceDetailView({
           onClose={() => setIsVoidDialogOpen(false)}
           onSuccess={() => router.refresh()}
           userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
 

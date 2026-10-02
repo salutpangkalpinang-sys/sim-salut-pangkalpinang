@@ -4,6 +4,7 @@ import { RoleCode } from "@/lib/auth/types";
 
 const ROLE_LABELS: Record<RoleCode, string> = {
   owner: "Owner / Pimpinan",
+  admin: "Admin (Akses Penuh)",
   academic_admin: "Admin Akademik",
   finance_admin: "Admin Keuangan / Kasir",
   viewer: "Viewer / Auditor",
@@ -71,21 +72,43 @@ export async function getUsersList(filter?: UserFilter): Promise<UserItem[]> {
           created_at,
           user_roles(
             roles(code, name)
+          ),
+          user_emails(
+            email
           )
         `)
         .order("created_at", { ascending: false });
 
       if (!profileErr && profiles) {
+        const knownRoles: RoleCode[] = ["owner", "admin", "academic_admin", "finance_admin", "viewer"];
+
         users = profiles.map((p) => {
           const roleObj = (p.user_roles as unknown as Array<{ roles: { code: RoleCode; name: string } }>)?.[0]?.roles;
-          const roleCode: RoleCode = roleObj?.code || "viewer";
+          const rawCode = roleObj?.code;
+
+          let roleCode: RoleCode;
+          let roleName: string;
+
+          if (rawCode && knownRoles.includes(rawCode)) {
+            roleCode = rawCode;
+            roleName = ROLE_LABELS[roleCode];
+          } else {
+            console.error(`[RBAC Config Error] Unrecognized role "${rawCode}" for user ${p.id} (${p.full_name})`);
+            roleCode = (rawCode as RoleCode) || ("unknown" as RoleCode);
+            roleName = roleObj?.name || "Role Tidak Dikenal";
+          }
+
+          const userEmailObj = (p as any).user_emails;
+          const realEmail = Array.isArray(userEmailObj)
+            ? userEmailObj[0]?.email?.trim() || "-"
+            : userEmailObj?.email?.trim() || (p as any).email?.trim() || "-";
 
           return {
             id: p.id,
             fullName: p.full_name,
-            email: p.id === "dev-user-id" ? "admin@salut-pangkalpinang.ac.id" : `${roleCode}@salut-pangkalpinang.ac.id`,
+            email: realEmail,
             role: roleCode,
-            roleName: ROLE_LABELS[roleCode] || "Viewer",
+            roleName,
             isActive: p.is_active,
             createdAt: p.created_at,
             lastSignInAt: p.created_at,
@@ -129,6 +152,7 @@ export async function getUsersSummary(): Promise<UserSummary> {
   return {
     totalUsers: users.length,
     ownerCount: users.filter((u) => u.role === "owner").length,
+    adminCount: users.filter((u) => u.role === "admin").length,
     academicAdminCount: users.filter((u) => u.role === "academic_admin").length,
     financeAdminCount: users.filter((u) => u.role === "finance_admin").length,
     viewerCount: users.filter((u) => u.role === "viewer").length,

@@ -381,8 +381,8 @@ export async function createInvoiceAction(input: CreateInvoiceFormInput) {
 export async function approveDiscountAction(input: DiscountApprovalFormInput) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
-    return { error: "Hanya role Owner yang memiliki wewenang untuk menyetujui potongan diskon." };
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
+    return { error: "Hanya role Owner dan Admin yang memiliki wewenang untuk menyetujui potongan diskon." };
   }
 
   const validation = discountApprovalSchema.safeParse(input);

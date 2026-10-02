@@ -38,7 +38,7 @@ export function RegistrationLipInvoiceList({
   const [isLipModalOpen, setIsLipModalOpen] = useState(false);
   const [selectedLipForInvoice, setSelectedLipForInvoice] = useState<LipDocument | null>(null);
 
-  const canMutate = userRole === "owner" || userRole === "academic_admin";
+  const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
   const verifiedLip = lipDocuments.find((l) => l.status === "verified");
   const officialLipAmount = verifiedLip ? verifiedLip.officialAmount : null;

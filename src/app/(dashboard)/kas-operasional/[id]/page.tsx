@@ -29,6 +29,7 @@ export default async function KasOperasionalDetailPage({
     <OperationalDetailView
       transaction={transaction}
       userRole={profile.role}
+      currentUserId={profile.id}
     />
   );
 }

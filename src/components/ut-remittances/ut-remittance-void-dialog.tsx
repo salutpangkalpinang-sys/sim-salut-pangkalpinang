@@ -12,6 +12,7 @@ interface UtRemittanceVoidDialogProps {
   onClose: () => void;
   onSuccess: () => void;
   userRole: RoleCode;
+  currentUserId?: string;
 }
 
 export function UtRemittanceVoidDialog({
@@ -20,6 +21,7 @@ export function UtRemittanceVoidDialog({
   onClose,
   onSuccess,
   userRole,
+  currentUserId,
 }: UtRemittanceVoidDialogProps) {
   const [reason, setReason] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -27,8 +29,9 @@ export function UtRemittanceVoidDialog({
 
   if (!isOpen) return null;
 
-  const isOwner = userRole === "owner";
+  const isOwner = userRole === "owner" || userRole === "admin";
   const hasPendingVoidReq = remittance.voidRequest && remittance.voidRequest.status === "pending";
+  const isSelfRequester = Boolean(currentUserId && remittance.voidRequest?.requestedBy === currentUserId);
 
   const handleRequestVoid = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +99,7 @@ export function UtRemittanceVoidDialog({
           <div className="flex items-center gap-2">
             <Ban className="w-4 h-4 text-purple-600" />
             <h3 className="text-sm font-bold text-slate-900">
-              {hasPendingVoidReq && isOwner ? "Persetujuan Void Setoran UT (Owner)" : "Pengajuan Void Pembatalan Setoran UT"}
+              {hasPendingVoidReq && isOwner ? "Persetujuan Void Setoran UT (Owner / Admin)" : "Pengajuan Void Pembatalan Setoran UT"}
             </h3>
           </div>
           <button
@@ -131,9 +134,19 @@ export function UtRemittanceVoidDialog({
             </div>
           )}
 
+          {hasPendingVoidReq && isOwner && isSelfRequester && (
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 text-xs flex items-start gap-2 shadow-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <strong className="block font-semibold">Prinsip Maker-Checker Aktif:</strong>
+                Anda adalah pemohon pengajuan void ini. Anda tidak dapat menyetujui void yang diajukan sendiri. Persetujuan harus dilakukan oleh Owner atau Admin lain.
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-slate-700 font-medium mb-1">
-              {hasPendingVoidReq && isOwner ? "Catatan Review Owner *" : "Alasan Pengajuan Void Pembatalan *"}
+              {hasPendingVoidReq && isOwner ? "Catatan Review Owner / Admin *" : "Alasan Pengajuan Void Pembatalan *"}
             </label>
             <textarea
               required
@@ -158,9 +171,10 @@ export function UtRemittanceVoidDialog({
               </button>
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSelfRequester}
                 onClick={() => handleReviewVoid("approve")}
-                className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm transition"
+                title={isSelfRequester ? "Maker-Checker: Anda tidak dapat menyetujui permohonan void sendiri" : undefined}
+                className="flex items-center gap-1 px-3.5 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Setujui Void (Batal)</span>

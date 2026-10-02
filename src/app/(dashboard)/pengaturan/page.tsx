@@ -6,6 +6,7 @@ import { RoleCode } from "@/lib/auth/types";
 
 const ROLE_LABELS: Record<RoleCode, string> = {
   owner: "Owner / Pimpinan",
+  admin: "Admin (Akses Penuh)",
   academic_admin: "Admin Akademik",
   finance_admin: "Admin Keuangan / Kasir",
   viewer: "Viewer / Auditor",
@@ -18,7 +19,7 @@ export default async function PengaturanPage() {
     redirect("/login");
   }
 
-  const isOwner = profile.role === "owner";
+  const isOwner = profile.role === "owner" || profile.role === "admin";
   const roleName = ROLE_LABELS[profile.role] || "Pengguna";
 
   const initialSettings = await getAppSettings();

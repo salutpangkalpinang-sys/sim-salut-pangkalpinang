@@ -58,6 +58,7 @@ export function UserFilterBar({ filter, onFilterChange }: UserFilterBarProps) {
           >
             <option value="ALL">Semua Peran (Role)</option>
             <option value="owner">Owner / Pimpinan</option>
+            <option value="admin">Admin (Akses Penuh)</option>
             <option value="academic_admin">Admin Akademik</option>
             <option value="finance_admin">Admin Keuangan</option>
             <option value="viewer">Viewer / Auditor</option>

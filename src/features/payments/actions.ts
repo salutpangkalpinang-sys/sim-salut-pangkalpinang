@@ -227,8 +227,8 @@ export async function requestPaymentVoidAction(input: VoidRequestFormInput) {
 export async function reviewPaymentVoidAction(input: ReviewVoidFormInput) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
-    return { error: "Hanya role Owner yang memiliki wewenang untuk memproses persetujuan void pembayaran." };
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
+    return { error: "Hanya role Owner dan Admin yang memiliki wewenang untuk memproses persetujuan void pembayaran." };
   }
 
   const validation = reviewVoidSchema.safeParse(input);
@@ -239,6 +239,23 @@ export async function reviewPaymentVoidAction(input: ReviewVoidFormInput) {
 
   const data = validation.data;
   const supabase = await createClient();
+
+  // Maker-Checker Security Rule: Requester cannot approve their own void request
+  const { data: voidReq, error: reqErr } = await supabase
+    .from("payment_void_requests")
+    .select("id, requested_by, status")
+    .eq("id", data.voidRequestId)
+    .single();
+
+  if (reqErr || !voidReq) {
+    return { error: "Permintaan void tidak ditemukan." };
+  }
+
+  if (voidReq.requested_by === profile.id && data.action === "approve") {
+    return {
+      error: "Prinsip Maker-Checker: Anda tidak dapat menyetujui permohonan void yang Anda ajukan sendiri. Persetujuan harus dilakukan oleh Owner atau Admin lain.",
+    };
+  }
 
   const { error } = await supabase.rpc("approve_payment_void_request", {
     p_void_request_id: data.voidRequestId,

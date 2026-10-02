@@ -10,9 +10,9 @@ import { SalutSettings, ALLOWED_SETTING_KEYS } from "@/types/settings";
 export async function updateSettingsAction(prevState: unknown, formData: FormData) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || profile.role !== "owner") {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
     return {
-      error: "Hanya role Owner yang memiliki izin mengubah pengaturan sistem.",
+      error: "Hanya role Owner dan Admin yang memiliki izin mengubah pengaturan sistem.",
     };
   }
 

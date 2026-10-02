@@ -39,7 +39,14 @@ export function UserFormModal({ isOpen, onClose, onSuccess }: UserFormModalProps
         onClose();
       }
     } catch (err: any) {
-      setErrorMessage(err?.message || "Terjadi kesalahan saat menyimpan data");
+      const msg = err?.message || "";
+      if (msg.includes("unexpected response was received from the server")) {
+        setErrorMessage(
+          "Gagal menghubungi server atau sesi login telah kedaluwarsa. Silakan refresh halaman dan pastikan Anda login sebagai Owner."
+        );
+      } else {
+        setErrorMessage(msg || "Terjadi kesalahan saat menyimpan data");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,24 +105,28 @@ export function UserFormModal({ isOpen, onClose, onSuccess }: UserFormModalProps
               name="email"
               type="text"
               required
+              pattern="^[a-zA-Z0-9._%+\-]+(@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})?$"
+              title="Masukkan username tanpa spasi (misal: admin_yolan) atau email valid"
               placeholder="Contoh: ahmad (atau ahmad@salut-pangkalpinang.ac.id)"
               className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              Jika memasukkan username tanpa @, sistem akan otomatis menggunakan domain <code>@salut-pangkalpinang.ac.id</code>.
+              Username <strong>tidak boleh ada spasi</strong> (misal: <code>yolanda</code> atau <code>admin_yolan</code>). Jika tanpa <code>@</code>, otomatis menjadi <code>@salut-pangkalpinang.ac.id</code>.
             </p>
           </div>
 
           <div>
             <label htmlFor="password" className="block font-semibold text-slate-700 mb-1">
-              Password Login
+              Password Login <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Masukkan password (default: suksesterus)"
+                required
+                minLength={12}
+                placeholder="Minimal 12 karakter kombinasi alfanumerik & simbol"
                 className="w-full px-3 py-2 pr-10 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
               <button
@@ -128,7 +139,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess }: UserFormModalProps
               </button>
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
-              Password minimal 6 karakter. Jika dikosongkan, sistem menetapkan password default: <code>suksesterus</code>.
+              Password wajib diisi minimal 12 karakter untuk memenuhi standar keamanan akses institusi.
             </p>
           </div>
 
@@ -140,13 +151,13 @@ export function UserFormModal({ isOpen, onClose, onSuccess }: UserFormModalProps
               id="role"
               name="role"
               required
-              defaultValue="academic_admin"
+              defaultValue="admin"
               className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             >
+              <option value="admin">Admin (Akses Penuh ke Seluruh Menu & Fitur)</option>
               <option value="academic_admin">Admin Akademik (Kelola Mahasiswa, Registrasi & LIP)</option>
               <option value="finance_admin">Admin Keuangan / Kasir (Kelola Bayar, UT & Kas)</option>
               <option value="viewer">Viewer / Auditor (Akses Lihat Data & Laporan Saja)</option>
-              <option value="owner">Owner / Pimpinan (Akses Penuh & Approval)</option>
             </select>
           </div>
 
