@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(48);
+SELECT plan(72);
 
 -- ============================================================================
 -- 1. AUDIT RPC DEBUG REMOVAL & SCHEMA PRIVILEGES
@@ -736,6 +736,322 @@ SELECT is(
     'Kas Operasional: Owner berhasil menyetujui void request dari Admin 1'
 );
 
+
+
+-- ============================================================================
+-- 6D. DIRECT SECURITY DEFINER RPC AUTHORIZATION & ANTI-SPOOFING TESTS
+-- ============================================================================
+
+-- Test 43: anon has NO EXECUTE on reset_student_transactions
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.reset_student_transactions(uuid)', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada reset_student_transactions'
+);
+
+-- Test 44: authenticated has NO EXECUTE on reset_student_transactions
+SELECT ok(
+    NOT has_function_privilege('authenticated', 'public.reset_student_transactions(uuid)', 'EXECUTE'),
+    'Peran authenticated TIDAK boleh memiliki izin EXECUTE pada reset_student_transactions'
+);
+
+-- Test 45: anon has NO EXECUTE on delete_student_cascade
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.delete_student_cascade(uuid)', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada delete_student_cascade'
+);
+
+-- Test 46: anon has NO EXECUTE on verify_lip_document
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.verify_lip_document(uuid, uuid)', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada verify_lip_document'
+);
+
+-- Test 47: anon has NO EXECUTE on create_ut_remittance_with_items
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.create_ut_remittance_with_items(timestamptz,bigint,uuid,varchar,text,varchar,varchar,bigint,text,uuid,uuid,jsonb)', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada create_ut_remittance_with_items'
+);
+
+-- Test 48: anon has NO EXECUTE on update_cash_account
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.update_cash_account(uuid,varchar,varchar,varchar)', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada update_cash_account'
+);
+
+-- Test 49: anon has NO EXECUTE on reset_all_system_data
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.reset_all_system_data()', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada reset_all_system_data'
+);
+
+-- Test 50: authenticated has NO EXECUTE on reset_all_system_data
+SELECT ok(
+    NOT has_function_privilege('authenticated', 'public.reset_all_system_data()', 'EXECUTE'),
+    'Peran authenticated TIDAK boleh memiliki izin EXECUTE pada reset_all_system_data'
+);
+
+-- Test 51: anon has NO EXECUTE on reset_all_system_transactions
+SELECT ok(
+    NOT has_function_privilege('anon', 'public.reset_all_system_transactions()', 'EXECUTE'),
+    'Peran anon TIDAK boleh memiliki izin EXECUTE pada reset_all_system_transactions'
+);
+
+-- Test 52: authenticated has NO EXECUTE on reset_all_system_transactions
+SELECT ok(
+    NOT has_function_privilege('authenticated', 'public.reset_all_system_transactions()', 'EXECUTE'),
+    'Peran authenticated TIDAK boleh memiliki izin EXECUTE pada reset_all_system_transactions'
+);
+
+-- Setup Fixtures for direct RPC invocation tests
+DO $$
+DECLARE
+    v_status_id UUID;
+    v_period_id UUID;
+    v_type_id   UUID;
+    v_prog_id   UUID;
+    v_scheme_id UUID;
+    c_uid_admin CONSTANT UUID := '10000000-0000-0000-0000-000000000002'::UUID;
+BEGIN
+    SELECT id INTO v_status_id FROM public.student_statuses LIMIT 1;
+    SELECT id INTO v_period_id FROM public.academic_periods LIMIT 1;
+    SELECT id INTO v_type_id   FROM public.registration_types LIMIT 1;
+    SELECT id INTO v_prog_id   FROM public.study_programs LIMIT 1;
+    SELECT id INTO v_scheme_id FROM public.service_schemes LIMIT 1;
+
+    -- Mahasiswa untuk test delete cascade
+    INSERT INTO public.students (id, nim, full_name, status_id)
+    VALUES ('50000000-0000-0000-0000-000000000001'::UUID, '99990001', 'Test RPC Student 1', v_status_id)
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO public.registrations (id, student_id, academic_period_id, registration_type_id, study_program_id, service_scheme_id, credits, status)
+    VALUES ('50000000-0000-0000-0000-000000000011'::UUID, '50000000-0000-0000-0000-000000000001'::UUID, v_period_id, v_type_id, v_prog_id, v_scheme_id, 18, 'active')
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Mahasiswa untuk test delete cascade oleh Academic Admin
+    INSERT INTO public.students (id, nim, full_name, status_id)
+    VALUES ('50000000-0000-0000-0000-000000000002'::UUID, '99990002', 'Test RPC Student 2', v_status_id)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- Dokumen LIP untuk test verify_lip
+    INSERT INTO public.lip_documents (
+        id, registration_id, lip_number, version, official_amount,
+        storage_path, original_file_name, mime_type, file_size, status
+    ) VALUES (
+        '50000000-0000-0000-0000-000000000021'::UUID,
+        '50000000-0000-0000-0000-000000000011'::UUID,
+        'LIP-TEST-RPC-01', 1, 1500000,
+        '/dummy/lip.pdf', 'lip.pdf', 'application/pdf', 1024, 'pending_verification'
+    ) ON CONFLICT (id) DO NOTHING;
+
+    -- Cash Account deterministik untuk test remittance & cash account RPC
+    INSERT INTO public.cash_accounts (id, code, name, is_active)
+    VALUES ('50000000-0000-0000-0000-000000000031'::UUID, 'KAS_TEST_RPC', 'Kas Akun RPC Test', true)
+    ON CONFLICT (id) DO NOTHING;
+END $$;
+
+-- Test 53: Direct call to reset_student_transactions by authenticated is REJECTED (no privilege)
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000002'; -- Admin 1
+SELECT throws_ok(
+    $$
+    SELECT public.reset_student_transactions('50000000-0000-0000-0000-000000000001'::UUID);
+    $$,
+    '42501',
+    NULL,
+    'Panggilan langsung ke reset_student_transactions oleh authenticated ditolak (permission denied)'
+);
+
+-- Test 54: Direct call to delete_student_cascade by viewer is REJECTED (insufficient_privilege)
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000005'; -- Viewer
+SELECT throws_ok(
+    $$
+    SELECT public.delete_student_cascade('50000000-0000-0000-0000-000000000001'::UUID);
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, and Academic Admin can cascade delete student',
+    'delete_student_cascade oleh viewer ditolak'
+);
+
+-- Test 55: Direct call to delete_student_cascade by finance_admin is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
+SELECT throws_ok(
+    $$
+    SELECT public.delete_student_cascade('50000000-0000-0000-0000-000000000001'::UUID);
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, and Academic Admin can cascade delete student',
+    'delete_student_cascade oleh finance_admin ditolak'
+);
+
+-- Test 56: Direct call to delete_student_cascade by inactive user is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000006'; -- Inactive user
+SELECT throws_ok(
+    $$
+    SELECT public.delete_student_cascade('50000000-0000-0000-0000-000000000001'::UUID);
+    $$,
+    '42501',
+    'User profile is inactive or not found',
+    'delete_student_cascade oleh pengguna nonaktif ditolak'
+);
+
+-- Test 57: Direct call to delete_student_cascade by academic_admin SUCCEEDS
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000003'; -- Academic Admin
+SELECT is(
+    (SELECT (public.delete_student_cascade('50000000-0000-0000-0000-000000000002'::UUID))->>'success'),
+    'true',
+    'delete_student_cascade oleh Academic Admin berhasil'
+);
+
+-- Test 58: verify_lip_document with spoofed identity (p_user_id <> auth.uid()) is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000003'; -- Academic Admin
+SELECT throws_ok(
+    $$
+    SELECT public.verify_lip_document(
+        '50000000-0000-0000-0000-000000000021'::UUID,
+        '10000000-0000-0000-0000-000000000001'::UUID  -- Mencoba impersonate Owner
+    );
+    $$,
+    '42501',
+    'Identity mismatch: p_user_id does not match authenticated identity',
+    'verify_lip_document dengan p_user_id yang dipalsukan ditolak'
+);
+
+-- Test 59: verify_lip_document by finance_admin is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
+SELECT throws_ok(
+    $$
+    SELECT public.verify_lip_document(
+        '50000000-0000-0000-0000-000000000021'::UUID,
+        '10000000-0000-0000-0000-000000000004'::UUID
+    );
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, and Academic Admin can verify LIP documents',
+    'verify_lip_document oleh finance_admin ditolak'
+);
+
+-- Test 60: verify_lip_document by viewer is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000005'; -- Viewer
+SELECT throws_ok(
+    $$
+    SELECT public.verify_lip_document(
+        '50000000-0000-0000-0000-000000000021'::UUID,
+        '10000000-0000-0000-0000-000000000005'::UUID
+    );
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, and Academic Admin can verify LIP documents',
+    'verify_lip_document oleh viewer ditolak'
+);
+
+-- Test 61: verify_lip_document by Academic Admin with matching identity SUCCEEDS
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000003'; -- Academic Admin
+SELECT public.verify_lip_document(
+    '50000000-0000-0000-0000-000000000021'::UUID,
+    '10000000-0000-0000-0000-000000000003'::UUID
+);
+RESET ROLE;
+SELECT is(
+    (SELECT status::text FROM public.lip_documents WHERE id = '50000000-0000-0000-0000-000000000021'::UUID),
+    'verified'::text,
+    'verify_lip_document oleh Academic Admin dengan identitas sah berhasil'
+);
+
+-- Test 62: create_ut_remittance_with_items with spoofed p_created_by is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
+SELECT throws_ok(
+    $$
+    SELECT public.create_ut_remittance_with_items(
+        NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-SPOOF',
+        '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
+        '10000000-0000-0000-0000-000000000001'::UUID, -- Mencoba spoof Owner
+        gen_random_uuid(),
+        jsonb_build_array(jsonb_build_object(
+            'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
+            'registration_id', '50000000-0000-0000-0000-000000000011'::UUID,
+            'amount', 1500000
+        ))
+    );
+    $$,
+    '42501',
+    'Identity mismatch: p_created_by does not match authenticated identity',
+    'create_ut_remittance_with_items dengan p_created_by palsu ditolak'
+);
+
+-- Test 63: create_ut_remittance_with_items by academic_admin is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000003'; -- Academic Admin
+SELECT throws_ok(
+    $$
+    SELECT public.create_ut_remittance_with_items(
+        NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-ACAD',
+        '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
+        '10000000-0000-0000-0000-000000000003'::UUID,
+        gen_random_uuid(),
+        jsonb_build_array(jsonb_build_object(
+            'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
+            'registration_id', '50000000-0000-0000-0000-000000000011'::UUID,
+            'amount', 1500000
+        ))
+    );
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, and Finance Admin can record UT remittances',
+    'create_ut_remittance_with_items oleh academic_admin ditolak'
+);
+
+-- Test 64: create_ut_remittance_with_items by viewer is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000005'; -- Viewer
+SELECT throws_ok(
+    $$
+    SELECT public.create_ut_remittance_with_items(
+        NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-VIEW',
+        '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
+        '10000000-0000-0000-0000-000000000005'::UUID,
+        gen_random_uuid(),
+        jsonb_build_array(jsonb_build_object(
+            'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
+            'registration_id', '50000000-0000-0000-0000-000000000011'::UUID,
+            'amount', 1500000
+        ))
+    );
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, and Finance Admin can record UT remittances',
+    'create_ut_remittance_with_items oleh viewer ditolak'
+);
+
+-- Test 65: create_ut_remittance_with_items by finance_admin with valid identity SUCCEEDS
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
+SELECT ok(
+    public.create_ut_remittance_with_items(
+        NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-VALID-FIN',
+        '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
+        '10000000-0000-0000-0000-000000000004'::UUID,
+        '60000000-0000-0000-0000-000000000001'::UUID,
+        jsonb_build_array(jsonb_build_object(
+            'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
+            'registration_id', '50000000-0000-0000-0000-000000000011'::UUID,
+            'amount', 1500000
+        ))
+    ) IS NOT NULL,
+    'create_ut_remittance_with_items oleh Finance Admin berhasil'
+);
+
+-- Test 66: update_cash_account by viewer is REJECTED
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000005'; -- Viewer
+SELECT throws_ok(
+    $$
+    SELECT public.update_cash_account(
+        '50000000-0000-0000-0000-000000000031'::UUID,
+        'Kas Tunai Updated', '12345678', 'BCA'
+    );
+    $$,
+    '42501',
+    'Permission denied: Only Owner, Admin, Finance Admin, and Academic Admin can manage cash accounts',
+    'update_cash_account oleh viewer ditolak'
+);
+
+RESET ROLE;
 
 -- ============================================================================
 -- 7. SIMULATION & VERIFICATION OF MIGRATION 20261002000001 BRANCHES
