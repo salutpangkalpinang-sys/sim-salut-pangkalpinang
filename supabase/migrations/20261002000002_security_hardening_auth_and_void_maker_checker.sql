@@ -11,42 +11,36 @@ BEGIN;
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. SECURE & DROP ALL SIGNATURES OF RPC DEBUG FUNCTION (RESTRICT ENFORCED)
+-- 1. SECURE & DROP ALL SIGNATURES OF RPC DEBUG FUNCTIONS (RESTRICT ENFORCED)
 -- ----------------------------------------------------------------------------
+-- Safely drops get_user_auth_debug and get_auth_info (found on production)
+-- without CASCADE to prevent unintended drops of dependent objects.
 DO $$
 DECLARE
     r RECORD;
+    v_proc_name TEXT;
 BEGIN
-    -- 1. Explicitly revoke and drop known historical signature using RESTRICT
-    IF EXISTS (
-        SELECT 1 FROM pg_proc p
-        JOIN pg_namespace n ON p.pronamespace = n.oid
-        WHERE n.nspname = 'public' AND p.proname = 'get_user_auth_debug'
-          AND pg_get_function_identity_arguments(p.oid) = 'p_email text'
-    ) THEN
-        EXECUTE 'REVOKE ALL ON FUNCTION public.get_user_auth_debug(TEXT) FROM PUBLIC, anon, authenticated, service_role';
-        EXECUTE 'DROP FUNCTION public.get_user_auth_debug(TEXT) RESTRICT';
-    END IF;
+    -- 1. Loop through all debug procedure names identified historically & in production
+    FOREACH v_proc_name IN ARRAY ARRAY['get_user_auth_debug', 'get_auth_info'] LOOP
+        FOR r IN (
+            SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
+            FROM pg_proc p
+            JOIN pg_namespace n ON p.pronamespace = n.oid
+            WHERE n.nspname = 'public' AND p.proname = v_proc_name
+        ) LOOP
+            EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM PUBLIC, anon, authenticated, service_role', r.proname, r.args);
+            EXECUTE format('DROP FUNCTION public.%I(%s) RESTRICT', r.proname, r.args);
+        END LOOP;
 
-    -- 2. Detect any other overload/signature dynamically and drop with RESTRICT (NEVER CASCADE)
-    FOR r IN (
-        SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-        FROM pg_proc p
-        JOIN pg_namespace n ON p.pronamespace = n.oid
-        WHERE n.nspname = 'public' AND p.proname = 'get_user_auth_debug'
-    ) LOOP
-        EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM PUBLIC, anon, authenticated, service_role', r.proname, r.args);
-        EXECUTE format('DROP FUNCTION public.%I(%s) RESTRICT', r.proname, r.args);
+        -- 2. Assertion: Verify that NO function with this name remains in public schema
+        IF EXISTS (
+            SELECT 1 FROM pg_proc p
+            JOIN pg_namespace n ON p.pronamespace = n.oid
+            WHERE n.nspname = 'public' AND p.proname = v_proc_name
+        ) THEN
+            RAISE EXCEPTION 'Assertion failed: Fungsi % masih ditemukan pada skema public setelah drop', v_proc_name;
+        END IF;
     END LOOP;
-
-    -- 3. Assertion: Verify that NO function named get_user_auth_debug remains in public schema
-    IF EXISTS (
-        SELECT 1 FROM pg_proc p
-        JOIN pg_namespace n ON p.pronamespace = n.oid
-        WHERE n.nspname = 'public' AND p.proname = 'get_user_auth_debug'
-    ) THEN
-        RAISE EXCEPTION 'Assertion failed: Fungsi get_user_auth_debug masih ditemukan pada skema public setelah drop';
-    END IF;
 END $$;
 
 

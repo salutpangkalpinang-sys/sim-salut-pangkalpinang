@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(47);
+SELECT plan(48);
 
 -- ============================================================================
 -- 1. AUDIT RPC DEBUG REMOVAL & SCHEMA PRIVILEGES
@@ -9,6 +9,13 @@ SELECT hasnt_function(
     'public',
     'get_user_auth_debug',
     'Fungsi get_user_auth_debug harus sudah dihapus dari skema public'
+);
+
+-- Test 2: get_auth_info must NOT exist in public schema
+SELECT hasnt_function(
+    'public',
+    'get_auth_info',
+    'Fungsi get_auth_info harus sudah dihapus dari skema public'
 );
 
 -- Test 2: public.user_emails table exists
