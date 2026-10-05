@@ -9,6 +9,7 @@ import { InvoiceFormModal } from "@/components/lip-invoices/invoice-form-modal";
 import { RoleCode } from "@/lib/auth/types";
 import { FileText, Receipt, Plus, Search, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface LipInvoiceContainerProps {
   initialLips: LipDocument[];
@@ -139,27 +140,30 @@ export function LipInvoiceContainer({
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
+        <div className="flex items-center gap-3 w-full sm:w-auto min-w-[200px]">
+          <SearchableSelect
+            options={
+              activeTab === "lip"
+                ? [
+                    { value: "", label: "Semua Status" },
+                    { value: "pending_verification", label: "Menunggu Verifikasi" },
+                    { value: "verified", label: "Terverifikasi" },
+                    { value: "cancelled", label: "Dibatalkan" },
+                  ]
+                : [
+                    { value: "", label: "Semua Status" },
+                    { value: "unpaid", label: "Belum Dibayar" },
+                    { value: "paid", label: "Lunas" },
+                    { value: "cancelled", label: "Dibatalkan" },
+                  ]
+            }
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-xs"
-          >
-            <option value="">Semua Status</option>
-            {activeTab === "lip" ? (
-              <>
-                <option value="pending_verification">Menunggu Verifikasi</option>
-                <option value="verified">Terverifikasi</option>
-                <option value="cancelled">Dibatalkan</option>
-              </>
-            ) : (
-              <>
-                <option value="unpaid">Belum Dibayar</option>
-                <option value="paid">Lunas</option>
-                <option value="cancelled">Dibatalkan</option>
-              </>
-            )}
-          </select>
+            onChange={(val) => setStatusFilter(val)}
+            placeholder="Semua Status"
+            size="sm"
+            colorScheme={activeTab === "lip" ? "blue" : "emerald"}
+            className="w-full"
+          />
 
           <button
             type="button"

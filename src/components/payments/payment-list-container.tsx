@@ -8,6 +8,7 @@ import { VoidRequestDialog } from "@/components/payments/void-request-dialog";
 import { RoleCode } from "@/lib/auth/types";
 import { CreditCard, Plus, Search, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface PaymentListContainerProps {
   initialPayments: StudentPayment[];
@@ -118,31 +119,43 @@ export function PaymentListContainer({
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
-            value={methodFilter}
-            onChange={(e) => setMethodFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-xs"
-          >
-            <option value="">Semua Metode</option>
-            {options.paymentMethods.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="min-w-[170px]">
+            <SearchableSelect
+              options={[
+                { value: "", label: "Semua Metode" },
+                ...options.paymentMethods.map((m) => ({
+                  value: m.id,
+                  label: m.name,
+                  sublabel: m.code,
+                })),
+              ]}
+              value={methodFilter}
+              onChange={(val) => setMethodFilter(val)}
+              placeholder="Semua Metode"
+              size="sm"
+              colorScheme="emerald"
+              className="w-full"
+            />
+          </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-xs"
-          >
-            <option value="">Semua Status</option>
-            <option value="pending_verification">Menunggu Verifikasi</option>
-            <option value="verified">Terverifikasi</option>
-            <option value="rejected">Ditolak</option>
-            <option value="voided">Dibatalkan (Void)</option>
-          </select>
+          <div className="min-w-[170px]">
+            <SearchableSelect
+              options={[
+                { value: "", label: "Semua Status" },
+                { value: "pending_verification", label: "Menunggu Verifikasi" },
+                { value: "verified", label: "Terverifikasi" },
+                { value: "rejected", label: "Ditolak" },
+                { value: "voided", label: "Dibatalkan (Void)" },
+              ]}
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val)}
+              placeholder="Semua Status"
+              size="sm"
+              colorScheme="emerald"
+              className="w-full"
+            />
+          </div>
 
           <button
             type="button"

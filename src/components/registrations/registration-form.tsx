@@ -7,6 +7,7 @@ import { createRegistrationAction, getAvailableCandidateFeeRatesAction } from "@
 import { getOfficialUtTariff, UT_OFFICIAL_GENERAL_FEES, formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
 import { X, FileCheck, Save, AlertCircle, Plus, Trash2, Calculator } from "lucide-react";
 import { StudentCombobox } from "@/components/ui/student-combobox";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface RegistrationFormProps {
   isOpen: boolean;
@@ -387,74 +388,69 @@ export function RegistrationForm({
                 <label className="block text-slate-700 font-medium mb-1">
                   Periode Akademik <span className="text-red-500">*</span>
                 </label>
-                <select
-                  required
+                <SearchableSelect
+                  options={options.academicPeriods.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                    sublabel: p.code,
+                  }))}
                   value={academicPeriodId}
-                  onChange={(e) => setAcademicPeriodId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  {options.academicPeriods.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setAcademicPeriodId(val)}
+                  placeholder="Pilih Periode Akademik"
+                  required
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">
                   Jenis Registrasi <span className="text-red-500">*</span>
                 </label>
-                <select
-                  required
+                <SearchableSelect
+                  options={options.registrationTypes.map((rt) => ({
+                    value: rt.id,
+                    label: rt.name,
+                    sublabel: rt.code,
+                  }))}
                   value={registrationTypeId}
-                  onChange={(e) => setRegistrationTypeId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  {options.registrationTypes.map((rt) => (
-                    <option key={rt.id} value={rt.id}>
-                      {rt.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setRegistrationTypeId(val)}
+                  placeholder="Pilih Jenis Registrasi"
+                  required
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">
                   Program Studi (Konteks Snapshot) <span className="text-red-500">*</span>
                 </label>
-                <select
-                  required
+                <SearchableSelect
+                  options={options.studyPrograms.map((pr) => ({
+                    value: pr.id,
+                    label: pr.name,
+                    sublabel: pr.code,
+                    badge: pr.code,
+                  }))}
                   value={studyProgramId}
-                  onChange={(e) => setStudyProgramId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Program Studi</option>
-                  {options.studyPrograms.map((pr) => (
-                    <option key={pr.id} value={pr.id}>
-                      {pr.name} ({pr.code})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setStudyProgramId(val)}
+                  placeholder="Pilih Program Studi"
+                  required
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">
                   Skema Layanan (Konteks Snapshot) <span className="text-red-500">*</span>
                 </label>
-                <select
-                  required
+                <SearchableSelect
+                  options={bangkaBelitungSchemes.map((sc) => ({
+                    value: sc.id,
+                    label: sc.name,
+                    sublabel: sc.code,
+                  }))}
                   value={serviceSchemeId}
-                  onChange={(e) => setServiceSchemeId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Skema (Khusus Wilayah Bangka Belitung)</option>
-                  {bangkaBelitungSchemes.map((sc) => (
-                    <option key={sc.id} value={sc.id}>
-                      {sc.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setServiceSchemeId(val)}
+                  placeholder="Pilih Skema Layanan"
+                  required
+                />
               </div>
 
               <div>
@@ -490,18 +486,19 @@ export function RegistrationForm({
               <span className="text-[11px] text-slate-600 font-medium whitespace-nowrap hidden sm:inline">
                 Tambah Komponen Opsional:
               </span>
-              <select
-                value={selectedCandidateRateId}
-                onChange={(e) => setSelectedCandidateRateId(e.target.value)}
-                className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="">-- Pilih Komponen Biaya Opsional dari Master Tarif --</option>
-                {mergedCandidateRates.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} — (Rp {r.unitAmount.toLocaleString("id-ID")})
-                  </option>
-                ))}
-              </select>
+              <div className="flex-1">
+                <SearchableSelect
+                  options={mergedCandidateRates.map((r) => ({
+                    value: r.id,
+                    label: `${r.name} — (Rp ${r.unitAmount.toLocaleString("id-ID")})`,
+                    searchTerms: `${r.name} ${r.unitAmount}`,
+                  }))}
+                  value={selectedCandidateRateId}
+                  onChange={(val) => setSelectedCandidateRateId(val)}
+                  placeholder="-- Pilih Komponen Biaya Opsional dari Master Tarif --"
+                  size="sm"
+                />
+              </div>
               <button
                 type="button"
                 disabled={!selectedCandidateRateId}

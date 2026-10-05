@@ -7,6 +7,7 @@ import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, Wallet, Upload, AlertCircle, Save, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface OperationalFormModalProps {
   isOpen: boolean;
@@ -184,22 +185,17 @@ export function OperationalFormModal({
               <label className="block text-slate-700 font-medium mb-1">
                 Kategori <span className="text-red-500">*</span>
               </label>
-              <select
-                required
+              <SearchableSelect
+                options={filteredCategories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  sublabel: c.code,
+                }))}
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                {filteredCategories.length > 0 ? (
-                  filteredCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">Tidak ada kategori aktif</option>
-                )}
-              </select>
+                onChange={(val) => setCategoryId(val)}
+                placeholder="Pilih Kategori Transaksi"
+                required
+              />
             </div>
 
             <DatePickerId
@@ -228,18 +224,19 @@ export function OperationalFormModal({
 
             <div>
               <label className="block text-slate-700 font-medium mb-1">Sumber / Rekening Kas</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: "", label: "Pilih Rekening Kas" },
+                  ...cashAccounts.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    sublabel: c.code,
+                  })),
+                ]}
                 value={cashAccountId}
-                onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="">Pilih Rekening Kas</option>
-                {cashAccounts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCashAccountId(val)}
+                placeholder="Pilih Rekening Kas"
+              />
             </div>
           </div>
 

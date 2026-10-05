@@ -5,6 +5,7 @@ import { createStudentPaymentAction } from "@/features/payments/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, CreditCard, Upload, AlertCircle, Save } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 
@@ -230,34 +231,36 @@ export function PaymentFormModal({
               <label className="block text-slate-700 font-medium mb-1">
                 Metode Pembayaran <span className="text-red-500">*</span>
               </label>
-              <select
-                required
+              <SearchableSelect
+                options={options.paymentMethods.map((m) => ({
+                  value: m.id,
+                  label: m.name,
+                  sublabel: m.code,
+                }))}
                 value={paymentMethodId}
-                onChange={(e) => setPaymentMethodId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              >
-                {options.paymentMethods.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setPaymentMethodId(val)}
+                placeholder="Pilih Metode Pembayaran"
+                colorScheme="emerald"
+                required
+              />
             </div>
 
             <div>
               <label className="block text-slate-700 font-medium mb-1">Rekening Kas Penerima</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: "", label: "Pilih Rekening Kas" },
+                  ...options.cashAccounts.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    sublabel: c.code,
+                  })),
+                ]}
                 value={cashAccountId}
-                onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              >
-                <option value="">Pilih Rekening Kas</option>
-                {options.cashAccounts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCashAccountId(val)}
+                placeholder="Pilih Rekening Kas"
+                colorScheme="emerald"
+              />
             </div>
           </div>
 

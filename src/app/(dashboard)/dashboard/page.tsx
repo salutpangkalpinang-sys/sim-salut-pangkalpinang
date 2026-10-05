@@ -10,7 +10,7 @@ import {
 import { getRegistrationMasterOptions } from "@/features/registrations/queries";
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards";
 import { DashboardWidgets } from "@/components/dashboard/dashboard-widgets";
-import { Calendar } from "lucide-react";
+import { DashboardPeriodFilter } from "@/components/dashboard/dashboard-period-filter";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage({
@@ -119,22 +119,11 @@ export default async function DashboardPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
-          {/* Period Selector Form */}
-          <form className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg shadow-xs">
-            <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-            <select
-              name="periodId"
-              defaultValue={metrics.selectedPeriodId || ""}
-              className="bg-transparent text-xs text-slate-700 font-medium focus:outline-none cursor-pointer"
-            >
-              <option value="">Semua Periode Akademik</option>
-              {(masterOptions?.academicPeriods || []).map((p: any) => (
-                <option key={p.id} value={p.id} className="bg-white text-slate-800">
-                  {p.name} ({p.code})
-                </option>
-              ))}
-            </select>
-          </form>
+          {/* Period Selector Component */}
+          <DashboardPeriodFilter
+            periods={masterOptions?.academicPeriods || []}
+            selectedPeriodId={metrics.selectedPeriodId || ""}
+          />
         </div>
       </div>
 

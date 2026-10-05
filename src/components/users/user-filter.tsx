@@ -3,6 +3,7 @@
 import { UserFilter } from "@/types/user";
 import { RoleCode } from "@/lib/auth/types";
 import { Search, Filter, RotateCcw } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface UserFilterBarProps {
   filter: UserFilter;
@@ -14,17 +15,17 @@ export function UserFilterBar({ filter, onFilterChange }: UserFilterBarProps) {
     onFilterChange({ ...filter, search: e.target.value });
   };
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleRoleChange = (val: string) => {
     onFilterChange({
       ...filter,
-      role: e.target.value as RoleCode | "ALL",
+      role: val as RoleCode | "ALL",
     });
   };
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleStatusChange = (val: string) => {
     onFilterChange({
       ...filter,
-      status: e.target.value as "ACTIVE" | "INACTIVE" | "ALL",
+      status: val as "ACTIVE" | "INACTIVE" | "ALL",
     });
   };
 
@@ -49,32 +50,40 @@ export function UserFilterBar({ filter, onFilterChange }: UserFilterBarProps) {
       {/* Filters & Actions */}
       <div className="flex flex-wrap items-center gap-2.5 shrink-0">
         {/* Filter Role */}
-        <div className="flex items-center gap-1.5">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <select
-            value={filter.role || "ALL"}
-            onChange={handleRoleChange}
-            className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-          >
-            <option value="ALL">Semua Peran (Role)</option>
-            <option value="owner">Owner / Pimpinan</option>
-            <option value="admin">Admin (Akses Penuh)</option>
-            <option value="academic_admin">Admin Akademik</option>
-            <option value="finance_admin">Admin Keuangan</option>
-            <option value="viewer">Viewer / Auditor</option>
-          </select>
+        <div className="flex items-center gap-1.5 w-52">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex-1">
+            <SearchableSelect
+              value={filter.role || "ALL"}
+              onChange={handleRoleChange}
+              placeholder="Semua Peran (Role)"
+              options={[
+                { value: "ALL", label: "Semua Peran (Role)" },
+                { value: "owner", label: "Owner / Pimpinan" },
+                { value: "admin", label: "Admin (Akses Penuh)" },
+                { value: "academic_admin", label: "Admin Akademik" },
+                { value: "finance_admin", label: "Admin Keuangan" },
+                { value: "viewer", label: "Viewer / Auditor" },
+              ]}
+              triggerClassName="py-2 text-xs bg-slate-50"
+            />
+          </div>
         </div>
 
         {/* Filter Status */}
-        <select
-          value={filter.status || "ALL"}
-          onChange={handleStatusChange}
-          className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-        >
-          <option value="ALL">Semua Status</option>
-          <option value="ACTIVE">Status: Aktif</option>
-          <option value="INACTIVE">Status: Nonaktif</option>
-        </select>
+        <div className="w-40">
+          <SearchableSelect
+            value={filter.status || "ALL"}
+            onChange={handleStatusChange}
+            placeholder="Semua Status"
+            options={[
+              { value: "ALL", label: "Semua Status" },
+              { value: "ACTIVE", label: "Status: Aktif" },
+              { value: "INACTIVE", label: "Status: Nonaktif" },
+            ]}
+            triggerClassName="py-2 text-xs bg-slate-50"
+          />
+        </div>
 
         {/* Reset Filter Button */}
         {(filter.search || (filter.role && filter.role !== "ALL") || (filter.status && filter.status !== "ALL")) && (

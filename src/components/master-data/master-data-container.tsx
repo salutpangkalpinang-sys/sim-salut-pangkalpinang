@@ -20,6 +20,7 @@ import {
 } from "@/features/master-data/actions";
 
 import { RoleCode, hasPermission } from "@/lib/auth/types";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Calendar,
   GraduationCap,
@@ -339,15 +340,17 @@ export function MasterDataContainer({ data, userRole }: MasterDataContainerProps
                 </div>
                 <div>
                   <label className="block text-slate-700 mb-1">Semester/Term</label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: "Ganjil", label: "Ganjil" },
+                      { value: "Genap", label: "Genap" },
+                      { value: "Pendek", label: "Pendek" },
+                    ]}
                     value={newPeriodTerm}
-                    onChange={(e) => setNewPeriodTerm(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="Ganjil">Ganjil</option>
-                    <option value="Genap">Genap</option>
-                    <option value="Pendek">Pendek</option>
-                  </select>
+                    onChange={(val) => setNewPeriodTerm(val)}
+                    placeholder="Pilih Semester/Term"
+                    required
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">

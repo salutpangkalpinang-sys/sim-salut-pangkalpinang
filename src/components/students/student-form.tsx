@@ -7,6 +7,7 @@ import { createStudentAction, updateStudentAction } from "@/features/students/ac
 import { X, UserPlus, Save, AlertCircle, Sparkles } from "lucide-react";
 import { deriveUtMasaCode, formatUtMasaLabel, generateUtMasaOptions } from "@/lib/utils/ut-masa";
 import { DatePickerId } from "@/components/ui/date-picker-id";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface StudentFormProps {
   initialData?: Student | null;
@@ -76,6 +77,22 @@ export function StudentForm({
       studyLevelId: selectedProg?.study_level_id || prev.studyLevelId,
     }));
   };
+
+  const handleFacultyChange = (facultyId: string) => {
+    setFormData((prev) => {
+      const currentProg = options.studyPrograms.find((p) => p.id === prev.studyProgramId);
+      const isProgValid = !facultyId || (currentProg && currentProg.faculty_id === facultyId);
+      return {
+        ...prev,
+        facultyId: facultyId || null,
+        studyProgramId: isProgValid ? prev.studyProgramId : null,
+      };
+    });
+  };
+
+  const filteredStudyPrograms = formData.facultyId
+    ? options.studyPrograms.filter((p) => !p.faculty_id || p.faculty_id === formData.facultyId)
+    : options.studyPrograms;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,15 +251,15 @@ export function StudentForm({
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">Jenis Kelamin</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: "L", label: "Laki-laki" },
+                    { value: "P", label: "Perempuan" },
+                  ]}
                   value={formData.gender || ""}
-                  onChange={(e) => setFormData({ ...formData, gender: (e.target.value as "L" | "P") || null })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Jenis Kelamin</option>
-                  <option value="L">Laki-laki</option>
-                  <option value="P">Perempuan</option>
-                </select>
+                  onChange={(val) => setFormData({ ...formData, gender: (val as "L" | "P") || null })}
+                  placeholder="Pilih Jenis Kelamin"
+                />
               </div>
             </div>
           </div>
@@ -307,66 +324,59 @@ export function StudentForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
               <div>
                 <label className="block text-slate-700 font-medium mb-1">Program Studi</label>
-                <select
+                <SearchableSelect
+                  options={filteredStudyPrograms.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                    sublabel: p.code,
+                    badge: p.code,
+                  }))}
                   value={formData.studyProgramId || ""}
-                  onChange={(e) => handleProgramChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Program Studi</option>
-                  {options.studyPrograms.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.code})
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleProgramChange}
+                  placeholder="Pilih Program Studi"
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">Fakultas</label>
-                <select
+                <SearchableSelect
+                  options={options.faculties.map((f) => ({
+                    value: f.id,
+                    label: f.name,
+                    sublabel: f.code,
+                  }))}
                   value={formData.facultyId || ""}
-                  onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Fakultas</option>
-                  {options.faculties.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleFacultyChange}
+                  placeholder="Pilih Fakultas"
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">Jenjang Studi</label>
-                <select
+                <SearchableSelect
+                  options={options.studyLevels.map((l) => ({
+                    value: l.id,
+                    label: l.name,
+                    sublabel: l.code,
+                  }))}
                   value={formData.studyLevelId || ""}
-                  onChange={(e) => setFormData({ ...formData, studyLevelId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Jenjang</option>
-                  {options.studyLevels.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, studyLevelId: val })}
+                  placeholder="Pilih Jenjang"
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">Skema Layanan</label>
-                <select
+                <SearchableSelect
+                  options={options.serviceSchemes.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    sublabel: s.code,
+                  }))}
                   value={formData.serviceSchemeId || ""}
-                  onChange={(e) => setFormData({ ...formData, serviceSchemeId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value="">Pilih Skema</option>
-                  {options.serviceSchemes.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, serviceSchemeId: val })}
+                  placeholder="Pilih Skema"
+                />
               </div>
 
               <div>
@@ -378,41 +388,33 @@ export function StudentForm({
                     </span>
                   )}
                 </label>
-                <select
-                  value={formData.entryYear || autoDerivedEntryYear}
-                  onChange={(e) => setFormData({ ...formData, entryYear: parseInt(e.target.value, 10) || null })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm font-medium font-mono"
-                >
-                  {/* Current value fallback if not in options */}
-                  {formData.entryYear && !masaSelectOptions.some((o) => o.value === formData.entryYear) && (
-                    <option value={formData.entryYear}>
-                      {formData.entryYear}
-                    </option>
-                  )}
-                  {masaSelectOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={masaSelectOptions.map((opt) => ({
+                    value: String(opt.value),
+                    label: opt.label,
+                    searchTerms: String(opt.value),
+                  }))}
+                  value={String(formData.entryYear || autoDerivedEntryYear || "")}
+                  onChange={(val) => setFormData({ ...formData, entryYear: parseInt(val, 10) || null })}
+                  placeholder="Pilih Angkatan/Masa UT"
+                />
               </div>
 
               <div>
                 <label className="block text-slate-700 font-medium mb-1">
                   Status Mahasiswa <span className="text-red-500">*</span>
                 </label>
-                <select
-                  required
+                <SearchableSelect
+                  options={options.statuses.map((st) => ({
+                    value: st.id,
+                    label: st.name,
+                    sublabel: st.code,
+                  }))}
                   value={formData.statusId || ""}
-                  onChange={(e) => setFormData({ ...formData, statusId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  {options.statuses.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, statusId: val })}
+                  placeholder="Pilih Status Mahasiswa"
+                  required
+                />
               </div>
             </div>
           </div>

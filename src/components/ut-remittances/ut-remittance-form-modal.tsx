@@ -6,6 +6,7 @@ import { createUtRemittanceAction } from "@/features/ut-remittances/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, Building2, Upload, AlertCircle, Save, Trash2 } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 
@@ -189,18 +190,19 @@ export function UtRemittanceFormModal({
 
             <div>
               <label className="block text-slate-700 font-medium mb-1">Sumber Rekening Kas</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: "", label: "Pilih Rekening Kas" },
+                  ...cashAccounts.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    sublabel: c.code,
+                  })),
+                ]}
                 value={cashAccountId}
-                onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="">Pilih Rekening Kas</option>
-                {cashAccounts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCashAccountId(val)}
+                placeholder="Pilih Rekening Kas"
+              />
             </div>
 
             <div>

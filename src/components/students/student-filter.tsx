@@ -3,6 +3,7 @@
 import { MasterOption } from "@/types/student";
 import { Search, RotateCcw, Filter } from "lucide-react";
 import { generateUtMasaOptions } from "@/lib/utils/ut-masa";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface StudentFilterProps {
   search: string;
@@ -83,102 +84,128 @@ export function StudentFilter({
 
         {/* Fakultas Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Fakultas" },
+              ...options.faculties.map((f) => ({
+                value: f.id,
+                label: f.name,
+                sublabel: f.code,
+              })),
+            ]}
             value={facultyId}
-            onChange={(e) => onFacultyChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Fakultas</option>
-            {options.faculties.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => {
+              onFacultyChange(val);
+              if (val && studyProgramId) {
+                const prog = options.studyPrograms.find((p) => p.id === studyProgramId);
+                if (prog && prog.faculty_id && prog.faculty_id !== val) {
+                  onStudyProgramChange("");
+                }
+              }
+            }}
+            placeholder="Semua Fakultas"
+            size="sm"
+          />
         </div>
 
         {/* Program Studi Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Prodi" },
+              ...(facultyId
+                ? options.studyPrograms.filter((p) => !p.faculty_id || p.faculty_id === facultyId)
+                : options.studyPrograms
+              ).map((p) => ({
+                value: p.id,
+                label: p.name,
+                sublabel: p.code,
+                badge: p.code,
+              })),
+            ]}
             value={studyProgramId}
-            onChange={(e) => onStudyProgramChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Prodi</option>
-            {options.studyPrograms.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onStudyProgramChange(val)}
+            placeholder="Semua Prodi"
+            size="sm"
+          />
         </div>
 
         {/* Angkatan / Masa UT Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Angkatan" },
+              ...masaOptions.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+                searchTerms: opt.value,
+              })),
+            ]}
             value={entryYear}
-            onChange={(e) => onEntryYearChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Angkatan</option>
-            {masaOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onEntryYearChange(val)}
+            placeholder="Semua Angkatan"
+            size="sm"
+          />
         </div>
 
         {/* Skema Layanan Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Skema" },
+              ...options.serviceSchemes.map((s) => ({
+                value: s.id,
+                label: s.name,
+                sublabel: s.code,
+              })),
+            ]}
             value={serviceSchemeId}
-            onChange={(e) => onServiceSchemeChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Skema</option>
-            {options.serviceSchemes.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onServiceSchemeChange(val)}
+            placeholder="Semua Skema"
+            size="sm"
+          />
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-xs">
         {!isCalonView ? (
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">Status:</span>
-            <select
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <span className="text-slate-500 whitespace-nowrap">Status:</span>
+            <SearchableSelect
+              options={[
+                { value: "", label: "Semua Status" },
+                ...options.statuses.map((st) => ({
+                  value: st.id,
+                  label: st.name,
+                  sublabel: st.code,
+                })),
+              ]}
               value={statusId}
-              onChange={(e) => onStatusChange(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            >
-              <option value="">Semua Status</option>
-              {options.statuses.map((st) => (
-                <option key={st.id} value={st.id}>
-                  {st.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => onStatusChange(val)}
+              placeholder="Semua Status"
+              size="sm"
+              className="w-full"
+            />
           </div>
         ) : (
           <div />
         )}
 
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">Urutkan:</span>
-          <select
+        <div className="flex items-center gap-2 min-w-[190px]">
+          <span className="text-slate-500 whitespace-nowrap">Urutkan:</span>
+          <SearchableSelect
+            options={[
+              { value: "createdAt", label: "Terbaru Didaftarkan" },
+              { value: "fullName", label: "Nama (A-Z)" },
+              ...(!isCalonView ? [{ value: "nim", label: "NIM" }] : []),
+              { value: "entryYear", label: "Angkatan" },
+            ]}
             value={sortBy}
-            onChange={(e) => onSortByChange(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="createdAt">Terbaru Didaftarkan</option>
-            <option value="fullName">Nama (A-Z)</option>
-            {!isCalonView && <option value="nim">NIM</option>}
-            <option value="entryYear">Angkatan</option>
-          </select>
+            onChange={(val) => onSortByChange(val)}
+            placeholder="Urutan..."
+            size="sm"
+            className="w-full"
+          />
         </div>
       </div>
     </div>

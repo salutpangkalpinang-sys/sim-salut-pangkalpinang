@@ -8,6 +8,7 @@ import { OperationalVoidDialog } from "@/components/operational/operational-void
 import { RoleCode } from "@/lib/auth/types";
 import { Wallet, Search, RotateCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface OperationalContainerProps {
   initialTransactions: OperationalTransaction[];
@@ -124,45 +125,60 @@ export function OperationalContainer({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setCategoryFilter("");
-            }}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-xs"
-          >
-            <option value="">Semua Jenis</option>
-            <option value="income">Pemasukan</option>
-            <option value="expense">Pengeluaran</option>
-          </select>
+          <div className="min-w-[140px]">
+            <SearchableSelect
+              options={[
+                { value: "", label: "Semua Jenis" },
+                { value: "income", label: "Pemasukan" },
+                { value: "expense", label: "Pengeluaran" },
+              ]}
+              value={typeFilter}
+              onChange={(val) => {
+                setTypeFilter(val);
+                setCategoryFilter("");
+              }}
+              placeholder="Semua Jenis"
+              size="sm"
+              className="w-full"
+            />
+          </div>
 
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-xs"
-          >
-            <option value="">Semua Kategori</option>
-            {categories
-              .filter((c) => !typeFilter || c.transactionType === typeFilter)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.transactionType === "income" ? "Income" : "Expense"})
-                </option>
-              ))}
-          </select>
+          <div className="min-w-[180px]">
+            <SearchableSelect
+              options={[
+                { value: "", label: "Semua Kategori" },
+                ...categories
+                  .filter((c) => !typeFilter || c.transactionType === typeFilter)
+                  .map((c) => ({
+                    value: c.id,
+                    label: `${c.name} (${c.transactionType === "income" ? "Income" : "Expense"})`,
+                    sublabel: c.code,
+                  })),
+              ]}
+              value={categoryFilter}
+              onChange={(val) => setCategoryFilter(val)}
+              placeholder="Semua Kategori"
+              size="sm"
+              className="w-full"
+            />
+          </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-xs"
-          >
-            <option value="">Semua Status</option>
-            <option value="pending_verification">Menunggu Verifikasi</option>
-            <option value="verified">Terverifikasi</option>
-            <option value="rejected">Ditolak</option>
-            <option value="voided">Dibatalkan (Void)</option>
-          </select>
+          <div className="min-w-[160px]">
+            <SearchableSelect
+              options={[
+                { value: "", label: "Semua Status" },
+                { value: "pending_verification", label: "Menunggu Verifikasi" },
+                { value: "verified", label: "Terverifikasi" },
+                { value: "rejected", label: "Ditolak" },
+                { value: "voided", label: "Dibatalkan (Void)" },
+              ]}
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val)}
+              placeholder="Semua Status"
+              size="sm"
+              className="w-full"
+            />
+          </div>
 
           <button
             type="button"

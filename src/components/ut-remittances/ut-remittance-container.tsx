@@ -8,6 +8,7 @@ import { UtRemittanceVoidDialog } from "@/components/ut-remittances/ut-remittanc
 import { RoleCode } from "@/lib/auth/types";
 import { Building2, Plus, Search, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface UtRemittanceContainerProps {
   initialRemittances: UtRemittance[];
@@ -101,17 +102,21 @@ export function UtRemittanceContainer({
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-xs"
-          >
-            <option value="">Semua Status</option>
-            <option value="pending_verification">Menunggu Verifikasi</option>
-            <option value="verified">Terverifikasi</option>
-            <option value="rejected">Ditolak</option>
-            <option value="voided">Dibatalkan (Void)</option>
-          </select>
+          <div className="w-full sm:w-48">
+            <SearchableSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="Semua Status"
+              options={[
+                { value: "", label: "Semua Status" },
+                { value: "pending_verification", label: "Menunggu Verifikasi" },
+                { value: "verified", label: "Terverifikasi" },
+                { value: "rejected", label: "Ditolak" },
+                { value: "voided", label: "Dibatalkan (Void)" },
+              ]}
+              triggerClassName="py-2 text-xs"
+            />
+          </div>
 
           <button
             type="button"

@@ -3,6 +3,7 @@
 import { AuditFilter } from "@/types/audit";
 import { RoleCode } from "@/lib/auth/types";
 import { Search, Filter, RotateCcw } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 
 interface AuditFilterBarProps {
@@ -15,12 +16,12 @@ export function AuditFilterBar({ filter, onFilterChange }: AuditFilterBarProps) 
     onFilterChange({ ...filter, search: e.target.value, page: 1 });
   };
 
-  const handleModuleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onFilterChange({ ...filter, module: e.target.value, page: 1 });
+  const handleModuleChange = (val: string) => {
+    onFilterChange({ ...filter, module: val, page: 1 });
   };
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onFilterChange({ ...filter, role: e.target.value as RoleCode | "ALL", page: 1 });
+  const handleRoleChange = (val: string) => {
+    onFilterChange({ ...filter, role: val as RoleCode | "ALL", page: 1 });
   };
 
   const handleReset = () => {
@@ -61,36 +62,46 @@ export function AuditFilterBar({ filter, onFilterChange }: AuditFilterBarProps) 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-100">
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Module Filter */}
-          <div className="flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <select
+          <div className="flex items-center gap-1 min-w-[200px]">
+            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <SearchableSelect
+              options={[
+                { value: "ALL", label: "Semua Modul" },
+                { value: "user_management", label: "Pengguna & Hak Akses" },
+                { value: "academic_student", label: "Akademik & Mahasiswa" },
+                { value: "registration", label: "Registrasi Semester" },
+                { value: "lip_invoice", label: "LIP & Tagihan" },
+                { value: "payments", label: "Pembayaran Mahasiswa" },
+                { value: "ut_remittances", label: "Setoran UT" },
+                { value: "operational", label: "Kas & Operasional" },
+              ]}
               value={filter.module || "ALL"}
               onChange={handleModuleChange}
-              className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-            >
-              <option value="ALL">Semua Modul</option>
-              <option value="user_management">Pengguna & Hak Akses</option>
-              <option value="academic_student">Akademik & Mahasiswa</option>
-              <option value="registration">Registrasi Semester</option>
-              <option value="lip_invoice">LIP & Tagihan</option>
-              <option value="payments">Pembayaran Mahasiswa</option>
-              <option value="ut_remittances">Setoran UT</option>
-              <option value="operational">Kas & Operasional</option>
-            </select>
+              placeholder="Pilih Modul..."
+              size="sm"
+              colorScheme="purple"
+              className="w-full"
+            />
           </div>
 
           {/* Role Filter */}
-          <select
-            value={filter.role || "ALL"}
-            onChange={handleRoleChange}
-            className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-          >
-            <option value="ALL">Semua Peran Actor</option>
-            <option value="owner">Owner / Pimpinan</option>
-            <option value="academic_admin">Admin Akademik</option>
-            <option value="finance_admin">Admin Keuangan</option>
-            <option value="viewer">Viewer / Auditor</option>
-          </select>
+          <div className="min-w-[170px]">
+            <SearchableSelect
+              options={[
+                { value: "ALL", label: "Semua Peran Actor" },
+                { value: "owner", label: "Owner / Pimpinan" },
+                { value: "academic_admin", label: "Admin Akademik" },
+                { value: "finance_admin", label: "Admin Keuangan" },
+                { value: "viewer", label: "Viewer / Auditor" },
+              ]}
+              value={filter.role || "ALL"}
+              onChange={handleRoleChange}
+              placeholder="Pilih Peran..."
+              size="sm"
+              colorScheme="purple"
+              className="w-full"
+            />
+          </div>
 
           {/* Date Range Inputs */}
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg p-1">

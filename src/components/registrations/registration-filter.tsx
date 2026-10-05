@@ -2,6 +2,7 @@
 
 import { RegistrationType } from "@/types/registration";
 import { Search, RotateCcw, Filter } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface RegistrationFilterProps {
   search: string;
@@ -73,82 +74,94 @@ export function RegistrationFilter({
 
         {/* Periode Akademik Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Periode" },
+              ...options.academicPeriods.map((p) => ({
+                value: p.id,
+                label: p.name,
+                sublabel: p.code,
+              })),
+            ]}
             value={academicPeriodId}
-            onChange={(e) => onAcademicPeriodChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Periode</option>
-            {options.academicPeriods.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onAcademicPeriodChange(val)}
+            placeholder="Semua Periode"
+            size="sm"
+          />
         </div>
 
         {/* Jenis Registrasi Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Jenis Registrasi" },
+              ...options.registrationTypes.map((t) => ({
+                value: t.id,
+                label: t.name,
+                sublabel: t.code,
+              })),
+            ]}
             value={registrationTypeId}
-            onChange={(e) => onRegistrationTypeChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Jenis Registrasi</option>
-            {options.registrationTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onRegistrationTypeChange(val)}
+            placeholder="Semua Jenis"
+            size="sm"
+          />
         </div>
 
         {/* Program Studi Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Prodi" },
+              ...options.studyPrograms.map((pr) => ({
+                value: pr.id,
+                label: pr.name,
+                sublabel: pr.code,
+                badge: pr.code,
+              })),
+            ]}
             value={studyProgramId}
-            onChange={(e) => onStudyProgramChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Prodi</option>
-            {options.studyPrograms.map((pr) => (
-              <option key={pr.id} value={pr.id}>
-                {pr.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onStudyProgramChange(val)}
+            placeholder="Semua Prodi"
+            size="sm"
+          />
         </div>
 
         {/* Skema Filter */}
         <div>
-          <select
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Skema" },
+              ...options.serviceSchemes.map((s) => ({
+                value: s.id,
+                label: s.name,
+                sublabel: s.code,
+              })),
+            ]}
             value={serviceSchemeId}
-            onChange={(e) => onServiceSchemeChange(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Skema</option>
-            {options.serviceSchemes.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onServiceSchemeChange(val)}
+            placeholder="Semua Skema"
+            size="sm"
+          />
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500">Status Registrasi:</span>
-          <select
+        <div className="flex items-center gap-2 min-w-[200px]">
+          <span className="text-slate-500 whitespace-nowrap">Status Registrasi:</span>
+          <SearchableSelect
+            options={[
+              { value: "", label: "Semua Status" },
+              { value: "active", label: "Aktif" },
+              { value: "draft", label: "Draft" },
+              { value: "cancelled", label: "Dibatalkan" },
+            ]}
             value={status}
-            onChange={(e) => onStatusChange(e.target.value)}
-            className="px-3 py-1 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            <option value="">Semua Status</option>
-            <option value="active">Aktif</option>
-            <option value="draft">Draft</option>
-            <option value="cancelled">Dibatalkan</option>
-          </select>
+            onChange={(val) => onStatusChange(val)}
+            placeholder="Semua Status"
+            size="sm"
+            className="w-full"
+          />
         </div>
       </div>
     </div>
