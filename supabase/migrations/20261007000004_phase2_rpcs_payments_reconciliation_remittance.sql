@@ -420,6 +420,7 @@ DECLARE
     v_in_id UUID;
     v_key_out UUID;
     v_key_in UUID;
+    v_source_period_balance BIGINT := 0;
 BEGIN
     SET search_path = public, pg_temp;
     v_actor_id := auth.uid();
@@ -428,6 +429,28 @@ BEGIN
     v_actor_role := public.get_current_user_role();
     IF v_actor_role NOT IN ('owner', 'admin', 'finance_admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak memiliki izin carry-forward saldo.', v_actor_role;
+    END IF;
+
+    IF p_amount <= 0 THEN
+        RAISE EXCEPTION 'INVALID_AMOUNT: Nominal carry-forward harus lebih besar dari 0 (Diberikan: Rp %).', p_amount;
+    END IF;
+
+    IF p_source_period_id = p_target_period_id THEN
+        RAISE EXCEPTION 'INVALID_PERIOD: Periode asal dan target carry-forward tidak boleh sama.';
+    END IF;
+
+    -- ADVISORY LOCK per student at outer RPC level to serialize carry-forward
+    PERFORM pg_advisory_xact_lock(hashtext('student_credit_' || p_student_id::text));
+
+    -- VALIDATE SOURCE PERIOD POSTED BALANCE
+    SELECT COALESCE(SUM(CASE WHEN entry_type = 'credit' THEN amount ELSE -amount END), 0)
+    INTO v_source_period_balance
+    FROM public.student_credit_ledgers
+    WHERE student_id = p_student_id AND academic_period_id = p_source_period_id AND status = 'posted';
+
+    IF p_amount > v_source_period_balance THEN
+        RAISE EXCEPTION 'INSUFFICIENT_CREDIT_BALANCE: Saldo kredit mahasiswa pada periode asal tidak mencukupi (Tersedia: Rp %, Diminta: Rp %).',
+            v_source_period_balance, p_amount;
     END IF;
 
     v_key_out := gen_random_uuid();

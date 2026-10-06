@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$TestName = "all"
 )
 
@@ -33,31 +33,31 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- Ensure auth users & profiles
 INSERT INTO auth.users (id, email) VALUES
-    ('20000000-0000-0000-0000-000000000001', 'owner_cc@salut.local'),
-    ('20000000-0000-0000-0000-000000000002', 'admin_cc@salut.local'),
-    ('20000000-0000-0000-0000-000000000003', 'acad_cc@salut.local'),
-    ('20000000-0000-0000-0000-000000000004', 'fin_cc@salut.local')
+    ('25000000-0000-0000-0000-000000000001', 'owner_cc@salut.local'),
+    ('25000000-0000-0000-0000-000000000002', 'admin_cc@salut.local'),
+    ('25000000-0000-0000-0000-000000000003', 'acad_cc@salut.local'),
+    ('25000000-0000-0000-0000-000000000004', 'fin_cc@salut.local')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, full_name, is_active) VALUES
-    ('20000000-0000-0000-0000-000000000001', 'Owner CC', TRUE),
-    ('20000000-0000-0000-0000-000000000002', 'Admin CC', TRUE),
-    ('20000000-0000-0000-0000-000000000003', 'Acad CC', TRUE),
-    ('20000000-0000-0000-0000-000000000004', 'Fin CC', TRUE)
+    ('25000000-0000-0000-0000-000000000001', 'Owner CC', TRUE),
+    ('25000000-0000-0000-0000-000000000002', 'Admin CC', TRUE),
+    ('25000000-0000-0000-0000-000000000003', 'Acad CC', TRUE),
+    ('25000000-0000-0000-0000-000000000004', 'Fin CC', TRUE)
 ON CONFLICT (id) DO UPDATE SET is_active = TRUE;
 
 DELETE FROM public.user_roles WHERE user_id IN (
-    '20000000-0000-0000-0000-000000000001',
-    '20000000-0000-0000-0000-000000000002',
-    '20000000-0000-0000-0000-000000000003',
-    '20000000-0000-0000-0000-000000000004'
+    '25000000-0000-0000-0000-000000000001',
+    '25000000-0000-0000-0000-000000000002',
+    '25000000-0000-0000-0000-000000000003',
+    '25000000-0000-0000-0000-000000000004'
 );
 
 INSERT INTO public.user_roles (user_id, role_id) VALUES
-    ('20000000-0000-0000-0000-000000000001', (SELECT id FROM public.roles WHERE code = 'owner')),
-    ('20000000-0000-0000-0000-000000000002', (SELECT id FROM public.roles WHERE code = 'admin')),
-    ('20000000-0000-0000-0000-000000000003', (SELECT id FROM public.roles WHERE code = 'academic_admin')),
-    ('20000000-0000-0000-0000-000000000004', (SELECT id FROM public.roles WHERE code = 'finance_admin'));
+    ('25000000-0000-0000-0000-000000000001', (SELECT id FROM public.roles WHERE code = 'owner')),
+    ('25000000-0000-0000-0000-000000000002', (SELECT id FROM public.roles WHERE code = 'admin')),
+    ('25000000-0000-0000-0000-000000000003', (SELECT id FROM public.roles WHERE code = 'academic_admin')),
+    ('25000000-0000-0000-0000-000000000004', (SELECT id FROM public.roles WHERE code = 'finance_admin'));
 
 -- Clean previous concurrency test student & dependent records
 DELETE FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID;
@@ -94,7 +94,7 @@ Write-Host "`n--- [SCENARIO 1: Dua create_payment_with_allocation bersamaan] ---
 
 $createRegSql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000003';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000003';
 SELECT public.create_registration_with_snapshots(
     '30000000-0000-0000-0000-000000000088'::UUID,
     (SELECT id FROM public.academic_periods WHERE is_active = true LIMIT 1),
@@ -118,7 +118,7 @@ $scriptBlockConnA = {
     param($invId)
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000004';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
 SELECT public.create_payment_with_allocation(
     '30000000-0000-0000-0000-000000000088'::UUID,
     NOW(), 1000000,
@@ -146,7 +146,7 @@ $scriptBlockConnB = {
     param($invId)
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000004';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
 SELECT public.create_payment_with_allocation(
     '30000000-0000-0000-0000-000000000088'::UUID,
     NOW(), 1000000,
@@ -206,7 +206,7 @@ Write-Host "`n--- [SCENARIO 2: Dua verify_student_payment paralel pada invoice s
 
 $addPaySql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000004';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
 SELECT public.create_payment_with_allocation(
     '30000000-0000-0000-0000-000000000088'::UUID,
     NOW(), 500000,
@@ -229,7 +229,7 @@ Write-Host "Payment 2 to verify: $p2"
 
 $verifyConnA = {
     param($p1)
-    $sql = "BEGIN; SET LOCAL `"request.jwt.claim.sub`" TO '20000000-0000-0000-0000-000000000004'; SELECT public.verify_student_payment('$p1'::UUID); COMMIT;"
+    $sql = "BEGIN; SET LOCAL `"request.jwt.claim.sub`" TO '25000000-0000-0000-0000-000000000004'; SELECT public.verify_student_payment('$p1'::UUID); COMMIT;"
     $tmp = [System.IO.Path]::GetTempFileName()
     try {
         [System.IO.File]::WriteAllText($tmp, $sql)
@@ -244,7 +244,7 @@ $verifyConnA = {
 
 $verifyConnB = {
     param($p2)
-    $sql = "BEGIN; SET LOCAL `"request.jwt.claim.sub`" TO '20000000-0000-0000-0000-000000000004'; SELECT public.verify_student_payment('$p2'::UUID); COMMIT;"
+    $sql = "BEGIN; SET LOCAL `"request.jwt.claim.sub`" TO '25000000-0000-0000-0000-000000000004'; SELECT public.verify_student_payment('$p2'::UUID); COMMIT;"
     $tmp = [System.IO.Path]::GetTempFileName()
     try {
         [System.IO.File]::WriteAllText($tmp, $sql)
@@ -302,15 +302,15 @@ INSERT INTO public.student_credit_ledgers (
     (SELECT id FROM public.academic_periods WHERE is_active = true LIMIT 1),
     '80000000-0000-0000-0000-000000000099'::UUID,
     'credit', 'reconciliation_credit', 300000, 300000, 'Saldo Awal Concurrency 300k', 'posted',
-    '20000000-0000-0000-0000-000000000001'::UUID,
-    '20000000-0000-0000-0000-000000000001'::UUID, NOW()
+    '25000000-0000-0000-0000-000000000001'::UUID,
+    '25000000-0000-0000-0000-000000000001'::UUID, NOW()
 ), (
     '80000000-0000-0000-0000-000000000081'::UUID,
     '30000000-0000-0000-0000-000000000088'::UUID,
     (SELECT id FROM public.academic_periods WHERE is_active = true LIMIT 1),
     '80000000-0000-0000-0000-000000000081'::UUID,
     'debit', 'refund_payout', 200000, 100000, 'Refund Pending Maker A', 'pending_approval',
-    '20000000-0000-0000-0000-000000000002'::UUID, NULL, NULL
+    '25000000-0000-0000-0000-000000000002'::UUID, NULL, NULL
 );
 COMMIT;
 "@
@@ -322,7 +322,7 @@ Write-Host "Initial Student Credit Posted Balance: Rp $($initBal.Trim())"
 $sub3AJob = Start-Job -ScriptBlock {
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000002';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000002';
 SELECT public.request_student_credit_refund(
     '30000000-0000-0000-0000-000000000088'::UUID,
     (SELECT id FROM public.academic_periods WHERE is_active = true LIMIT 1),
@@ -356,7 +356,7 @@ if ($overRejected) {
 $approveConnA = {
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000001';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000001';
 SELECT public.approve_student_credit_refund('80000000-0000-0000-0000-000000000081'::UUID, 'approve');
 COMMIT;
 "@
@@ -375,7 +375,7 @@ COMMIT;
 $approveConnB = {
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000001';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000001';
 SELECT public.approve_student_credit_refund('80000000-0000-0000-0000-000000000081'::UUID, 'approve');
 COMMIT;
 "@
@@ -424,7 +424,7 @@ $payoffSql = @"
 BEGIN;
 DELETE FROM public.ut_remittance_items WHERE registration_id IN (SELECT id FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
 DELETE FROM public.ut_remittances WHERE idempotency_key IN ('90000000-0000-0000-0000-000000000081'::UUID, '90000000-0000-0000-0000-000000000082'::UUID);
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000004';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
 SELECT public.create_payment_with_allocation(
     '30000000-0000-0000-0000-000000000088'::UUID,
     NOW(), 300000,
@@ -444,7 +444,7 @@ Exec-Psql $payoffSql | Out-Null
 # Buat & rekonsiliasi LIP resmi Rp 1.100.000
 $lipSql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000003';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000003';
 INSERT INTO public.lip_documents (
     id, registration_id, lip_number, version, official_amount, tuition_amount,
     storage_path, original_file_name, mime_type, file_size, status, created_by, updated_by
@@ -454,7 +454,7 @@ INSERT INTO public.lip_documents (
     'LIP-CC-TEST-88', 1, 1100000, 1100000,
     'tests/lip-cc-test-88.pdf', 'lip-cc-test-88.pdf', 'application/pdf', 1024,
     'pending_verification',
-    '20000000-0000-0000-0000-000000000003'::UUID, '20000000-0000-0000-0000-000000000003'::UUID
+    '25000000-0000-0000-0000-000000000003'::UUID, '25000000-0000-0000-0000-000000000003'::UUID
 );
 SELECT public.reconcile_lip_with_invoice(
     '50000000-0000-0000-0000-000000000088'::UUID,
@@ -472,7 +472,7 @@ $remitConnA = {
     param($regId, $lipId)
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000004';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
 SELECT public.create_ut_remittance_with_items(
     NOW(), 1100000,
     (SELECT id FROM public.cash_accounts LIMIT 1),
@@ -504,7 +504,7 @@ $remitConnB = {
     param($regId, $lipId)
     $sql = @"
 BEGIN;
-SET LOCAL "request.jwt.claim.sub" TO '20000000-0000-0000-0000-000000000004';
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
 SELECT public.create_ut_remittance_with_items(
     NOW(), 1100000,
     (SELECT id FROM public.cash_accounts LIMIT 1),
@@ -553,6 +553,177 @@ if ($oneRemitSuccess -and $oneRemitRejected) {
 $remitCount = Exec-Psql "SELECT COUNT(*) FROM public.ut_remittance_items WHERE lip_document_id = '$lipId'::UUID;"
 Write-Host "Total Remittance Items in DB for LIP: $($remitCount.Trim()) (Tepat 1 setoran, tidak melebihi official LIP Rp 1.100.000)"
 
+# =============================================================================
+# SCENARIO 5: DUA CARRY-FORWARD SIMULTAN PADA SALDO MAHASISWA YANG SAMA
+# Dua koneksi mencoba memindahkan saldo mahasiswa secara bersamaan.
+# Misal saldo awal Rp 300.000.
+# Koneksi A meminta carry-forward Rp 200.000 ke periode target.
+# Koneksi B meminta carry-forward Rp 200.000 ke periode target yang sama.
+# Total permintaan Rp 400.000 melebihi saldo yang tersedia (Rp 300.000).
+# Expected:
+# - Advisory lock xact level pada student_id menjamin mutual exclusion.
+# - Tepat satu transaksi berhasil melakukan debit (Rp 200.000) dan credit masuk (Rp 200.000).
+# - Transaksi konkuren ditolak dengan error code INSUFFICIENT_CREDIT_BALANCE.
+# - Tidak ada saldo negatif, tidak ada double debit, saldo akhir tetap konsisten (Rp 100.000).
+# - Total ledger carry_forward_out persis 1 record (Rp 200.000) dan carry_forward_in persis 1 record (Rp 200.000).
+# =============================================================================
+Write-Host "`n--- [SCENARIO 5: Dua carry-forward simultan pada saldo mahasiswa yang sama] ---"
+
+$sourcePeriodId = (Exec-Psql "SELECT id FROM public.academic_periods WHERE is_active = false ORDER BY code ASC LIMIT 1;").Trim()
+$targetPeriodId = (Exec-Psql "SELECT id FROM public.academic_periods WHERE is_active = true LIMIT 1;").Trim()
+
+# Setup saldo awal mahasiswa: Pastikan student 88 ada, reset ledgers dan buat initial posted credit Rp 300.000
+$setupCFSql = @"
+BEGIN;
+INSERT INTO public.students (id, nim, full_name, status_id)
+VALUES ('30000000-0000-0000-0000-000000000088', '049999988', 'Mahasiswa Uji Concurrency', (SELECT id FROM public.student_statuses WHERE code = 'AKTIF'))
+ON CONFLICT (id) DO NOTHING;
+
+DELETE FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID;
+INSERT INTO public.student_credit_ledgers (
+    id, student_id, academic_period_id, idempotency_key,
+    entry_type, transaction_type, amount, balance_after, notes, status,
+    maker_by, checker_by, reviewed_at
+) VALUES (
+    '80000000-0000-0000-0000-000000000070'::UUID,
+    '30000000-0000-0000-0000-000000000088'::UUID,
+    '$sourcePeriodId'::UUID,
+    '80000000-0000-0000-0000-000000000070'::UUID,
+    'credit', 'reconciliation_credit', 300000, 300000, 'Saldo Awal Carry-Forward 300k', 'posted',
+    '25000000-0000-0000-0000-000000000001'::UUID,
+    '25000000-0000-0000-0000-000000000001'::UUID, NOW()
+);
+COMMIT;
+"@
+Exec-Psql $setupCFSql | Out-Null
+
+$cfInitialBal = Exec-Psql "SELECT COALESCE(SUM(CASE WHEN entry_type = 'credit' THEN amount ELSE -amount END), 0) FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID AND status = 'posted';"
+Write-Host "Saldo Awal Mahasiswa: Rp $($cfInitialBal.Trim())"
+
+$cfConnA = {
+    param($srcP, $tgtP)
+    $sql = @"
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
+SELECT public.execute_student_credit_carry_forward(
+    '30000000-0000-0000-0000-000000000088'::UUID,
+    '$srcP'::UUID,
+    '$tgtP'::UUID,
+    200000,
+    'Carry-Forward Paralel Koneksi A',
+    '80000000-0000-0000-0000-000000000071'::UUID
+);
+COMMIT;
+"@
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($tmp, $sql)
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $out = Get-Content $tmp -Raw | docker exec -i supabase_db_Salut psql -U postgres -d postgres -t -A 2>&1
+        $sw.Stop()
+        return @{ Output = ($out -join "`n"); ElapsedMs = $sw.ElapsedMilliseconds }
+    } finally {
+        if (Test-Path $tmp) { Remove-Item $tmp -Force }
+    }
+}
+
+$cfConnB = {
+    param($srcP, $tgtP)
+    $sql = @"
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" TO '25000000-0000-0000-0000-000000000004';
+SELECT public.execute_student_credit_carry_forward(
+    '30000000-0000-0000-0000-000000000088'::UUID,
+    '$srcP'::UUID,
+    '$tgtP'::UUID,
+    200000,
+    'Carry-Forward Paralel Koneksi B',
+    '80000000-0000-0000-0000-000000000072'::UUID
+);
+COMMIT;
+"@
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($tmp, $sql)
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $out = Get-Content $tmp -Raw | docker exec -i supabase_db_Salut psql -U postgres -d postgres -t -A 2>&1
+        $sw.Stop()
+        return @{ Output = ($out -join "`n"); ElapsedMs = $sw.ElapsedMilliseconds }
+    } finally {
+        if (Test-Path $tmp) { Remove-Item $tmp -Force }
+    }
+}
+
+$jobCF1 = Start-Job -ScriptBlock $cfConnA -ArgumentList $sourcePeriodId, $targetPeriodId
+$jobCF2 = Start-Job -ScriptBlock $cfConnB -ArgumentList $sourcePeriodId, $targetPeriodId
+$resCF1 = Receive-Job -Job $jobCF1 -Wait
+$resCF2 = Receive-Job -Job $jobCF2 -Wait
+Remove-Job -Job $jobCF1, $jobCF2
+
+Write-Host "Koneksi A selesai dalam: $($resCF1.ElapsedMs) ms"
+Write-Host "Koneksi B selesai dalam: $($resCF2.ElapsedMs) ms"
+
+$oneCFSuccess = ($resCF1.Output -match '"success": true' -and $resCF1.Output -notmatch 'ERROR') -or ($resCF2.Output -match '"success": true' -and $resCF2.Output -notmatch 'ERROR')
+$oneCFRejected = ($resCF1.Output -match 'INSUFFICIENT_CREDIT_BALANCE') -or ($resCF2.Output -match 'INSUFFICIENT_CREDIT_BALANCE')
+
+$cfFinalBal = Exec-Psql "SELECT COALESCE(SUM(CASE WHEN entry_type = 'credit' THEN amount ELSE -amount END), 0) FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID AND status = 'posted';"
+$totalDebit = Exec-Psql "SELECT COALESCE(SUM(amount), 0) FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID AND entry_type = 'debit' AND status = 'posted';"
+$successLedgerCount = Exec-Psql "SELECT COUNT(*) FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID AND transaction_type IN ('carry_forward_out', 'carry_forward_in') AND status = 'posted';"
+$targetCreditSum = Exec-Psql "SELECT COALESCE(SUM(amount), 0) FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID AND academic_period_id = '$targetPeriodId'::UUID AND transaction_type = 'carry_forward_in' AND status = 'posted';"
+
+Write-Host "Hasil Koneksi A: $(if ($resCF1.Output -match '"success": true') { 'SUCCESS (Diproses)' } else { 'REJECTED: INSUFFICIENT_CREDIT_BALANCE' })"
+Write-Host "Hasil Koneksi B: $(if ($resCF2.Output -match '"success": true') { 'SUCCESS (Diproses)' } else { 'REJECTED: INSUFFICIENT_CREDIT_BALANCE' })"
+Write-Host "Total Debit yang Terjadi: Rp $($totalDebit.Trim())"
+Write-Host "Saldo Akhir Mahasiswa: Rp $($cfFinalBal.Trim())"
+Write-Host "Jumlah Ledger Carry-Forward Berhasil: $($successLedgerCount.Trim()) entries (1 debit + 1 credit)"
+Write-Host "Nominal Sah Masuk Periode Target: Rp $($targetCreditSum.Trim())"
+
+if ($oneCFSuccess -and $oneCFRejected -and ($totalDebit.Trim() -eq "200000") -and ($targetCreditSum.Trim() -eq "200000")) {
+    Write-Host ">>> RESULT SCENARIO 5: PASS! Advisory lock mengisolasi carry-forward; tepat satu mutasi berhasil (Rp 200.000), mutasi konkuren ditolak INSUFFICIENT_CREDIT_BALANCE tanpa over-debit atau saldo negatif." -ForegroundColor Green
+} else {
+    Write-Host ">>> RESULT SCENARIO 5: FAIL! ResA: $($resCF1.Output), ResB: $($resCF2.Output)" -ForegroundColor Red
+}
+
+# TEARDOWN: Bersihkan data test harness agar tidak menimbulkan konflik unik pada pgTAP atau test lain
+$teardownSql = @"
+BEGIN;
+DELETE FROM public.ut_remittance_items WHERE remittance_id IN (SELECT id FROM public.ut_remittances WHERE idempotency_key IN ('90000000-0000-0000-0000-000000000081'::UUID, '90000000-0000-0000-0000-000000000082'::UUID));
+DELETE FROM public.ut_remittances WHERE idempotency_key IN ('90000000-0000-0000-0000-000000000081'::UUID, '90000000-0000-0000-0000-000000000082'::UUID);
+DELETE FROM public.student_credit_ledgers WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID;
+DELETE FROM public.invoice_reconciliations WHERE registration_id IN (SELECT id FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
+DELETE FROM public.payment_component_allocations WHERE payment_id IN (SELECT id FROM public.student_payments WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
+DELETE FROM public.payment_allocations WHERE payment_id IN (SELECT id FROM public.student_payments WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
+DELETE FROM public.student_payments WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID;
+DELETE FROM public.invoice_items WHERE invoice_id IN (SELECT id FROM public.invoices WHERE registration_id IN (SELECT id FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID));
+DELETE FROM public.invoices WHERE registration_id IN (SELECT id FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
+DELETE FROM public.lip_documents WHERE registration_id IN (SELECT id FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
+DELETE FROM public.registration_fee_snapshots WHERE registration_id IN (SELECT id FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID);
+DELETE FROM public.registrations WHERE student_id = '30000000-0000-0000-0000-000000000088'::UUID;
+DELETE FROM public.students WHERE id = '30000000-0000-0000-0000-000000000088'::UUID;
+
+DELETE FROM public.user_roles WHERE user_id IN (
+    '25000000-0000-0000-0000-000000000001',
+    '25000000-0000-0000-0000-000000000002',
+    '25000000-0000-0000-0000-000000000003',
+    '25000000-0000-0000-0000-000000000004'
+);
+DELETE FROM public.profiles WHERE id IN (
+    '25000000-0000-0000-0000-000000000001',
+    '25000000-0000-0000-0000-000000000002',
+    '25000000-0000-0000-0000-000000000003',
+    '25000000-0000-0000-0000-000000000004'
+);
+DELETE FROM auth.users WHERE id IN (
+    '25000000-0000-0000-0000-000000000001',
+    '25000000-0000-0000-0000-000000000002',
+    '25000000-0000-0000-0000-000000000003',
+    '25000000-0000-0000-0000-000000000004'
+);
+UPDATE public.app_settings SET value = '{"enabled": false}'::jsonb WHERE key = 'feature_unified_invoice_enabled';
+COMMIT;
+"@
+Exec-Psql $teardownSql | Out-Null
+
 Write-Host "`n================================================================="
-Write-Host " ALL 4 REAL TWO-CONNECTION CONCURRENCY TESTS EXECUTED CLEANLY! "
+Write-Host " ALL 5 REAL TWO-CONNECTION CONCURRENCY TESTS EXECUTED CLEANLY! "
 Write-Host "================================================================="
