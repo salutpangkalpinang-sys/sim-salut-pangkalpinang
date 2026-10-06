@@ -67,7 +67,11 @@ export interface Invoice {
   id: string;
   invoiceNumber: string;
   registrationId: string;
-  lipDocumentId: string;
+  lipDocumentId: string | null;
+  billingPhase?: "snapshot_estimate" | "lip_reconciled";
+  estimatedUtAmount?: number;
+  officialLipAmount?: number | null;
+  varianceAmount?: number;
   issuedAt: string;
   dueAt: string | null;
   status: InvoiceStatus;

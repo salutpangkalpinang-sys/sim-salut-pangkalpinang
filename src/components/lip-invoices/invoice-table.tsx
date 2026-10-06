@@ -69,15 +69,15 @@ export function InvoiceTable({
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="px-4 py-3">No. Invoice</th>
+                <th className="px-4 py-3">No. Tagihan</th>
                 <th className="px-4 py-3">Mahasiswa</th>
                 <th className="px-4 py-3">No. Registrasi</th>
-                <th className="px-4 py-3">No. LIP Resmi</th>
+                <th className="px-4 py-3">Fase Tagihan</th>
                 <th className="px-4 py-3">Resmi UT (LIP)</th>
                 <th className="px-4 py-3">Total Tagihan</th>
                 <th className="px-4 py-3">Terbayar Verified</th>
                 <th className="px-4 py-3">Sisa Tagihan</th>
-                <th className="px-4 py-3">Status Tagihan</th>
+                <th className="px-4 py-3">Status Bayar</th>
                 <th className="px-4 py-3 text-right">Aksi</th>
               </tr>
             </thead>
@@ -86,6 +86,7 @@ export function InvoiceTable({
                 const badge = STATUS_BADGES[inv.status] || STATUS_BADGES.unpaid;
                 const verifiedPaid = inv.verifiedPaid || 0;
                 const remaining = inv.remainingBalance !== undefined ? inv.remainingBalance : Math.max(0, (inv.totalInvoiceAmount || 0) - verifiedPaid);
+                const isReconciled = inv.billingPhase === "lip_reconciled" || Boolean(inv.lipNumber);
 
                 return (
                   <tr key={inv.id} className="hover:bg-slate-50/80 transition">
@@ -101,11 +102,13 @@ export function InvoiceTable({
                     <td className="px-4 py-3 font-mono text-slate-700">
                       {inv.registrationNumber || "-"}
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-700">
-                      {inv.lipNumber || "-"}
+                    <td className="px-4 py-3">
+                      <span className={`inline-block px-2 py-0.5 text-[10px] font-medium border rounded ${isReconciled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-sky-50 text-sky-700 border-sky-200"}`}>
+                        {isReconciled ? "Terekonsiliasi LIP" : "Estimasi Registrasi"}
+                      </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-slate-700">
-                      Rp {(inv.lipOfficialAmount || 0).toLocaleString("id-ID")}
+                      {inv.lipNumber ? `Rp ${(inv.lipOfficialAmount || 0).toLocaleString("id-ID")} (${inv.lipNumber})` : <span className="text-slate-400 italic">Menunggu LIP</span>}
                     </td>
                     <td className="px-4 py-3 font-mono font-bold text-slate-800">
                       Rp {(inv.totalInvoiceAmount || 0).toLocaleString("id-ID")}
