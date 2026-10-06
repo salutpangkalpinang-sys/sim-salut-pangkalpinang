@@ -44,8 +44,11 @@ export async function loginAction(prevState: unknown, formData: FormData) {
       return {
         error: "Username/Email atau kata sandi tidak cocok. Periksa kembali kredensial Anda.",
       };
-    } catch {
-      // Fallback if client error
+    } catch (err: any) {
+      if (err?.message === "NEXT_REDIRECT" || err?.digest?.startsWith("NEXT_REDIRECT")) {
+        throw err;
+      }
+      console.error("[Login Action Error]:", err);
     }
   }
 

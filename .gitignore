@@ -39,3 +39,8 @@ supabase/.branches/
 
 # Local UAT Artifacts
 uat_testing_roadmap_step_by_step (1).pdf
+
+test-results/
+uat-artifacts/
+uat-credentials.json
+

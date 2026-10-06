@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache";
 export async function uploadLipFileAndCreateAction(formData: FormData) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || !hasPermission(profile.role, ["owner", "academic_admin"])) {
+  if (!profile || !hasPermission(profile.role, ["owner", "admin", "academic_admin"])) {
     return { error: "Anda tidak memiliki izin untuk mengunggah LIP." };
   }
 
@@ -149,7 +149,7 @@ export async function uploadLipFileAndCreateAction(formData: FormData) {
 export async function verifyLipDocumentAction(id: string) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || !hasPermission(profile.role, ["owner", "academic_admin"])) {
+  if (!profile || !hasPermission(profile.role, ["owner", "admin", "academic_admin"])) {
     return { error: "Anda tidak memiliki izin untuk memverifikasi LIP." };
   }
 
