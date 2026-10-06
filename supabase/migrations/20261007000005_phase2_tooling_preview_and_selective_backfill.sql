@@ -23,8 +23,6 @@ RETURNS TABLE (
     recommended_action VARCHAR
 ) AS $$
 BEGIN
-    SET search_path = public, pg_temp;
-
     RETURN QUERY
     SELECT 
         r.id AS registration_id,
@@ -88,6 +86,10 @@ BEGIN
     v_actor_role := public.get_current_user_role();
     IF v_actor_role NOT IN ('owner', 'admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Hanya Owner dan Admin yang berwenang mengeksekusi backfill manual.';
+    END IF;
+
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
     END IF;
 
     -- Validasi setting SALUT
@@ -161,5 +163,11 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'processed_count', v_count);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+REVOKE ALL ON FUNCTION public.fn_preview_backfill_registrations() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_preview_backfill_registrations() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.fn_execute_selective_backfill(UUID[], TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_execute_selective_backfill(UUID[], TEXT) TO authenticated, service_role;
 
 COMMIT;

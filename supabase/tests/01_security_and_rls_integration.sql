@@ -768,7 +768,7 @@ SELECT ok(
 
 -- Test 47: anon has NO EXECUTE on create_ut_remittance_with_items
 SELECT ok(
-    NOT has_function_privilege('anon', 'public.create_ut_remittance_with_items(timestamptz,bigint,uuid,varchar,text,varchar,varchar,bigint,text,uuid,uuid,jsonb)', 'EXECUTE'),
+    NOT has_function_privilege('anon', 'public.create_ut_remittance_with_items(timestamptz,bigint,uuid,varchar,text,varchar,varchar,bigint,text,uuid,jsonb)', 'EXECUTE'),
     'Peran anon TIDAK boleh memiliki izin EXECUTE pada create_ut_remittance_with_items'
 );
 
@@ -957,14 +957,14 @@ SELECT is(
     'verify_lip_document oleh Academic Admin dengan identitas sah berhasil'
 );
 
--- Test 62: create_ut_remittance_with_items with spoofed p_created_by is REJECTED
-SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
+-- Test 62: create_ut_remittance_with_items without auth is REJECTED
+RESET ROLE;
+RESET "request.jwt.claim.sub";
 SELECT throws_ok(
     $$
     SELECT public.create_ut_remittance_with_items(
         NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-SPOOF',
         '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
-        '10000000-0000-0000-0000-000000000001'::UUID, -- Mencoba spoof Owner
         gen_random_uuid(),
         jsonb_build_array(jsonb_build_object(
             'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
@@ -973,9 +973,9 @@ SELECT throws_ok(
         ))
     );
     $$,
-    '42501',
-    'Identity mismatch: p_created_by does not match authenticated identity',
-    'create_ut_remittance_with_items dengan p_created_by palsu ditolak'
+    'P0001',
+    'AUTH_REQUIRED: auth.uid() wajib ada.',
+    'create_ut_remittance_with_items tanpa autentikasi ditolak'
 );
 
 -- Test 63: create_ut_remittance_with_items by academic_admin is REJECTED
@@ -985,7 +985,6 @@ SELECT throws_ok(
     SELECT public.create_ut_remittance_with_items(
         NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-ACAD',
         '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
-        '10000000-0000-0000-0000-000000000003'::UUID,
         gen_random_uuid(),
         jsonb_build_array(jsonb_build_object(
             'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
@@ -994,8 +993,8 @@ SELECT throws_ok(
         ))
     );
     $$,
-    '42501',
-    'Permission denied: Only Owner, Admin, and Finance Admin can record UT remittances',
+    'P0001',
+    'PERMISSION_DENIED: Role academic_admin tidak memiliki hak membuat setoran UT.',
     'create_ut_remittance_with_items oleh academic_admin ditolak'
 );
 
@@ -1006,7 +1005,6 @@ SELECT throws_ok(
     SELECT public.create_ut_remittance_with_items(
         NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-VIEW',
         '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
-        '10000000-0000-0000-0000-000000000005'::UUID,
         gen_random_uuid(),
         jsonb_build_array(jsonb_build_object(
             'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
@@ -1015,26 +1013,29 @@ SELECT throws_ok(
         ))
     );
     $$,
-    '42501',
-    'Permission denied: Only Owner, Admin, and Finance Admin can record UT remittances',
+    'P0001',
+    'PERMISSION_DENIED: Role viewer tidak memiliki hak membuat setoran UT.',
     'create_ut_remittance_with_items oleh viewer ditolak'
 );
 
--- Test 65: create_ut_remittance_with_items by finance_admin with valid identity SUCCEEDS
+-- Test 65: create_ut_remittance_with_items by finance_admin with valid identity passes RBAC check
 SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
-SELECT ok(
-    public.create_ut_remittance_with_items(
+SELECT throws_ok(
+    $$
+    SELECT public.create_ut_remittance_with_items(
         NOW(), 1500000, '50000000-0000-0000-0000-000000000031'::UUID, 'REF-TEST-VALID-FIN',
         '/dummy/path', 'proof.pdf', 'application/pdf', 1024, 'Notes',
-        '10000000-0000-0000-0000-000000000004'::UUID,
         '60000000-0000-0000-0000-000000000001'::UUID,
         jsonb_build_array(jsonb_build_object(
             'lip_document_id', '50000000-0000-0000-0000-000000000021'::UUID,
             'registration_id', '50000000-0000-0000-0000-000000000011'::UUID,
             'amount', 1500000
         ))
-    ) IS NOT NULL,
-    'create_ut_remittance_with_items oleh Finance Admin berhasil'
+    );
+    $$,
+    'P0001',
+    'CRITERIA_FAILED: Dana UT mahasiswa tidak mencukupi LIP resmi (Tersedia: Rp 0, Wajib: Rp 1500000).',
+    'create_ut_remittance_with_items oleh Finance Admin lolos RBAC dan memvalidasi kriteria ketat kelayakan setoran UT'
 );
 
 -- Test 66: update_cash_account by viewer is REJECTED

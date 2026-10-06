@@ -107,7 +107,6 @@ export async function createStudentPaymentAction(formData: FormData) {
     p_mime_type: mimeType,
     p_file_size: fileSize,
     p_notes: data.notes || null,
-    p_created_by: profile.id,
     p_invoice_id: data.invoiceId,
     p_allocated_amount: data.allocatedAmount,
     p_idempotency_key: idempotencyKey,
@@ -136,7 +135,6 @@ export async function verifyStudentPaymentAction(paymentId: string) {
 
   const { error } = await supabase.rpc("verify_student_payment", {
     p_payment_id: paymentId,
-    p_verifier_id: profile.id,
   });
 
   if (error) {

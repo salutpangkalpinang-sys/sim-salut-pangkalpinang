@@ -5,6 +5,39 @@
 
 BEGIN;
 
+-- ALLOW RECONCILIATION ADJUSTMENT ITEMS WHILE PRESERVING GENERAL LOCK
+CREATE OR REPLACE FUNCTION public.check_invoice_locked_before_item_mutation()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_verified_count INTEGER;
+    v_inv_id UUID;
+BEGIN
+    SET search_path = public, pg_temp;
+
+    -- Allow audit-tracked LIP reconciliation adjustments
+    IF TG_OP = 'INSERT' AND NEW.source_type = 'lip_reconciliation' THEN
+        RETURN NEW;
+    END IF;
+
+    v_inv_id := COALESCE(NEW.invoice_id, OLD.invoice_id);
+
+    SELECT COUNT(*) INTO v_verified_count
+    FROM public.payment_allocations pa
+    JOIN public.student_payments sp ON pa.payment_id = sp.id
+    WHERE pa.invoice_id = v_inv_id
+      AND sp.status = 'verified';
+
+    IF v_verified_count > 0 THEN
+        RAISE EXCEPTION 'Financial structure locked: Invoice has verified student payments and items cannot be modified';
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
 -- 1. HARDENED PAYMENT CREATION WITH PENDING RESERVATION & EXACT ALLOCATION
 CREATE OR REPLACE FUNCTION public.create_payment_with_allocation(
     p_student_id UUID,
@@ -45,6 +78,10 @@ BEGIN
     v_actor_role := public.get_current_user_role();
     IF v_actor_role NOT IN ('owner', 'admin', 'finance_admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak berwenang mencatat pembayaran mahasiswa.', v_actor_role;
+    END IF;
+
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
     END IF;
 
     -- Strict Idempotency Requirement
@@ -146,6 +183,10 @@ BEGIN
     v_actor_role := public.get_current_user_role();
     IF v_actor_role NOT IN ('owner', 'admin', 'finance_admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak memiliki izin memverifikasi pembayaran.', v_actor_role;
+    END IF;
+
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
     END IF;
 
     -- 1. LOCK PAYMENT
@@ -250,6 +291,10 @@ BEGIN
         RAISE EXCEPTION 'PERMISSION_DENIED: Hanya Owner dan Admin yang memiliki hak void pembayaran terverifikasi.';
     END IF;
 
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
+    END IF;
+
     SELECT status INTO v_payment_status FROM public.student_payments WHERE id = p_payment_id FOR UPDATE;
     IF v_payment_status <> 'verified' THEN
         RAISE EXCEPTION 'INVALID_STATE: Hanya pembayaran terverifikasi yang dapat di-void melalui prosedur ini.';
@@ -316,6 +361,13 @@ DECLARE
 BEGIN
     SET search_path = public, pg_temp;
     v_actor_id := auth.uid();
+    IF v_actor_id IS NULL THEN
+        RAISE EXCEPTION 'AUTH_REQUIRED: auth.uid() wajib ada.';
+    END IF;
+
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
+    END IF;
 
     -- ADVISORY LOCK per student
     PERFORM pg_advisory_xact_lock(hashtext('student_credit_' || p_student_id::text));
@@ -428,6 +480,10 @@ BEGIN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak memiliki hak mengajukan refund.', v_actor_role;
     END IF;
 
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
+    END IF;
+
     PERFORM pg_advisory_xact_lock(hashtext('student_credit_' || p_student_id::text));
 
     SELECT COALESCE(SUM(CASE WHEN entry_type = 'credit' THEN amount ELSE -amount END), 0)
@@ -477,6 +533,10 @@ BEGIN
     v_checker_role := public.get_current_user_role();
     IF v_checker_role NOT IN ('owner', 'admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Hanya Owner dan Admin yang berwenang menjadi Checker approval refund.';
+    END IF;
+
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
     END IF;
 
     SELECT student_id, maker_by, amount, status, cash_account_id, notes
@@ -560,6 +620,10 @@ BEGIN
     v_actor_role := public.get_current_user_role();
     IF v_actor_role NOT IN ('owner', 'admin', 'academic_admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak memiliki hak merekonsiliasi LIP.', v_actor_role;
+    END IF;
+
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
     END IF;
 
     -- LOCK LIP
@@ -708,6 +772,10 @@ BEGIN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak memiliki hak membuat setoran UT.', v_actor_role;
     END IF;
 
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
+    END IF;
+
     IF p_idempotency_key IS NOT NULL THEN
         SELECT id INTO v_existing_id FROM public.ut_remittances WHERE idempotency_key = p_idempotency_key;
         IF v_existing_id IS NOT NULL THEN RETURN v_existing_id; END IF;
@@ -762,11 +830,11 @@ BEGIN
             RAISE EXCEPTION 'CRITERIA_FAILED: Masih terdapat kekurangan tagihan pada invoice registrasi mahasiswa.';
         END IF;
 
-        -- 4. CRITERIA: Sisa Tagihan Remittance
+        -- 4. CRITERIA: Sisa Tagihan Remittance (Termasuk remittance pending_verification dan verified)
         SELECT COALESCE(SUM(ri.amount), 0) INTO v_already_remitted
         FROM public.ut_remittance_items ri
         JOIN public.ut_remittances r ON ri.remittance_id = r.id
-        WHERE ri.lip_document_id = v_lip_id AND r.status = 'verified';
+        WHERE ri.lip_document_id = v_lip_id AND r.status IN ('pending_verification', 'verified');
 
         v_outstanding_remittance := v_lip_doc.official_amount - v_already_remitted;
 
@@ -808,5 +876,40 @@ BEGIN
     RETURN v_rem_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+-- ----------------------------------------------------------------------------
+-- 9. CLEAN UP OBSOLETE SIGNATURES WITH SPOOFABLE IDENTITY PARAMETERS
+-- ----------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS public.create_payment_with_allocation(UUID, TIMESTAMPTZ, BIGINT, UUID, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, UUID, BIGINT);
+DROP FUNCTION IF EXISTS public.create_payment_with_allocation(UUID, TIMESTAMPTZ, BIGINT, UUID, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, UUID, BIGINT, UUID);
+DROP FUNCTION IF EXISTS public.verify_student_payment(UUID, UUID);
+DROP FUNCTION IF EXISTS public.create_ut_remittance_with_items(TIMESTAMPTZ, BIGINT, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, UUID, JSONB);
+
+-- ----------------------------------------------------------------------------
+-- 10. STRICT EXECUTION PRIVILEGES (FAIL-CLOSED TO PUBLIC / ANON)
+-- ----------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public.create_payment_with_allocation(UUID, TIMESTAMPTZ, BIGINT, UUID, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, BIGINT, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_payment_with_allocation(UUID, TIMESTAMPTZ, BIGINT, UUID, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, BIGINT, UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.verify_student_payment(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.verify_student_payment(UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.void_verified_payment_with_reversals(UUID, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.void_verified_payment_with_reversals(UUID, TEXT) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.post_student_credit_entry(UUID, UUID, UUID, UUID, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, UUID, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.post_student_credit_entry(UUID, UUID, UUID, UUID, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, UUID, UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.request_student_credit_refund(UUID, UUID, BIGINT, UUID, TEXT, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.request_student_credit_refund(UUID, UUID, BIGINT, UUID, TEXT, UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.approve_student_credit_refund(UUID, VARCHAR) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.approve_student_credit_refund(UUID, VARCHAR) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.reconcile_lip_with_invoice(UUID, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.reconcile_lip_with_invoice(UUID, UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.create_ut_remittance_with_items(TIMESTAMPTZ, BIGINT, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, JSONB) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_ut_remittance_with_items(TIMESTAMPTZ, BIGINT, UUID, VARCHAR, TEXT, VARCHAR, VARCHAR, BIGINT, TEXT, UUID, JSONB) TO authenticated, service_role;
 
 COMMIT;

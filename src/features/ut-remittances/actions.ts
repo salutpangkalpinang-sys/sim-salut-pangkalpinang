@@ -112,7 +112,6 @@ export async function createUtRemittanceAction(formData: FormData) {
     p_mime_type: mimeType,
     p_file_size: fileSize,
     p_notes: data.notes || null,
-    p_created_by: profile.id,
     p_idempotency_key: idempotencyKey,
     p_items: itemsPayload,
   });

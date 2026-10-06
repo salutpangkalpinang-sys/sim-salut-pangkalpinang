@@ -389,13 +389,19 @@ export async function getPaymentMasterOptions() {
     });
 
     let verifiedPaid = 0;
+    let pendingReserved = 0;
     (inv.payment_allocations || []).forEach((pa: any) => {
-      if (pa.student_payments?.status === "verified") {
-        verifiedPaid += Number(pa.amount) || 0;
+      const status = pa.student_payments?.status;
+      const amt = Number(pa.amount) || 0;
+      if (status === "verified") {
+        verifiedPaid += amt;
+      } else if (status === "pending_verification") {
+        pendingReserved += amt;
       }
     });
 
     const remainingBalance = Math.max(0, invoiceTotalAmount - verifiedPaid);
+    const remainingPayable = Math.max(0, invoiceTotalAmount - (verifiedPaid + pendingReserved));
 
     return {
       id: inv.id,
@@ -406,7 +412,9 @@ export async function getPaymentMasterOptions() {
       registrationNumber: inv.registrations?.registration_number,
       invoiceTotalAmount,
       verifiedPaid,
+      pendingReserved,
       remainingBalance,
+      remainingPayable,
     };
   });
 

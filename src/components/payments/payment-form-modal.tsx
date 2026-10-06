@@ -26,6 +26,8 @@ interface PaymentFormModalProps {
       invoiceTotalAmount: number;
       verifiedPaid: number;
       remainingBalance: number;
+      pendingReserved?: number;
+      remainingPayable?: number;
     }[];
   };
   defaultInvoiceId?: string;
@@ -185,19 +187,30 @@ export function PaymentFormModal({
 
           {/* Target Invoice Info Summary Banner */}
           {selectedInvoice && (
-            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div>
                 <span className="text-[11px] text-slate-500 block">Mahasiswa</span>
                 <span className="font-bold text-slate-900">{selectedInvoice.studentName}</span>
                 <div className="text-[10px] text-slate-500 font-mono">NIM: {selectedInvoice.studentNim || "Calon"}</div>
               </div>
               <div>
-                <span className="text-[11px] text-slate-500 block">Total Invoice</span>
+                <span className="text-[11px] text-slate-500 block">Total Tagihan</span>
                 <span className="font-mono font-bold text-slate-900">Rp {selectedInvoice.invoiceTotalAmount.toLocaleString("id-ID")}</span>
               </div>
               <div>
-                <span className="text-[11px] text-slate-500 block">Sisa Tagihan</span>
-                <span className="font-mono font-bold text-amber-600">Rp {selectedInvoice.remainingBalance.toLocaleString("id-ID")}</span>
+                <span className="text-[11px] text-slate-500 block">Sisa Belum Lunas</span>
+                <span className="font-mono font-bold text-slate-700">Rp {selectedInvoice.remainingBalance.toLocaleString("id-ID")}</span>
+              </div>
+              <div>
+                <span className="text-[11px] text-slate-500 block">Maksimal Dapat Dibayar</span>
+                <span className="font-mono font-bold text-emerald-600">
+                  Rp {(selectedInvoice.remainingPayable ?? selectedInvoice.remainingBalance).toLocaleString("id-ID")}
+                </span>
+                {(selectedInvoice.pendingReserved ?? 0) > 0 && (
+                  <div className="text-[10px] text-amber-600 font-medium">
+                    (Reservasi Pending: Rp {(selectedInvoice.pendingReserved ?? 0).toLocaleString("id-ID")})
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -271,7 +284,7 @@ export function PaymentFormModal({
               <span className="font-mono font-bold text-emerald-600">Rp {allocatedAmount.toLocaleString("id-ID")}</span>
             </div>
             <p className="text-[10px] text-slate-500 italic border-t border-slate-200 pt-1">
-              * Otomatis memprioritaskan pelunasan <strong>Jasa Layanan SALUT (Rp 400.000)</strong> terlebih dahulu, lalu sisanya dialokasikan ke <strong>Iuran / Biaya UT</strong>.
+              * Otomatis memprioritaskan pelunasan <strong>Biaya Layanan & Pendampingan SALUT</strong> terlebih dahulu sesuai snapshot tagihan, lalu sisanya dialokasikan ke <strong>Kewajiban Dana UT</strong>.
             </p>
             {unallocatedAmount > 0 && (
               <div className="flex items-center justify-between text-amber-700 border-t border-slate-200 pt-1.5 font-semibold">

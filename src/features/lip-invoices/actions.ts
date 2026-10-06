@@ -155,7 +155,22 @@ export async function verifyLipDocumentAction(id: string) {
 
   const supabase = await createClient();
 
-  // Try SECURITY DEFINER RPC first (bypasses RLS and executes atomically in PostgreSQL)
+  // 1. Try atomic Phase 2 reconcile_lip_with_invoice RPC with Idempotency Key
+  const idempotencyKey = crypto.randomUUID();
+  const { data: recId, error: recErr } = await supabase.rpc("reconcile_lip_with_invoice", {
+    p_lip_document_id: id,
+    p_idempotency_key: idempotencyKey,
+  });
+
+  if (!recErr && recId) {
+    revalidatePath("/lip-tagihan");
+    revalidatePath("/registrasi");
+    revalidatePath("/setoran-ut");
+    return { success: true };
+  }
+
+  // If reconcile_lip_with_invoice failed because no active invoice exists yet (e.g. legacy registration without invoice),
+  // fallback to verify_lip_document RPC or direct update
   try {
     const { data: rpcRes, error: rpcErr } = await supabase.rpc("verify_lip_document", {
       p_lip_id: id,

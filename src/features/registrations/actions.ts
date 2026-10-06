@@ -121,7 +121,6 @@ export async function createRegistrationAction(input: RegistrationFormInput) {
       p_service_scheme_id: data.serviceSchemeId,
       p_credits: data.credits,
       p_notes: data.notes || null,
-      p_created_by: profile.id,
       p_fee_items: feeItemsPayload,
     }
   );

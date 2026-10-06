@@ -21,8 +21,6 @@ DECLARE
     v_ut BIGINT := 0;
     v_internal BIGINT := 0;
 BEGIN
-    SET search_path = public, pg_temp;
-
     -- Aggregate positive billed items
     SELECT 
         COALESCE(SUM(amount), 0),
@@ -139,6 +137,11 @@ BEGIN
     v_actor_role := public.get_current_user_role();
     IF v_actor_role NOT IN ('owner', 'admin', 'academic_admin') THEN
         RAISE EXCEPTION 'PERMISSION_DENIED: Role % tidak memiliki izin membuat registrasi.', v_actor_role;
+    END IF;
+
+    -- FAIL-CLOSED: Validasi status user aktif
+    IF NOT public.is_current_user_active() THEN
+        RAISE EXCEPTION 'USER_INACTIVE: Pengguna tidak aktif atau akun telah dinonaktifkan.';
     END IF;
 
     -- FAIL-CLOSED: Validasi format & nominal app_settings.default_salut_fee
@@ -358,5 +361,19 @@ BEGIN
     RETURN v_registration_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+-- Clean up any legacy signatures with spoofable p_created_by parameter
+DROP FUNCTION IF EXISTS public.create_registration_with_snapshots(UUID, UUID, UUID, TEXT, UUID);
+DROP FUNCTION IF EXISTS public.create_registration_with_snapshots(UUID, UUID, UUID, UUID, UUID, INTEGER, TEXT, UUID, JSONB);
+
+-- Strict execution permissions (Fail-closed)
+REVOKE ALL ON FUNCTION public.get_invoice_canonical_totals(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_invoice_canonical_totals(UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.recalculate_invoice_status(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.recalculate_invoice_status(UUID) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.create_registration_with_snapshots(UUID, UUID, UUID, UUID, UUID, INTEGER, TEXT, JSONB) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_registration_with_snapshots(UUID, UUID, UUID, UUID, UUID, INTEGER, TEXT, JSONB) TO authenticated, service_role;
 
 COMMIT;
