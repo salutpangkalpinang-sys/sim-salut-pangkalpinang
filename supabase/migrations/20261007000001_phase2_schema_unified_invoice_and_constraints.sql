@@ -33,11 +33,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_invoice_unique_active_per_reg
 ON public.invoices (registration_id)
 WHERE status <> 'cancelled';
 
--- 4. Register feature flag for Unified Invoice in app_settings (Default false in local phase)
+-- 4. Register feature flag for Unified Invoice in app_settings (Default false for safe deployment)
 INSERT INTO public.app_settings (key, value, description)
 VALUES (
     'feature_unified_invoice_enabled',
-    '{"enabled": true}',
+    '{"enabled": false}',
     'Feature flag penagihan terpadu sejak registrasi (Unified Registration Invoice)'
 )
 ON CONFLICT (key) DO NOTHING;

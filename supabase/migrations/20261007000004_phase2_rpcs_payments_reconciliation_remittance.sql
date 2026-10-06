@@ -787,6 +787,10 @@ BEGIN
         v_reg_id := (v_item->>'registration_id')::UUID;
         v_item_amt := (v_item->>'amount')::BIGINT;
 
+        IF v_lip_id IS NULL THEN
+            RAISE EXCEPTION 'VALIDATION_FAILED: lip_document_id wajib diisi dan tidak boleh NULL.';
+        END IF;
+
         -- MULTI-ROW LOCK LIP
         SELECT id, status, official_amount INTO v_lip_doc
         FROM public.lip_documents
