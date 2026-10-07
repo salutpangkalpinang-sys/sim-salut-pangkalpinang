@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(8);
+SELECT plan(16);
 
 -- ============================================================================
 -- SIM-SALUT PANGKALPINANG - PHASE 2.3 RLS GUARDS & LIP PERMISSIONS TESTS (pgTAP)
@@ -113,6 +113,95 @@ SELECT ok(
     ),
     'Test 8: Policy strictly excludes finance_admin and viewer from lip_documents mutation'
 );
+
+-- Test 9: Permissive DELETE policies on students and student_status_history are dropped
+SELECT ok(
+    NOT EXISTS (
+        SELECT 1 FROM pg_policy p
+        JOIN pg_class c ON c.oid = p.polrelid
+        WHERE c.relname = 'students'
+          AND p.polname = 'Authenticated users can delete students'
+    ),
+    'Test 9: Permissive Authenticated users can delete students policy is dropped'
+);
+
+SELECT ok(
+    NOT EXISTS (
+        SELECT 1 FROM pg_policy p
+        JOIN pg_class c ON c.oid = p.polrelid
+        WHERE c.relname = 'student_status_history'
+          AND p.polname = 'Authenticated users can delete status history'
+    ),
+    'Test 10: Permissive Authenticated users can delete status history policy is dropped'
+);
+
+-- Test 11: Fail-closed DELETE policy on students exists and whitelists owner/admin/academic_admin
+SELECT ok(
+    EXISTS (
+        SELECT 1 FROM pg_policy p
+        JOIN pg_class c ON c.oid = p.polrelid
+        WHERE c.relname = 'students'
+          AND p.polname = 'Owner/Admin/AcademicAdmin can delete students'
+          AND p.polcmd = 'd'
+    ),
+    'Test 11: Fail-closed Owner/Admin/AcademicAdmin can delete students policy exists'
+);
+
+-- Test 12: Direct DELETE on student_status_history is completely revoked from authenticated
+SELECT ok(
+    NOT has_table_privilege('authenticated', 'public.student_status_history', 'DELETE'),
+    'Test 12: Direct DELETE on student_status_history is strictly revoked from authenticated'
+);
+
+-- Test 13: Direct DELETE on students by finance_admin is REJECTED by RLS
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000004'; -- Finance Admin
+DO $$
+DECLARE
+    v_deleted_count INT;
+BEGIN
+    DELETE FROM public.students WHERE id = '99999999-1111-4111-8111-111111111111';
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+    IF v_deleted_count > 0 THEN
+        RAISE EXCEPTION 'SECURITY_VIOLATION: finance_admin should NOT delete students!';
+    END IF;
+END $$;
+SELECT pass('Test 13: Direct DELETE on students by finance_admin is rejected (0 rows affected)');
+RESET ROLE;
+
+-- Test 14: Direct DELETE on students by viewer is REJECTED by RLS
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000005'; -- Viewer
+DO $$
+DECLARE
+    v_deleted_count INT;
+BEGIN
+    DELETE FROM public.students WHERE id = '99999999-1111-4111-8111-111111111111';
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+    IF v_deleted_count > 0 THEN
+        RAISE EXCEPTION 'SECURITY_VIOLATION: viewer should NOT delete students!';
+    END IF;
+END $$;
+SELECT pass('Test 14: Direct DELETE on students by viewer is rejected (0 rows affected)');
+RESET ROLE;
+
+-- Test 15: RLS is ENABLED on ledger tables
+SELECT ok(
+    (SELECT relrowsecurity FROM pg_class WHERE relname = 'invoice_reconciliations' AND relnamespace = 'public'::regnamespace)
+    AND (SELECT relrowsecurity FROM pg_class WHERE relname = 'payment_component_allocations' AND relnamespace = 'public'::regnamespace)
+    AND (SELECT relrowsecurity FROM pg_class WHERE relname = 'student_credit_ledgers' AND relnamespace = 'public'::regnamespace),
+    'Test 15: RLS is properly enabled on all 3 financial ledger tables'
+);
+
+-- Test 16: Academic Admin cannot view payment_component_allocations (financial separation)
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '10000000-0000-0000-0000-000000000003'; -- Academic Admin
+SELECT is(
+    (SELECT count(*)::int FROM public.payment_component_allocations),
+    0,
+    'Test 16: Academic Admin cannot read payment_component_allocations (RLS filtered to 0)'
+);
+RESET ROLE;
 
 SELECT * FROM finish();
 ROLLBACK;

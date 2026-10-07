@@ -1,5 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
+if (!BASE_URL.includes("localhost") && !BASE_URL.includes("127.0.0.1")) {
+  throw new Error(`SECURITY_ALERT: Playwright test target must strictly be localhost or 127.0.0.1. Attempted: ${BASE_URL}`);
+}
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 45000,
@@ -9,7 +14,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     channel: "msedge",
     headless: true,
     trace: "on-first-retry",
