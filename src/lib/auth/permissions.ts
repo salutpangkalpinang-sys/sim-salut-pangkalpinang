@@ -14,12 +14,13 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
     } = await supabase.auth.getUser();
 
     if (user) {
-      const [{ data: profile }, { data: userRole }] = await Promise.all([
+      const [{ data: profile }, { data: rpcRole }, { data: userRole }] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, full_name, is_active")
           .eq("id", user.id)
           .single(),
+        supabase.rpc("get_current_user_role"),
         supabase
           .from("user_roles")
           .select("roles(code)")
@@ -27,7 +28,7 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
           .single(),
       ]);
 
-      const rawRole = (userRole?.roles as unknown as { code: RoleCode })?.code;
+      const rawRole = (rpcRole as RoleCode) || ((userRole?.roles as unknown as { code: RoleCode })?.code);
       const knownRoles: RoleCode[] = ["owner", "admin", "academic_admin", "finance_admin", "viewer"];
       let roleCode: RoleCode;
       if (rawRole && knownRoles.includes(rawRole)) {
