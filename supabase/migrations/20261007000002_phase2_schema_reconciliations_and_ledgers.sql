@@ -7,7 +7,7 @@ BEGIN;
 
 -- 1. IMMUTABLE INVOICE RECONCILIATIONS TABLE
 CREATE TABLE IF NOT EXISTS public.invoice_reconciliations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
     invoice_id UUID NOT NULL REFERENCES public.invoices(id) ON DELETE RESTRICT,
     registration_id UUID NOT NULL REFERENCES public.registrations(id) ON DELETE RESTRICT,
     lip_document_id UUID NOT NULL REFERENCES public.lip_documents(id) ON DELETE RESTRICT,
@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_reconcile_reg ON public.invoice_reconciliations (
 
 -- 2. STUDENT CREDIT APPEND-ONLY SUB-LEDGER
 CREATE TABLE IF NOT EXISTS public.student_credit_ledgers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE RESTRICT,
     academic_period_id UUID NOT NULL REFERENCES public.academic_periods(id) ON DELETE RESTRICT,
     registration_id UUID REFERENCES public.registrations(id) ON DELETE RESTRICT,
@@ -78,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_credit_ledger_period ON public.student_credit_led
 
 -- 3. PERSISTED PAYMENT COMPONENT ALLOCATIONS TABLE
 CREATE TABLE IF NOT EXISTS public.payment_component_allocations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
     payment_id UUID NOT NULL REFERENCES public.student_payments(id) ON DELETE RESTRICT,
     invoice_id UUID NOT NULL REFERENCES public.invoices(id) ON DELETE RESTRICT,
     invoice_item_id UUID REFERENCES public.invoice_items(id) ON DELETE RESTRICT,
