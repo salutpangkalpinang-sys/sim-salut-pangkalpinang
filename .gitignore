@@ -44,3 +44,9 @@ test-results/
 uat-artifacts/
 uat-credentials.json
 
+# Backups & Secure Passwords
+backups/
+*.enc
+*.key
+*.pass
+
