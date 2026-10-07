@@ -212,22 +212,22 @@ export async function changeStudentStatusAction(input: StatusChangeFormInput) {
 export async function deleteStudentAction(studentId: string) {
   const profile = await getCurrentUserProfile();
 
-  if (!profile || !hasPermission(profile.role, ["owner", "academic_admin"])) {
+  if (!profile || !hasPermission(profile.role, ["owner", "admin", "academic_admin"])) {
     return { error: "Anda tidak memiliki izin untuk menghapus data mahasiswa." };
   }
 
   const supabase = await createClient();
 
-  // Try stored procedure first (bypasses RLS)
-  const { error: rpcErr } = await supabase.rpc("delete_student_cascade", { p_student_id: studentId });
+  // Execute canonical RPC delete_student_cascade
+  const { data, error: rpcErr } = await supabase.rpc("delete_student_cascade", { p_student_id: studentId });
 
   if (rpcErr) {
-    console.warn("RPC delete_student_cascade fallback:", rpcErr);
-    await supabase.from("student_status_history").delete().eq("student_id", studentId);
-    const { error: dbErr } = await supabase.from("students").delete().eq("id", studentId);
-    if (dbErr) {
-      return { error: "Gagal menghapus data mahasiswa: " + dbErr.message };
-    }
+    console.error("RPC delete_student_cascade failed:", rpcErr);
+    return { error: "Gagal menghapus data mahasiswa: " + (rpcErr.message || "Terjadi kesalahan pada database.") };
+  }
+
+  if (data && typeof data === "object" && "success" in data && !data.success) {
+    return { error: (data as { error?: string }).error || "Gagal menghapus data mahasiswa." };
   }
 
   revalidatePath("/mahasiswa");

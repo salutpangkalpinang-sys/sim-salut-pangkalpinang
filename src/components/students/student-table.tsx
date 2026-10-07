@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Student } from "@/types/student";
 import { MaskedText } from "@/components/ui/masked-text";
-import { Eye, Edit2, ArrowLeft, ArrowRight, UserCheck } from "lucide-react";
+import { Eye, Edit2, ArrowLeft, ArrowRight, UserCheck, Trash2 } from "lucide-react";
 import { RoleCode } from "@/lib/auth/types";
 import { formatUtMasaLabel } from "@/lib/utils/ut-masa";
 
@@ -17,6 +17,7 @@ interface StudentTableProps {
   onPageChange: (newPage: number) => void;
   onEdit?: (student: Student) => void;
   onChangeStatus?: (student: Student) => void;
+  onDelete?: (student: Student) => void;
   isCalonView?: boolean;
 }
 
@@ -39,6 +40,7 @@ export function StudentTable({
   onPageChange,
   onEdit,
   onChangeStatus,
+  onDelete,
   isCalonView = false,
 }: StudentTableProps) {
   const canEdit = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
@@ -169,6 +171,16 @@ export function StudentTable({
                             title="Edit Data"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {canEdit && onDelete && (
+                          <button
+                            type="button"
+                            onClick={() => onDelete(student)}
+                            className="p-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition border border-red-200"
+                            title="Hapus Mahasiswa"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

@@ -10,6 +10,7 @@ import { RoleCode } from "@/lib/auth/types";
 import { UserPlus, FileSpreadsheet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ImportModal } from "@/components/students/import-modal";
+import { DeleteStudentDialog } from "@/components/students/delete-student-dialog";
 
 interface StudentListContainerProps {
   initialStudents: Student[];
@@ -55,6 +56,7 @@ export function StudentListContainer({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [statusStudent, setStatusStudent] = useState<Student | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
 
   const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
@@ -82,6 +84,10 @@ export function StudentListContainer({
 
   const handleChangeStatus = (student: Student) => {
     setStatusStudent(student);
+  };
+
+  const handleDelete = (student: Student) => {
+    setDeletingStudent(student);
   };
 
   // Perform client-side filtering on loaded set if needed or trigger router refresh
@@ -175,6 +181,7 @@ export function StudentListContainer({
         onPageChange={(newPage) => setPage(newPage)}
         onEdit={handleEdit}
         onChangeStatus={handleChangeStatus}
+        onDelete={handleDelete}
         isCalonView={isCalonView}
       />
 
@@ -198,6 +205,16 @@ export function StudentListContainer({
           onClose={() => setStatusStudent(null)}
           onSuccess={() => router.refresh()}
           statuses={options.statuses}
+        />
+      )}
+
+      {/* Delete Student Dialog */}
+      {deletingStudent && (
+        <DeleteStudentDialog
+          student={deletingStudent}
+          isOpen={Boolean(deletingStudent)}
+          onClose={() => setDeletingStudent(null)}
+          onSuccess={() => router.refresh()}
         />
       )}
 

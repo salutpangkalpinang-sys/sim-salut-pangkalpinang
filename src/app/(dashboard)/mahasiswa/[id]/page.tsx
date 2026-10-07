@@ -6,6 +6,7 @@ import { MaskedText } from "@/components/ui/masked-text";
 import { StatusHistoryTimeline } from "@/components/students/status-history-timeline";
 import { StudentRegistrationList } from "@/components/registrations/student-registration-list";
 import { StudentPaymentList } from "@/components/payments/student-payment-list";
+import { StudentDetailDeleteButton } from "@/components/students/student-detail-delete-button";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, User, Phone, MapPin, GraduationCap, ShieldAlert } from "lucide-react";
@@ -55,6 +56,8 @@ export default async function StudentDetailPage({
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Daftar Mahasiswa</span>
         </Link>
+
+        <StudentDetailDeleteButton student={student} canDelete={canEdit} />
       </div>
 
       {/* Main Profile Header Card */}
