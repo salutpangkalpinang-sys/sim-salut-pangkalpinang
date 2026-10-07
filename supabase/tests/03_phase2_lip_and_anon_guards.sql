@@ -1,6 +1,52 @@
 BEGIN;
 SELECT plan(22);
 
+-- Setup test identities in auth.users, profiles, and user_roles
+DO $$
+DECLARE
+    v_role_owner_id UUID;
+    v_role_admin_id UUID;
+    v_role_acad_id  UUID;
+    v_role_fin_id   UUID;
+    v_role_view_id  UUID;
+
+    c_uid_owner CONSTANT UUID := '10000000-0000-0000-0000-000000000001'::UUID;
+    c_uid_admin CONSTANT UUID := '10000000-0000-0000-0000-000000000002'::UUID;
+    c_uid_acad  CONSTANT UUID := '10000000-0000-0000-0000-000000000003'::UUID;
+    c_uid_fin   CONSTANT UUID := '10000000-0000-0000-0000-000000000004'::UUID;
+    c_uid_view  CONSTANT UUID := '10000000-0000-0000-0000-000000000005'::UUID;
+BEGIN
+    SELECT id INTO v_role_owner_id FROM public.roles WHERE code = 'owner';
+    SELECT id INTO v_role_admin_id FROM public.roles WHERE code = 'admin';
+    SELECT id INTO v_role_acad_id  FROM public.roles WHERE code = 'academic_admin';
+    SELECT id INTO v_role_fin_id   FROM public.roles WHERE code = 'finance_admin';
+    SELECT id INTO v_role_view_id  FROM public.roles WHERE code = 'viewer';
+
+    INSERT INTO auth.users (id, email, raw_user_meta_data, role, aud) VALUES
+        (c_uid_owner, 'dummy_owner@test.local', '{"full_name":"Test Owner"}', 'authenticated', 'authenticated'),
+        (c_uid_admin, 'dummy_admin@test.local', '{"full_name":"Test Admin"}', 'authenticated', 'authenticated'),
+        (c_uid_acad,  'dummy_acad@test.local',  '{"full_name":"Test Academic"}', 'authenticated', 'authenticated'),
+        (c_uid_fin,   'dummy_fin@test.local',   '{"full_name":"Test Finance"}', 'authenticated', 'authenticated'),
+        (c_uid_view,  'dummy_view@test.local',  '{"full_name":"Test Viewer"}', 'authenticated', 'authenticated')
+    ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
+
+    INSERT INTO public.profiles (id, full_name, is_active) VALUES
+        (c_uid_owner, 'Test Owner', true),
+        (c_uid_admin, 'Test Admin', true),
+        (c_uid_acad,  'Test Academic', true),
+        (c_uid_fin,   'Test Finance', true),
+        (c_uid_view,  'Test Viewer', true)
+    ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, is_active = EXCLUDED.is_active;
+
+    DELETE FROM public.user_roles WHERE user_id IN (c_uid_owner, c_uid_admin, c_uid_acad, c_uid_fin, c_uid_view);
+    INSERT INTO public.user_roles (user_id, role_id) VALUES
+        (c_uid_owner, v_role_owner_id),
+        (c_uid_admin, v_role_admin_id),
+        (c_uid_acad,  v_role_acad_id),
+        (c_uid_fin,   v_role_fin_id),
+        (c_uid_view,  v_role_view_id);
+END $$;
+
 -- ============================================================================
 -- SIM-SALUT PANGKALPINANG - PHASE 2.3 RLS GUARDS & LIP PERMISSIONS TESTS (pgTAP)
 -- Testing:
