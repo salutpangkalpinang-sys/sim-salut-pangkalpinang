@@ -42,16 +42,16 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     allowedRoles: ["owner", "admin", "academic_admin", "viewer"],
   },
   {
-    name: "LIP & Tagihan",
-    href: "/lip-tagihan",
-    iconName: "Receipt",
-    allowedRoles: ["owner", "admin", "academic_admin", "finance_admin", "viewer"],
-  },
-  {
     name: "Pembayaran Mahasiswa",
     href: "/pembayaran",
     iconName: "CreditCard",
     allowedRoles: ["owner", "admin", "finance_admin", "viewer"],
+  },
+  {
+    name: "LIP & Tagihan",
+    href: "/lip-tagihan",
+    iconName: "Receipt",
+    allowedRoles: ["owner", "admin", "academic_admin", "finance_admin", "viewer"],
   },
   {
     name: "Setoran UT",
