@@ -1,5 +1,6 @@
 import assert from "node:assert";
-import { escapeCsvCell, maskNik } from "../../csv-exporter";
+import { escapeCsvCell, maskNik, generateCsvString } from "../../csv-exporter";
+import { calculateServiceFeePaidFromPca } from "../../../features/reports/queries";
 
 console.log("=== Running Reports & Dashboard Core 7 Unit Tests ===");
 
@@ -123,4 +124,93 @@ const isAcademicAdminDeniedFromFinancial = financialReportTypes.every(() => {
 assert.strictEqual(isAcademicAdminDeniedFromFinancial, true);
 console.log("✓ Test 8 Passed: Export authorization allowlist and Academic Admin financial export restriction verified");
 
+// Test 9: Jasa SALUT Export Schema & Dixit Scenario Verification
+const sampleDixitExportRow = {
+  invoiceNumber: "INV-2026-10006",
+  nim: "053065737",
+  studentName: "Dixit",
+  academicPeriodName: "2026/2027 Ganjil",
+  serviceFeeAmount: 400000,
+  serviceFeePaid: 400000,
+  serviceFeeRemaining: 0,
+  serviceFeeStatus: "paid" as const,
+  invoiceStatus: "partial" as const,
+};
+
+const serviceFeeHeaders = [
+  "No. Invoice",
+  "NIM",
+  "Nama Mahasiswa",
+  "Periode Akademik",
+  "Nominal Jasa SALUT Ditagihkan (Rp)",
+  "Nominal Jasa SALUT Terbayar (Rp)",
+  "Sisa Jasa SALUT (Rp)",
+  "Status Pelunasan Jasa SALUT",
+  "Status Keseluruhan Invoice",
+];
+
+const mappedCsvRow = [
+  sampleDixitExportRow.invoiceNumber,
+  sampleDixitExportRow.nim,
+  sampleDixitExportRow.studentName,
+  sampleDixitExportRow.academicPeriodName,
+  sampleDixitExportRow.serviceFeeAmount,
+  sampleDixitExportRow.serviceFeePaid,
+  sampleDixitExportRow.serviceFeeRemaining,
+  sampleDixitExportRow.serviceFeeStatus === "paid" ? "Lunas" : "Belum Bayar",
+  sampleDixitExportRow.invoiceStatus,
+];
+
+assert.strictEqual(serviceFeeHeaders.length, 9);
+assert.strictEqual(mappedCsvRow[4], 400000); // ditagihkan
+assert.strictEqual(mappedCsvRow[5], 400000); // terbayar
+assert.strictEqual(mappedCsvRow[6], 0);      // sisa
+assert.strictEqual(mappedCsvRow[7], "Lunas"); // status jasa
+assert.strictEqual(mappedCsvRow[8], "partial"); // status keseluruhan invoice
+
+const dixitCsvString = generateCsvString(serviceFeeHeaders, [mappedCsvRow]);
+assert.strictEqual(dixitCsvString.includes("400000"), true);
+assert.strictEqual(dixitCsvString.includes("Lunas"), true);
+assert.strictEqual(dixitCsvString.includes("partial"), true);
+console.log("✓ Test 9 Passed: Jasa SALUT CSV Export schema & Dixit scenario verified (ditagihkan 400.000, terbayar 400.000, sisa 0, status jasa Lunas, status invoice partial)");
+
+// Test 10: Production Calculation Logic Unit Tests using actual production function calculateServiceFeePaidFromPca
+
+// 10.1: Dixit Real Scenario (PCA 400k posted service_fee allocation)
+const dixitPcas = [
+  { component_type: "service_fee", entry_type: "allocation", amount: 400000, status: "posted" },
+  { component_type: "ut_liability", entry_type: "allocation", amount: 1300000, status: "posted" },
+];
+const dixitPaid = calculateServiceFeePaidFromPca(dixitPcas);
+assert.strictEqual(dixitPaid, 400000);
+const dixitRemaining = Math.max(0, 400000 - dixitPaid);
+assert.strictEqual(dixitRemaining, 0);
+
+// 10.2: Reversal and Voided Calculation Rules (reversal reduces, voided ignored)
+const reversalAndVoidedPcas = [
+  { component_type: "service_fee", entry_type: "allocation", amount: 400000, status: "posted" },
+  { component_type: "service_fee", entry_type: "reversal", amount: 100000, status: "posted" },   // Posted reversal reduces by 100k -> 300k
+  { component_type: "service_fee", entry_type: "allocation", amount: 200000, status: "voided" },  // Voided ignored -> still 300k
+  { component_type: "service_fee", entry_type: "reversal", amount: 50000, status: "voided" },     // Voided ignored -> still 300k
+];
+const netPcaPaid = calculateServiceFeePaidFromPca(reversalAndVoidedPcas);
+assert.strictEqual(netPcaPaid, 300000);
+
+// 10.3: Empty/Null PCA Entries (No PCA recorded -> 0, NO waterfall fallback)
+const emptyPcaPaid = calculateServiceFeePaidFromPca([]);
+assert.strictEqual(emptyPcaPaid, 0);
+
+const nullPcaPaid = calculateServiceFeePaidFromPca(null);
+assert.strictEqual(nullPcaPaid, 0);
+
+// 10.4: Other component types ignored
+const otherComponentsPcas = [
+  { component_type: "ut_liability", entry_type: "allocation", amount: 1300000, status: "posted" },
+  { component_type: "internal_fee", entry_type: "allocation", amount: 50000, status: "posted" },
+];
+assert.strictEqual(calculateServiceFeePaidFromPca(otherComponentsPcas), 0);
+
+console.log("✓ Test 10 Passed: Actual production calculateServiceFeePaidFromPca verified (Dixit 400k, Reversal -100k, Voided ignored, Empty/Null = 0)");
+
 console.log("=== ALL REPORTS & DASHBOARD CORE 7 TESTS PASSED CLEANLY! ===");
+

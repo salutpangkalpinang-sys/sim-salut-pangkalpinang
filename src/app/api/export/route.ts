@@ -188,13 +188,30 @@ export async function GET(request: NextRequest) {
 
     case "service-fees": {
       const res = await getServiceFeeReport({ page: 1, limit: 5000 });
-      const headers = ["No. Invoice", "NIM", "Nama Mahasiswa", "Periode Akademik", "Biaya Layanan SALUT Ditagihkan (Rp)", "Status Invoice"];
+      const headers = [
+        "No. Invoice",
+        "NIM",
+        "Nama Mahasiswa",
+        "Periode Akademik",
+        "Nominal Jasa SALUT Ditagihkan (Rp)",
+        "Nominal Jasa SALUT Terbayar (Rp)",
+        "Sisa Jasa SALUT (Rp)",
+        "Status Pelunasan Jasa SALUT",
+        "Status Keseluruhan Invoice",
+      ];
       const rows = res.data.map((f) => [
         f.invoiceNumber,
         f.nim,
         f.studentName,
         f.academicPeriodName,
         f.serviceFeeAmount,
+        f.serviceFeePaid,
+        f.serviceFeeRemaining,
+        f.serviceFeeStatus === "paid"
+          ? "Lunas"
+          : f.serviceFeeStatus === "partial"
+          ? "Sebagian"
+          : "Belum Bayar",
         f.invoiceStatus,
       ]);
       csvContent = generateCsvString(headers, rows);

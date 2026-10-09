@@ -421,10 +421,60 @@ export async function getUtOutstandingReport(params: {
   return { data: pagedData, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
+export interface PaymentComponentAllocationRow {
+  component_type: string;
+  entry_type: string;
+  amount: number | string;
+  status: string;
+}
+
+/**
+ * Menghitung nominal Jasa SALUT terbayar murni dari entri payment_component_allocations.
+ * Aturan: status 'posted', component_type 'service_fee'.
+ * entry_type 'allocation' menambah, 'reversal' mengurangi, status selain posted (mis. voided) diabaikan.
+ * Dilarang fallback ke rekonstruksi waterfall.
+ */
+export function calculateServiceFeePaidFromPca(
+  pcas: PaymentComponentAllocationRow[] | undefined | null
+): number {
+  let totalPaid = 0;
+  (pcas || []).forEach((pca) => {
+    if (pca.status === "posted" && pca.component_type === "service_fee") {
+      const amt = Number(pca.amount) || 0;
+      if (pca.entry_type === "allocation") {
+        totalPaid += amt;
+      } else if (pca.entry_type === "reversal") {
+        totalPaid -= amt;
+      }
+    }
+  });
+  return Math.max(0, totalPaid);
+}
+
+export interface ServiceFeeReportItem {
+  id: string;
+  invoiceNumber: string;
+  nim: string;
+  studentName: string;
+  academicPeriodName: string;
+  serviceFeeAmount: number;
+  serviceFeePaid: number;
+  serviceFeeRemaining: number;
+  serviceFeeStatus: "unpaid" | "partial" | "paid";
+  invoiceStatus: string;
+  invoicePaymentStatus: "unpaid" | "partial" | "paid" | "cancelled";
+}
+
 export async function getServiceFeeReport(params: {
   page?: number;
   limit?: number;
-}) {
+}): Promise<{
+  data: ServiceFeeReportItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}> {
   const supabase = await createClient();
   const page = params.page && params.page > 0 ? params.page : 1;
   const limit = params.limit && params.limit > 0 ? params.limit : 10;
@@ -441,12 +491,14 @@ export async function getServiceFeeReport(params: {
         id,
         invoice_number,
         status,
+        created_at,
         registrations (
           academic_periods ( code, name ),
           students ( nim, full_name )
         ),
         invoice_items ( amount, item_type, approval_status ),
-        payment_allocations ( amount, student_payments ( status ) )
+        payment_allocations ( amount, student_payments ( status ) ),
+        payment_component_allocations ( amount, component_type, entry_type, status )
       )
     `,
       { count: "exact" }
@@ -456,16 +508,32 @@ export async function getServiceFeeReport(params: {
 
   if (error) return { data: [], total: 0, page, limit, totalPages: 0 };
 
-  const mapped = (data || [])
+  const mapped: ServiceFeeReportItem[] = (data || [])
     .filter((item: any) => item.invoices?.status !== "cancelled")
     .map((item: any) => {
+      const billedServiceFee = Number(item.amount) || 0;
+      const rawInvoiceStatus = item.invoices?.status || "unpaid";
+      // Hitung alokasi aktual jasa SALUT murni dari persisted payment_component_allocations
+      // Dilarang fallback ke estimasi waterfall.
+      const pcas = item.invoices?.payment_component_allocations || [];
+      const actualServiceFeePaid = calculateServiceFeePaidFromPca(pcas);
+
+      const serviceFeeRemaining = Math.max(0, billedServiceFee - actualServiceFeePaid);
+
+      let serviceFeeStatus: "unpaid" | "partial" | "paid" = "unpaid";
+      if (billedServiceFee <= 0 || actualServiceFeePaid >= billedServiceFee) {
+        serviceFeeStatus = "paid";
+      } else if (actualServiceFeePaid > 0) {
+        serviceFeeStatus = "partial";
+      }
+
+      // Hitung invoicePaymentStatus untuk breakdown kelayakan tagihan
       let verifiedAllocated = 0;
       (item.invoices?.payment_allocations || []).forEach((alloc: any) => {
         if (alloc.student_payments?.status === "verified") {
           verifiedAllocated += Number(alloc.amount) || 0;
         }
       });
-
       const allocBreakdown = calculateInvoicePaymentAllocation(
         item.invoices?.invoice_items || [],
         verifiedAllocated
@@ -479,11 +547,16 @@ export async function getServiceFeeReport(params: {
         academicPeriodName: item.invoices?.registrations?.academic_periods
           ? `${item.invoices.registrations.academic_periods.name} (${item.invoices.registrations.academic_periods.code})`
           : "-",
-        serviceFeeAmount: Number(item.amount) || 0,
-        serviceFeePaid: allocBreakdown.serviceFeePaid,
-        serviceFeeStatus: allocBreakdown.serviceFeeStatus,
+        serviceFeeAmount: billedServiceFee,
+        serviceFeePaid: actualServiceFeePaid,
+        serviceFeeRemaining,
+        serviceFeeStatus,
         invoiceStatus:
-          item.invoices?.status === "cancelled"
+          rawInvoiceStatus === "cancelled"
+            ? "cancelled"
+            : rawInvoiceStatus, // Status keseluruhan invoice resmi dari tabel invoices
+        invoicePaymentStatus:
+          rawInvoiceStatus === "cancelled"
             ? "cancelled"
             : allocBreakdown.invoicePaymentStatus,
       };
