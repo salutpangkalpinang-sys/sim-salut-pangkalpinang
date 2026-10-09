@@ -132,8 +132,8 @@ export async function getInvoicesList(params: InvoiceFilterParams = {}) {
         students ( nim, full_name )
       ),
       invoice_items ( amount, item_type, approval_status ),
+      invoice_reconciliations ( id, status ),
       payment_allocations (
-
         amount,
         student_payments ( status )
       )
@@ -221,6 +221,7 @@ export async function getInvoicesList(params: InvoiceFilterParams = {}) {
       totalInvoiceAmount: Math.max(0, totalInvoiceAmount),
       verifiedPaid,
       remainingBalance,
+      activeReconciliationId: (item.invoice_reconciliations || []).find((r: any) => r.status === "active")?.id || null,
     };
   });
 
@@ -339,7 +340,8 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         created_at,
         created_by,
         fee_types ( name, code )
-      )
+      ),
+      invoice_reconciliations ( id, status )
     `
     )
     .eq("id", id)
@@ -401,6 +403,7 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
     lipNumber: item.lip_documents?.lip_number,
     lipOfficialAmount: Number(item.lip_documents?.official_amount) || 0,
     totalInvoiceAmount: Math.max(0, totalInvoiceAmount),
+    activeReconciliationId: (item.invoice_reconciliations || []).find((r: any) => r.status === "active")?.id || null,
     items,
   };
 }

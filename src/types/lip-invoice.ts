@@ -94,6 +94,7 @@ export interface Invoice {
   totalInvoiceAmount?: number;
   verifiedPaid?: number;
   remainingBalance?: number;
+  activeReconciliationId?: string | null;
   items?: InvoiceItem[];
 }
 

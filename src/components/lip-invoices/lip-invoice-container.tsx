@@ -6,6 +6,7 @@ import { LipTable } from "@/components/lip-invoices/lip-table";
 import { InvoiceTable } from "@/components/lip-invoices/invoice-table";
 import { LipFormModal } from "@/components/lip-invoices/lip-form-modal";
 import { InvoiceFormModal } from "@/components/lip-invoices/invoice-form-modal";
+import { CorrectReconciliationModal } from "@/components/lip-invoices/correct-reconciliation-modal";
 import { RoleCode } from "@/lib/auth/types";
 import { FileText, Receipt, Plus, Search, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,8 @@ interface LipInvoiceContainerProps {
   initialInvoices: Invoice[];
   initialInvoiceTotal: number;
   userRole: RoleCode;
-  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number }[];
+  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number; salutFeeSnapshot?: number }[];
+  defaultSalutFee?: number;
   initialTab?: string;
   initialStatusFilter?: string;
 }
@@ -29,6 +31,7 @@ export function LipInvoiceContainer({
   initialInvoiceTotal,
   userRole,
   registrationsOptions,
+  defaultSalutFee = 400000,
   initialTab = "lips",
   initialStatusFilter,
 }: LipInvoiceContainerProps) {
@@ -39,6 +42,7 @@ export function LipInvoiceContainer({
 
   const [isLipModalOpen, setIsLipModalOpen] = useState(false);
   const [selectedLipForInvoice, setSelectedLipForInvoice] = useState<LipDocument | null>(null);
+  const [selectedInvoiceForCorrection, setSelectedInvoiceForCorrection] = useState<Invoice | null>(null);
 
   const canMutate = userRole === "owner" || userRole === "admin" || userRole === "academic_admin";
 
@@ -198,7 +202,9 @@ export function LipInvoiceContainer({
           page={1}
           limit={50}
           totalPages={1}
+          userRole={userRole}
           onPageChange={() => {}}
+          onCorrectInvoice={(inv) => setSelectedInvoiceForCorrection(inv)}
         />
       )}
 
@@ -209,6 +215,7 @@ export function LipInvoiceContainer({
           onClose={() => setIsLipModalOpen(false)}
           onSuccess={() => router.refresh()}
           registrationsOptions={registrationsOptions}
+          defaultSalutFee={defaultSalutFee}
         />
       )}
 
@@ -218,6 +225,16 @@ export function LipInvoiceContainer({
           lipDocument={selectedLipForInvoice}
           isOpen={Boolean(selectedLipForInvoice)}
           onClose={() => setSelectedLipForInvoice(null)}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {/* Correct Reconciliation Modal */}
+      {selectedInvoiceForCorrection && (
+        <CorrectReconciliationModal
+          invoice={selectedInvoiceForCorrection}
+          isOpen={Boolean(selectedInvoiceForCorrection)}
+          onClose={() => setSelectedInvoiceForCorrection(null)}
           onSuccess={() => router.refresh()}
         />
       )}

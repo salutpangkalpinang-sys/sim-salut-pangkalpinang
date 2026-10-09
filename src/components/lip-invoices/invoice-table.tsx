@@ -3,14 +3,18 @@
 import { Invoice } from "@/types/lip-invoice";
 import { Receipt, Eye, ArrowLeft, ArrowRight } from "lucide-react";
 
+import { RoleCode } from "@/lib/auth/types";
+
 interface InvoiceTableProps {
   invoices: Invoice[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
+  userRole?: RoleCode;
   onPageChange: (newPage: number) => void;
   onSelectInvoice?: (inv: Invoice) => void;
+  onCorrectInvoice?: (inv: Invoice) => void;
 }
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
@@ -42,8 +46,10 @@ export function InvoiceTable({
   page,
   limit,
   totalPages,
+  userRole,
   onPageChange,
   onSelectInvoice,
+  onCorrectInvoice,
 }: InvoiceTableProps) {
   if (invoices.length === 0) {
     return (
@@ -125,16 +131,28 @@ export function InvoiceTable({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {onSelectInvoice && (
-                        <button
-                          type="button"
-                          onClick={() => onSelectInvoice(inv)}
-                          className="p-1.5 rounded bg-slate-100 text-slate-700 hover:text-blue-600 hover:bg-slate-200 transition shadow-xs"
-                          title="Lihat Breakdown Rincian Invoice"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {onCorrectInvoice && (userRole === "owner" || userRole === "admin") && isReconciled && (
+                          <button
+                            type="button"
+                            onClick={() => onCorrectInvoice(inv)}
+                            className="p-1.5 rounded bg-amber-50 text-amber-700 hover:text-amber-900 hover:bg-amber-100 transition shadow-xs border border-amber-200"
+                            title="Koreksi Rekonsiliasi LIP"
+                          >
+                            <span className="text-[10px] font-semibold px-1">Koreksi</span>
+                          </button>
+                        )}
+                        {onSelectInvoice && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectInvoice(inv)}
+                            className="p-1.5 rounded bg-slate-100 text-slate-700 hover:text-blue-600 hover:bg-slate-200 transition shadow-xs"
+                            title="Lihat Breakdown Rincian Invoice"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -1,6 +1,7 @@
 import { getCurrentUserProfile } from "@/lib/auth/permissions";
 import { getLipDocumentsList, getInvoicesList } from "@/features/lip-invoices/queries";
 import { getRegistrationsList } from "@/features/registrations/queries";
+import { getAppSettings } from "@/features/settings/queries";
 import { LipInvoiceContainer } from "@/components/lip-invoices/lip-invoice-container";
 import { redirect } from "next/navigation";
 
@@ -30,10 +31,11 @@ export default async function LipTagihanPage({
     }
   }
 
-  const [lipsRes, invoicesRes, regsRes] = await Promise.all([
+  const [lipsRes, invoicesRes, regsRes, appSettings] = await Promise.all([
     getLipDocumentsList({ limit: 50, status: statusFilter }),
     getInvoicesList({ limit: 50 }),
     getRegistrationsList({ limit: 100 }),
+    getAppSettings(),
   ]);
 
   const registrationsOptions = (regsRes.data || [])
@@ -51,6 +53,7 @@ export default async function LipTagihanPage({
         academicPeriodName: r.academicPeriodName || "-",
         estimatedTuition: rawTuition,
         estimatedTotal: r.totalEstimateAmount || 0,
+        salutFeeSnapshot: salutSnapshot?.totalAmount,
       };
     });
 
@@ -62,6 +65,7 @@ export default async function LipTagihanPage({
       initialInvoiceTotal={invoicesRes.total}
       userRole={profile.role}
       registrationsOptions={registrationsOptions}
+      defaultSalutFee={appSettings.default_salut_fee}
       initialTab={initialTab}
       initialStatusFilter={statusFilter}
     />

@@ -450,3 +450,50 @@ export async function getSignedLipUrlAction(storagePath: string) {
 
   return { signedUrl: data.signedUrl };
 }
+
+export async function correctReconciledLipAction(params: {
+  lipDocumentId: string;
+  expectedReconciliationId: string;
+  newTuitionAmount: number;
+  newBookAmount?: number;
+  newShippingAmount?: number;
+  newOtherUtAmount?: number;
+  correctionReason: string;
+  idempotencyKey?: string;
+}) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
+    return { error: "Hanya role Owner dan Admin yang memiliki wewenang untuk mengoreksi LIP yang telah direkonsiliasi." };
+  }
+
+  if (!params.expectedReconciliationId) {
+    return { error: "ID rekonsiliasi yang diharapkan (expected reconciliation) wajib disertakan." };
+  }
+
+  if (!params.correctionReason || params.correctionReason.trim().length < 5) {
+    return { error: "Alasan koreksi wajib diisi minimal 5 karakter sebagai rekam jejak audit." };
+  }
+
+  const idempotencyKey = params.idempotencyKey || crypto.randomUUID();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("correct_reconciled_lip", {
+    p_lip_document_id: params.lipDocumentId,
+    p_new_tuition_amount: params.newTuitionAmount,
+    p_new_book_amount: params.newBookAmount || 0,
+    p_new_shipping_amount: params.newShippingAmount || 0,
+    p_new_other_ut_amount: params.newOtherUtAmount || 0,
+    p_correction_reason: params.correctionReason.trim(),
+    p_idempotency_key: idempotencyKey,
+    p_expected_reconciliation_id: params.expectedReconciliationId,
+  });
+
+  if (error) {
+    console.error("Database RPC correct_reconciled_lip error:", error);
+    return { error: "Gagal memproses koreksi rekonsiliasi LIP: " + error.message };
+  }
+
+  revalidatePath("/lip-tagihan");
+  return { success: true, data };
+}

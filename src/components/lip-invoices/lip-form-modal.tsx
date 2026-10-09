@@ -11,8 +11,9 @@ interface LipFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number }[];
+  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number; salutFeeSnapshot?: number }[];
   defaultRegistrationId?: string;
+  defaultSalutFee?: number;
 }
 
 export function LipFormModal({
@@ -21,6 +22,7 @@ export function LipFormModal({
   onSuccess,
   registrationsOptions,
   defaultRegistrationId = "",
+  defaultSalutFee = 400000,
 }: LipFormModalProps) {
   const [registrationId, setRegistrationId] = useState(defaultRegistrationId || "");
   const [lipNumber, setLipNumber] = useState("");
@@ -44,6 +46,11 @@ export function LipFormModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const selectedRegistration = registrationsOptions.find((r) => r.id === registrationId);
+  const effectiveSalutFee = selectedRegistration?.salutFeeSnapshot !== undefined 
+    ? selectedRegistration.salutFeeSnapshot 
+    : defaultSalutFee;
 
   // Pre-fill SPP from registration snapshot when registrationId changes
   useEffect(() => {
@@ -166,11 +173,13 @@ export function LipFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Info Banner */}
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-[11px] space-y-1">
-            <strong className="block font-bold">💡 Catatan Penting Nominal LIP UT:</strong>
+            <strong className="block font-bold">💡 Alur Tagihan Terpadu (Phase 2):</strong>
             <p>
-              Nominal LIP di bawah ini adalah <strong>MURNI Kewajiban Resmi UT</strong> (SPP, Matakuliah, Bahan Ajar) yang akan disetor ke UT.
+              Komisi Layanan SALUT sebesar <strong>Rp {effectiveSalutFee.toLocaleString("id-ID")}</strong> sudah ditetapkan dan tersimpan pada invoice sejak registrasi semester dibuat (mengacu pada snapshot biaya registrasi).
               <br />
-              <strong>JANGAN memasukkan Biaya Layanan SALUT (Rp 400.000)</strong> ke dalam form LIP ini. Biaya Layanan SALUT akan otomatis ditambahkan oleh sistem saat penerbitan Invoice Tagihan Mahasiswa.
+              Form ini <strong>hanya mencatat murni kewajiban resmi UT</strong> (SPP, Bahan Ajar, Biaya Kirim) dari lembar fisik LIP.
+              <br />
+              Penyesuaian kekurangan/kelebihan tagihan UT akan otomatis direkonsiliasi ke invoice mahasiswa <strong>saat dokumen LIP diverifikasi dan direkonsiliasi</strong>, bukan sekadar saat diunggah.
             </p>
           </div>
 
@@ -220,7 +229,7 @@ export function LipFormModal({
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono font-bold text-emerald-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               <p className="text-[11px] text-amber-700 font-medium mt-1 leading-tight">
-                💡 Isi nominal MURNI dari lembaran LIP UT (tanpa menambahkan Biaya Layanan SALUT). Biaya Layanan SALUT Rp 400.000 akan digabungkan otomatis saat menerbitkan Invoice.
+                💡 Isi nominal MURNI dari lembaran LIP UT (tanpa menambahkan Biaya Layanan SALUT). Penyesuaian ke invoice akan diproses saat verifikasi &amp; rekonsiliasi LIP.
               </p>
             </div>
           </div>
