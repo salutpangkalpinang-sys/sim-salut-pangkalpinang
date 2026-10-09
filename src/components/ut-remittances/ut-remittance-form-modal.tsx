@@ -39,9 +39,29 @@ export function UtRemittanceFormModal({
 
   // Ineligible LIPs Dialog & Summary State
   const [isIneligibleDialogOpen, setIsIneligibleDialogOpen] = useState(false);
+  const openIneligibleButtonRef = useRef<HTMLButtonElement>(null);
   const [ineligibleCount, setIneligibleCount] = useState<number | null>(null);
   const [isLoadingCount, setIsLoadingCount] = useState(false);
   const [countError, setCountError] = useState<string | null>(null);
+
+  // Modal Escape key listener - only closes main modal if the Ineligible sub-dialog is NOT open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isIneligibleDialogOpen) {
+          // Ineligible dialog is open: let the dialog's own handler close only the dialog
+          return;
+        }
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isIneligibleDialogOpen, onClose]);
 
   // Eligible LIPs dropdown options & server search
   const [eligibleOptions, setEligibleOptions] = useState<ComboboxOption[]>([]);
@@ -412,6 +432,7 @@ export function UtRemittanceFormModal({
               </div>
 
               <button
+                ref={openIneligibleButtonRef}
                 type="button"
                 onClick={() => setIsIneligibleDialogOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-50 text-amber-900 rounded-lg font-semibold text-xs transition shadow-2xs shrink-0 self-start sm:self-auto"
@@ -596,7 +617,12 @@ export function UtRemittanceFormModal({
     {/* Separate Ineligible LIPs Dialog Modal */}
     <IneligibleLipsDialog
       isOpen={isIneligibleDialogOpen}
-      onClose={() => setIsIneligibleDialogOpen(false)}
+      onClose={() => {
+        setIsIneligibleDialogOpen(false);
+        setTimeout(() => {
+          openIneligibleButtonRef.current?.focus();
+        }, 50);
+      }}
     />
   </>
 );

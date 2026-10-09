@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { IneligibleLipItem, PaginatedIneligibleLipsResult } from "@/types/ut-remittance";
 import { fetchIneligibleLipsAction } from "@/features/ut-remittances/actions";
 import { X, Search, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, AlertTriangle } from "lucide-react";
@@ -11,12 +12,45 @@ interface IneligibleLipsDialogProps {
 }
 
 export function IneligibleLipsDialog({ isOpen, onClose }: IneligibleLipsDialogProps) {
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [paginatedResult, setPaginatedResult] = useState<PaginatedIneligibleLipsResult | null>(null);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Keyboard Escape listener - closes only this dialog and stops propagation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Focus search input when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Debounce search input (350ms)
   useEffect(() => {
@@ -60,7 +94,7 @@ export function IneligibleLipsDialog({ isOpen, onClose }: IneligibleLipsDialogPr
     loadData();
   }, [loadData]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
 
   const total = paginatedResult?.total ?? 0;
   const totalPages = paginatedResult?.totalPages ?? 0;
@@ -68,9 +102,22 @@ export function IneligibleLipsDialog({ isOpen, onClose }: IneligibleLipsDialogPr
   const startRecord = total === 0 ? 0 : (page - 1) * 20 + 1;
   const endRecord = Math.min(page * 20, total);
 
-  return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden my-6 flex flex-col max-h-[88vh] text-xs text-slate-900 animate-in fade-in-50 duration-150">
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ineligible-dialog-title"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden my-6 flex flex-col max-h-[88vh] text-xs text-slate-900 animate-in fade-in-50 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -78,7 +125,7 @@ export function IneligibleLipsDialog({ isOpen, onClose }: IneligibleLipsDialogPr
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
+              <h2 id="ineligible-dialog-title" className="text-sm font-bold text-slate-900">
                 Daftar Dokumen LIP Belum Memenuhi Syarat Setoran UT
               </h2>
               <p className="text-[11px] text-slate-500">
@@ -100,6 +147,7 @@ export function IneligibleLipsDialog({ isOpen, onClose }: IneligibleLipsDialogPr
         <div className="p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <div className="relative w-full sm:w-96">
             <input
+              ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -264,6 +312,7 @@ export function IneligibleLipsDialog({ isOpen, onClose }: IneligibleLipsDialogPr
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
