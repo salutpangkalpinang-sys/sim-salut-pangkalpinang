@@ -278,7 +278,7 @@ export async function getPaymentReceiptData(paymentId: string): Promise<PaymentR
         registration_number,
         academic_periods ( name )
       ),
-      invoice_items ( amount, item_type, approval_status ),
+      invoice_items ( amount, item_type, approval_status, source_type, description ),
       payment_allocations (
         amount,
         student_payments ( status )

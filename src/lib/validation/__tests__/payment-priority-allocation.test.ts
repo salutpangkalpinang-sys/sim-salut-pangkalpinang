@@ -62,4 +62,103 @@ assert.strictEqual(test5Res.utLiabilityPaid, 1500000);
 assert.strictEqual(test5Res.remainingInvoiceBalance, 0);
 console.log("✓ Test 5 Passed: Overpayment clamped correctly without breaking item max totals");
 
+// Test 6: Dixit Correction Case (INV-2026-10006)
+// Items:
+// 1. service_fee: Rp 400.000
+// 2. ut_liability (registrasi awal): Rp 1.300.000
+// 3. ut_liability (shortage lama sebelum koreksi): Rp 517.600
+// 4. discount (reversal shortage lama, source_type: lip_reconciliation): Rp 517.600
+// 5. ut_liability (shortage terkoreksi baru): Rp 117.600
+// Net UT Liability = (1.300.000 + 517.600 + 117.600) - 517.600 = Rp 1.417.600
+// Total Invoice = 400.000 + 1.417.600 = Rp 1.817.600
+const dixitInvoiceItems = [
+  { item_type: "service_fee", amount: 400000 },
+  { item_type: "ut_liability", amount: 1300000, source_type: "registration" },
+  { item_type: "ut_liability", amount: 517600, source_type: "lip_reconciliation" },
+  {
+    item_type: "discount",
+    amount: 517600,
+    source_type: "lip_reconciliation",
+    approval_status: "approved",
+    description: "Pembatalan/Reversal Penyesuaian Rekonsiliasi LIP Lama (Ref: rec-old)",
+  },
+  { item_type: "ut_liability", amount: 117600, source_type: "lip_reconciliation" },
+];
+
+// Test 6.1: Dixit setelah pembayaran awal Rp 1.700.000 (sebelum pelunasan sisa)
+// SALUT: Rp 400.000 (Lunas), UT: Rp 1.300.000 / Rp 1.417.600 (Terbayar Sebagian, Sisa Rp 117.600)
+const dixitPartialRes = calculateInvoicePaymentAllocation(dixitInvoiceItems, 1700000);
+assert.strictEqual(dixitPartialRes.serviceFeeTotal, 400000);
+assert.strictEqual(dixitPartialRes.serviceFeePaid, 400000);
+assert.strictEqual(dixitPartialRes.serviceFeeRemaining, 0);
+assert.strictEqual(dixitPartialRes.serviceFeeStatus, "paid");
+assert.strictEqual(dixitPartialRes.utLiabilityTotal, 1417600); // Harus Net UT 1.417.600, BUKAN Gross 1.935.200!
+assert.strictEqual(dixitPartialRes.utLiabilityPaid, 1300000);
+assert.strictEqual(dixitPartialRes.utLiabilityRemaining, 117600);
+assert.strictEqual(dixitPartialRes.utLiabilityStatus, "partial");
+assert.strictEqual(dixitPartialRes.invoiceTotalAmount, 1817600);
+assert.strictEqual(dixitPartialRes.remainingInvoiceBalance, 117600);
+assert.strictEqual(dixitPartialRes.invoicePaymentStatus, "partial");
+console.log("✓ Test 6.1 Passed: Dixit partial payment (Rp 1.700.000) gives net UT Rp 1.417.600 and remaining Rp 117.600");
+
+// Test 6.2: Dixit setelah pelunasan uji PAY-2026-10014 Rp 117.600 (Total verified Rp 1.817.600)
+// SALUT: Rp 400.000 (Lunas), UT: Rp 1.417.600 / Rp 1.417.600 (Lunas, Sisa Rp 0)
+const dixitFullRes = calculateInvoicePaymentAllocation(dixitInvoiceItems, 1817600);
+assert.strictEqual(dixitFullRes.serviceFeeTotal, 400000);
+assert.strictEqual(dixitFullRes.serviceFeePaid, 400000);
+assert.strictEqual(dixitFullRes.serviceFeeRemaining, 0);
+assert.strictEqual(dixitFullRes.serviceFeeStatus, "paid");
+assert.strictEqual(dixitFullRes.utLiabilityTotal, 1417600); // Net UT 1.417.600!
+assert.strictEqual(dixitFullRes.utLiabilityPaid, 1417600);
+assert.strictEqual(dixitFullRes.utLiabilityRemaining, 0);
+assert.strictEqual(dixitFullRes.utLiabilityStatus, "paid"); // Badge harus LUNAS, BUKAN Terbayar Sebagian!
+assert.strictEqual(dixitFullRes.invoiceTotalAmount, 1817600);
+assert.strictEqual(dixitFullRes.remainingInvoiceBalance, 0);
+assert.strictEqual(dixitFullRes.invoicePaymentStatus, "paid");
+console.log("✓ Test 6.2 Passed: Dixit fully settled (Rp 1.817.600) marks UT liability LUNAS (Rp 1.417.600 / Rp 1.417.600)");
+
+// Test 7: Non-UT discount should NOT reduce utLiabilityTotal
+// Fixture: service_fee 400k, ut_liability 1.500k, general discount (promosi) 100k
+// Total invoice: 1.800k. utLiabilityTotal must stay 1.500.000.
+const generalDiscountItems = [
+  { item_type: "service_fee", amount: 400000 },
+  { item_type: "ut_liability", amount: 1500000 },
+  { item_type: "discount", amount: 100000, approval_status: "approved", description: "Diskon Promosi Beasiswa" },
+];
+const genDiscRes = calculateInvoicePaymentAllocation(generalDiscountItems, 1800000);
+assert.strictEqual(genDiscRes.utLiabilityTotal, 1500000); // NOT 1.400.000!
+assert.strictEqual(genDiscRes.invoiceTotalAmount, 1800000);
+console.log("✓ Test 7 Passed: General non-reconciliation discount does NOT arbitrarily reduce UT liability total");
+
+// Test 8: Discount pending or rejected must NOT reduce invoice total or UT liability
+const unapprovedDiscountItems = [
+  { item_type: "service_fee", amount: 400000 },
+  { item_type: "ut_liability", amount: 1500000 },
+  { item_type: "discount", amount: 200000, source_type: "lip_reconciliation", approval_status: "pending" },
+  { item_type: "discount", amount: 100000, source_type: "lip_reconciliation", approval_status: "rejected" },
+];
+const unapprovedRes = calculateInvoicePaymentAllocation(unapprovedDiscountItems, 1900000);
+assert.strictEqual(unapprovedRes.discountTotal, 0);
+assert.strictEqual(unapprovedRes.utLiabilityTotal, 1500000); // Pending/rejected did not reduce UT liability
+assert.strictEqual(unapprovedRes.invoiceTotalAmount, 1900000); // Pending/rejected did not reduce invoice total
+console.log("✓ Test 8 Passed: Pending or rejected discounts are strictly ignored and do NOT reduce UT liability or invoice total");
+
+// Test 9: Description resembling reversal without valid source_type ('lip_reconciliation') must NOT reduce UT liability
+const fakeReversalDescItems = [
+  { item_type: "service_fee", amount: 400000 },
+  { item_type: "ut_liability", amount: 1500000 },
+  {
+    item_type: "discount",
+    amount: 150000,
+    source_type: "manual", // Bukan 'lip_reconciliation'!
+    approval_status: "approved",
+    description: "Reversal penyesuaian rekonsiliasi LIP lama palsu",
+  },
+];
+const fakeReversalRes = calculateInvoicePaymentAllocation(fakeReversalDescItems, 1750000);
+assert.strictEqual(fakeReversalRes.utLiabilityTotal, 1500000); // UT liability TETAP 1.500.000!
+assert.strictEqual(fakeReversalRes.discountTotal, 150000); // Diakui di level invoice total
+assert.strictEqual(fakeReversalRes.invoiceTotalAmount, 1750000); // Invoice berkurang 150.000
+console.log("✓ Test 9 Passed: Description resembling reversal without source_type = 'lip_reconciliation' does NOT reduce UT liability");
+
 console.log("=== ALL PAYMENT PRIORITY ALLOCATION TESTS PASSED CLEANLY! ===");

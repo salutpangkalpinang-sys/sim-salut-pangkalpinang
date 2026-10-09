@@ -5,6 +5,9 @@ export interface BasicInvoiceItem {
   itemType?: "ut_liability" | "service_fee" | "internal_fee" | "discount" | string;
   approval_status?: string | null;
   approvalStatus?: string | null;
+  source_type?: string | null;
+  sourceType?: string | null;
+  description?: string | null;
 }
 
 export interface PaymentAllocationBreakdown {
@@ -42,7 +45,8 @@ export function calculateInvoicePaymentAllocation(
   totalVerifiedPaidAmount: number
 ): PaymentAllocationBreakdown {
   let serviceFeeTotal = 0;
-  let utLiabilityTotal = 0;
+  let grossUtLiabilityTotal = 0;
+  let utReconciliationDiscountTotal = 0;
   let internalFeeTotal = 0;
   let discountTotal = 0;
 
@@ -50,23 +54,36 @@ export function calculateInvoicePaymentAllocation(
     const type = item.item_type || item.itemType;
     const amount = Number(item.amount) || 0;
     const status = item.approval_status || item.approvalStatus;
+    const sourceType = item.source_type || item.sourceType;
 
     if (type === "discount") {
-      if (status === "approved" || !status) {
+      // Diskon hanya diakui jika sudah disetujui (approved)
+      if (status === "approved") {
         discountTotal += amount;
+        // Hanya diskon yang terbukti berasal dari rekonsiliasi LIP (source_type = 'lip_reconciliation')
+        // yang mengurangi kewajiban UT (ut_liability) secara spesifik, mencakup:
+        // 1. Reversal penyesuaian shortage lama via correct_reconciled_lip
+        // 2. Diskon penurunan tagihan resmi LIP via reconcile_lip_with_invoice
+        // Diskon umum non-rekonsiliasi tidak mengurangi kewajiban UT.
+        if (sourceType === "lip_reconciliation") {
+          utReconciliationDiscountTotal += amount;
+        }
       }
     } else if (type === "service_fee") {
       serviceFeeTotal += amount;
     } else if (type === "ut_liability") {
-      utLiabilityTotal += amount;
+      grossUtLiabilityTotal += amount;
     } else {
       internalFeeTotal += amount;
     }
   });
 
+  // Kewajiban bersih UT setelah memperhitungkan pembalikan/koreksi rekonsiliasi LIP
+  const utLiabilityTotal = Math.max(0, grossUtLiabilityTotal - utReconciliationDiscountTotal);
+
   const invoiceTotalAmount = Math.max(
     0,
-    serviceFeeTotal + utLiabilityTotal + internalFeeTotal - discountTotal
+    serviceFeeTotal + grossUtLiabilityTotal + internalFeeTotal - discountTotal
   );
 
   const totalVerifiedPaid = Math.max(0, totalVerifiedPaidAmount || 0);

@@ -496,7 +496,7 @@ export async function getServiceFeeReport(params: {
           academic_periods ( code, name ),
           students ( nim, full_name )
         ),
-        invoice_items ( amount, item_type, approval_status ),
+        invoice_items ( amount, item_type, approval_status, source_type, description ),
         payment_allocations ( amount, student_payments ( status ) ),
         payment_component_allocations ( amount, component_type, entry_type, status )
       )
