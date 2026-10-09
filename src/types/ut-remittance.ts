@@ -77,7 +77,20 @@ export interface EligibleLipForRemittance {
   studentNim: string | null;
   officialAmount: number;
   alreadyVerifiedUtPaid: number;
+  alreadyRemittedAmount?: number;
   outstandingUtAmount: number;
   isInvoicePaid?: boolean;
   invoiceStatus?: string;
+
+  // Remittance Criteria Breakdown
+  salutFeeRequired?: number;
+  salutFeePaid?: number;
+  isSalutFeeSatisfied?: boolean;
+
+  verifiedUtFundAvailable?: number;
+  isUtFundSufficient?: boolean;
+  utFundShortage?: number;
+
+  isRemittanceEligible?: boolean;
+  ineligibilityReason?: string | null;
 }

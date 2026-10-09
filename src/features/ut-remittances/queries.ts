@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { calculateInvoicePaymentAllocation } from "@/lib/utils/payment-allocation";
 import {
   UtRemittance,
   UtRemittanceItem,
@@ -263,7 +262,8 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
         id,
         status,
         invoice_items ( amount, item_type, approval_status ),
-        payment_allocations ( amount, student_payments ( status ) )
+        payment_allocations ( amount, student_payments ( status ) ),
+        payment_component_allocations ( amount, component_type, entry_type, status )
       ),
       ut_remittance_items (
         amount,
@@ -278,36 +278,83 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
   const mapped: EligibleLipForRemittance[] = (data || []).map((lip: any) => {
     const officialAmount = Number(lip.official_amount) || 0;
     let alreadyVerifiedUtPaid = 0;
+    let alreadyRemittedAmount = 0;
 
     (lip.ut_remittance_items || []).forEach((ri: any) => {
-      if (ri.ut_remittances?.status === "verified") {
-        alreadyVerifiedUtPaid += Number(ri.amount) || 0;
+      const remStatus = ri.ut_remittances?.status;
+      const itemAmt = Number(ri.amount) || 0;
+      if (remStatus === "verified") {
+        alreadyVerifiedUtPaid += itemAmt;
+      }
+      // RPC Criterion 4: Sisa Tagihan Remittance memperhitungkan pending_verification DAN verified
+      if (remStatus === "pending_verification" || remStatus === "verified") {
+        alreadyRemittedAmount += itemAmt;
       }
     });
 
-    const outstandingUtAmount = Math.max(0, officialAmount - alreadyVerifiedUtPaid);
+    // RPC: v_outstanding_remittance := v_lip_doc.official_amount - v_already_remitted
+    const outstandingUtAmount = Math.max(0, officialAmount - alreadyRemittedAmount);
 
     let isInvoicePaid = false;
     let invoiceStatus = "unpaid";
+    let salutFeeRequired = 0;
+    let salutFeePaid = 0;
+    let verifiedUtFundAvailable = 0;
 
     const invList = lip.invoices || [];
     const inv = invList.find((i: any) => i.status !== "cancelled") || invList[0];
 
     if (inv) {
-      let verifiedAllocated = 0;
-      (inv.payment_allocations || []).forEach((alloc: any) => {
-        if (alloc.student_payments?.status === "verified") {
-          verifiedAllocated += Number(alloc.amount) || 0;
+      invoiceStatus = inv.status || "unpaid";
+      // RPC Criterion 3: Wajib inv.status === 'paid' (tidak memakai fallback remainingBalance <= 0)
+      isInvoicePaid = inv.status === "paid";
+
+      // RPC Criterion 1: Kewajiban Komisi SALUT dari item_type = 'service_fee'
+      (inv.invoice_items || []).forEach((it: any) => {
+        if (it.item_type === "service_fee") {
+          salutFeeRequired += Number(it.amount) || 0;
         }
       });
 
-      const allocBreakdown = calculateInvoicePaymentAllocation(inv.invoice_items || [], verifiedAllocated);
+      // RPC Criteria 1 & 2: Dihitung dari persisted payment_component_allocations (status = 'posted')
+      // Formula: SUM(CASE WHEN entry_type = 'allocation' THEN amount ELSE -amount END)
+      (inv.payment_component_allocations || []).forEach((pca: any) => {
+        if (pca.status === "posted") {
+          const delta = pca.entry_type === "allocation" ? Number(pca.amount) || 0 : -(Number(pca.amount) || 0);
+          if (pca.component_type === "service_fee") {
+            salutFeePaid += delta;
+          } else if (pca.component_type === "ut_liability") {
+            verifiedUtFundAvailable += delta;
+          }
+        }
+      });
+    }
 
-      if (inv.status === "paid" || (allocBreakdown.invoiceTotalAmount > 0 && allocBreakdown.remainingInvoiceBalance <= 0)) {
-        isInvoicePaid = true;
-        invoiceStatus = "paid";
-      } else {
-        invoiceStatus = inv.status || "unpaid";
+    const isSalutFeeSatisfied = salutFeeRequired <= 0 || salutFeePaid >= salutFeeRequired;
+    const isUtFundSufficient = verifiedUtFundAvailable >= officialAmount;
+    const utFundShortage = Math.max(0, officialAmount - verifiedUtFundAvailable);
+
+    // Strict RPC Criteria:
+    // 1. Dokumen LIP berstatus 'verified'
+    // 2. Komisi SALUT lunas 100% (v_salut_paid >= v_salut_total)
+    // 3. Dana UT verified >= official LIP (v_available_ut_fund >= v_lip_doc.official_amount)
+    // 4. Invoice mahasiswa berstatus 'paid' (inv.status === 'paid')
+    const isRemittanceEligible =
+      lip.status === "verified" &&
+      isSalutFeeSatisfied &&
+      isUtFundSufficient &&
+      isInvoicePaid;
+
+    let ineligibilityReason: string | null = null;
+    if (!isRemittanceEligible) {
+      if (lip.status !== "verified") {
+        ineligibilityReason = `Dokumen LIP berstatus ${lip.status} (wajib verified).`;
+      } else if (!isSalutFeeSatisfied) {
+        ineligibilityReason = `Komisi SALUT belum lunas (terbayar Rp ${salutFeePaid.toLocaleString("id-ID")} dari Rp ${salutFeeRequired.toLocaleString("id-ID")}).`;
+      } else if (!isUtFundSufficient) {
+        ineligibilityReason = `Dana UT terverifikasi (Rp ${verifiedUtFundAvailable.toLocaleString("id-ID")}) kurang Rp ${utFundShortage.toLocaleString("id-ID")} dari kewajiban LIP (Rp ${officialAmount.toLocaleString("id-ID")}).`;
+      } else if (!isInvoicePaid) {
+        ineligibilityReason = `Invoice mahasiswa belum lunas (status ${invoiceStatus}).`;
       }
     }
 
@@ -320,12 +367,21 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
       studentNim: lip.registrations?.students?.nim || null,
       officialAmount,
       alreadyVerifiedUtPaid,
+      alreadyRemittedAmount,
       outstandingUtAmount,
       isInvoicePaid,
       invoiceStatus,
+      salutFeeRequired,
+      salutFeePaid,
+      isSalutFeeSatisfied,
+      verifiedUtFundAvailable,
+      isUtFundSufficient,
+      utFundShortage,
+      isRemittanceEligible,
+      ineligibilityReason,
     };
   });
 
-  // Filter only LIPs that still have outstanding liability > 0
+  // Filter only LIPs that still have outstanding liability > 0 (setelah dikurangi pending + verified)
   return mapped.filter((lip) => lip.outstandingUtAmount > 0);
 }

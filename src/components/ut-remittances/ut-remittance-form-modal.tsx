@@ -4,7 +4,7 @@ import { useState } from "react";
 import { EligibleLipForRemittance } from "@/types/ut-remittance";
 import { createUtRemittanceAction } from "@/features/ut-remittances/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
-import { X, Building2, Upload, AlertCircle, Save, Trash2 } from "lucide-react";
+import { X, Building2, Upload, AlertCircle, Save, Trash2, AlertTriangle } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DatePickerId } from "@/components/ui/date-picker-id";
@@ -27,15 +27,41 @@ export function UtRemittanceFormModal({
 }: UtRemittanceFormModalProps) {
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
 
-  const sortedLips = [...eligibleLips].sort((a, b) => (b.isInvoicePaid ? 1 : 0) - (a.isInvoicePaid ? 1 : 0));
+  // Sort: Eligible first, then ineligible
+  const sortedLips = [...eligibleLips].sort((a, b) => {
+    const aEligible = a.isRemittanceEligible ? 1 : 0;
+    const bEligible = b.isRemittanceEligible ? 1 : 0;
+    return bEligible - aEligible;
+  });
 
-  const lipComboboxOptions: ComboboxOption[] = sortedLips.map((lip) => ({
-    id: lip.id,
-    label: `${lip.isInvoicePaid ? "🟢 [LUNAS DI SALUT] " : "🔴 [BELUM LUNAS] "}${lip.studentName}`,
-    sublabel: `${lip.lipNumber} — ${lip.registrationNumber} (Kewajiban UT: Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")})`,
-    badge: lip.isInvoicePaid ? "LUNAS DI SALUT" : "BELUM LUNAS",
-    searchTerms: `${lip.studentName} ${lip.lipNumber} ${lip.registrationNumber}`,
-  }));
+  const lipComboboxOptions: ComboboxOption[] = sortedLips.map((lip) => {
+    const isEligible = Boolean(lip.isRemittanceEligible);
+    const badgeText = isEligible ? "SIAP SETOR" : "TIDAK LAYAK SETOR";
+    const statusPrefix = isEligible ? "🟢 [SIAP SETOR] " : "🔴 [TIDAK LAYAK] ";
+
+    // Detailed breakdown string
+    const verifiedFund = lip.verifiedUtFundAvailable ?? 0;
+    const shortage = lip.utFundShortage ?? Math.max(0, lip.officialAmount - verifiedFund);
+    const sublabelParts = [
+      `${lip.lipNumber} — ${lip.registrationNumber}`,
+      `Dana UT: Rp ${verifiedFund.toLocaleString("id-ID")}/${lip.officialAmount.toLocaleString("id-ID")}`,
+    ];
+    if (shortage > 0) {
+      sublabelParts.push(`Kurang Rp ${shortage.toLocaleString("id-ID")}`);
+    }
+    if (lip.ineligibilityReason) {
+      sublabelParts.push(lip.ineligibilityReason);
+    }
+
+    return {
+      id: lip.id,
+      label: `${statusPrefix}${lip.studentName}`,
+      sublabel: sublabelParts.join(" | "),
+      badge: badgeText,
+      searchTerms: `${lip.studentName} ${lip.lipNumber} ${lip.registrationNumber} ${lip.studentNim || ""}`,
+      disabled: !isEligible,
+    };
+  });
   const [cashAccountId, setCashAccountId] = useState(cashAccounts[0]?.id || "");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
@@ -61,6 +87,16 @@ export function UtRemittanceFormModal({
     if (!lip) return;
     if (selectedItems.some((i) => i.lipDocumentId === lipId)) return;
 
+    if (!lip.isRemittanceEligible) {
+      setErrorMsg(
+        `LIP #${lip.lipNumber} (${lip.studentName}) tidak memenuhi syarat setoran: ${
+          lip.ineligibilityReason || "Kriteria setoran belum terpenuhi."
+        }`
+      );
+      return;
+    }
+
+    setErrorMsg(null);
     setSelectedItems([
       ...selectedItems,
       {
@@ -111,9 +147,24 @@ export function UtRemittanceFormModal({
       return;
     }
 
+    // Validate each item against RPC eligibility rules
     for (const item of selectedItems) {
       const lip = eligibleLips.find((l) => l.id === item.lipDocumentId);
-      if (lip && item.amount > lip.outstandingUtAmount) {
+      if (!lip) {
+        setErrorMsg("Dokumen LIP tidak ditemukan dalam data.");
+        return;
+      }
+
+      if (!lip.isRemittanceEligible) {
+        setErrorMsg(
+          `LIP #${lip.lipNumber} (${lip.studentName}) belum memenuhi syarat setoran: ${
+            lip.ineligibilityReason || "Kriteria setoran belum terpenuhi."
+          }`
+        );
+        return;
+      }
+
+      if (item.amount > lip.outstandingUtAmount) {
         setErrorMsg(
           `Alokasi untuk LIP #${lip.lipNumber} (Rp ${item.amount.toLocaleString("id-ID")}) melebihi sisa kewajiban UT (Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")}).`
         );
@@ -232,7 +283,7 @@ export function UtRemittanceFormModal({
               <SearchableCombobox
                 options={lipComboboxOptions.map((o) => ({
                   ...o,
-                  disabled: selectedItems.some((i) => i.lipDocumentId === o.id),
+                  disabled: !eligibleLips.find((l) => l.id === o.id)?.isRemittanceEligible || selectedItems.some((i) => i.lipDocumentId === o.id),
                 }))}
                 value=""
                 onChange={(id) => {
@@ -244,6 +295,58 @@ export function UtRemittanceFormModal({
                 selectedColor="blue"
               />
             </div>
+
+            {/* Ineligible LIPs Explanatory Notice */}
+            {eligibleLips.some((l) => !l.isRemittanceEligible) && (
+              <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Daftar Dokumen LIP Belum Memenuhi Syarat Setoran UT ({eligibleLips.filter((l) => !l.isRemittanceEligible).length} Dokumen):</span>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {eligibleLips
+                    .filter((l) => !l.isRemittanceEligible)
+                    .map((ineligibleLip) => {
+                      const verifiedUt = ineligibleLip.verifiedUtFundAvailable ?? 0;
+                      const officialUt = ineligibleLip.officialAmount;
+                      const shortageUt = ineligibleLip.utFundShortage ?? Math.max(0, officialUt - verifiedUt);
+
+                      return (
+                        <div
+                          key={ineligibleLip.id}
+                          className="bg-white border border-amber-200 rounded-lg p-2.5 text-[11px] text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900">{ineligibleLip.studentName}</span>
+                              <span className="font-mono text-slate-500">({ineligibleLip.studentNim || ineligibleLip.registrationNumber})</span>
+                              <span className="px-1.5 py-0.2 bg-red-100 text-red-700 font-bold rounded text-[9px] uppercase">
+                                Belum Memenuhi Syarat
+                              </span>
+                            </div>
+                            <div className="text-slate-600 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[10px]">
+                              <span>No. LIP: <strong className="text-blue-700">{ineligibleLip.lipNumber}</strong></span>
+                              <span>Dana UT Terverifikasi: <strong className="text-slate-900">Rp {verifiedUt.toLocaleString("id-ID")}</strong></span>
+                              <span>Kewajiban UT: <strong className="text-slate-900">Rp {officialUt.toLocaleString("id-ID")}</strong></span>
+                              {shortageUt > 0 && (
+                                <span className="text-red-600 font-bold">Kekurangan: Rp {shortageUt.toLocaleString("id-ID")}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="sm:text-right shrink-0">
+                            <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-medium text-[10px]">
+                              {ineligibleLip.ineligibilityReason || "Menunggu pelunasan mahasiswa"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                <p className="text-[10px] text-amber-700 italic">
+                  * Catatan: Sesuai aturan RPC database, SALUT tidak dapat menyetor ke UT sebelum hak SALUT lunas 100%, dana UT verified mencukupi nominal LIP, dan invoice mahasiswa lunas.
+                </p>
+              </div>
+            )}
 
             {/* Table of Selected Items */}
             {selectedItems.length > 0 ? (
@@ -269,13 +372,13 @@ export function UtRemittanceFormModal({
                             <div className="font-mono font-bold text-blue-600">{lip.lipNumber}</div>
                             <div className="text-[11px] text-slate-900 flex items-center gap-1.5 mt-0.5">
                               <span>{lip.studentName}</span>
-                              {lip.isInvoicePaid ? (
+                              {lip.isRemittanceEligible ? (
                                 <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold text-[9px]">
-                                  🟢 Lunas di SALUT
+                                  🟢 Siap Disetor
                                 </span>
                               ) : (
                                 <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-semibold text-[9px]">
-                                  🔴 Belum Lunas di SALUT
+                                  🔴 Belum Memenuhi Syarat
                                 </span>
                               )}
                             </div>
