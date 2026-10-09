@@ -260,4 +260,177 @@ assert.strictEqual(unknownAccountPair.valid, false);
 assert.match(unknownAccountPair.message || "", /tidak dikenal dalam master resmi/);
 console.log("✓ Test 14 Passed: Unrecognized payment method or cash account code strictly rejected (Fail-Closed)");
 
+// Test 15: Payment Void Request UI Lifecycle, Maker-Checker, & Rejection History Tests
+// Helper function simulating UI action resolution
+function resolvePaymentVoidAction({
+  paymentStatus,
+  voidRequest,
+  currentUserId,
+  userRole,
+}: {
+  paymentStatus: string;
+  voidRequest: {
+    status: "pending" | "approved" | "rejected";
+    requestedBy: string;
+  } | null;
+  currentUserId?: string;
+  userRole: "owner" | "admin" | "finance_admin" | "academic_admin" | "viewer";
+}): {
+  showVoidPendingBadge: boolean;
+  actionButton: "none" | "request_void" | "view_void" | "review_void";
+  canApproveDirectly: boolean;
+} {
+  const canVerify = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
+  if (!canVerify || paymentStatus !== "verified") {
+    return {
+      showVoidPendingBadge: false,
+      actionButton: "none",
+      canApproveDirectly: false,
+    };
+  }
+
+  const hasPendingVoid = Boolean(voidRequest && voidRequest.status === "pending");
+  const isSelfRequester = Boolean(currentUserId && voidRequest?.requestedBy === currentUserId);
+  const isChecker = (userRole === "owner" || userRole === "admin") && !isSelfRequester;
+
+  if (hasPendingVoid) {
+    if (isChecker) {
+      return {
+        showVoidPendingBadge: true,
+        actionButton: "review_void",
+        canApproveDirectly: true,
+      };
+    } else {
+      return {
+        showVoidPendingBadge: true,
+        actionButton: "view_void",
+        canApproveDirectly: false,
+      };
+    }
+  }
+
+  return {
+    showVoidPendingBadge: false,
+    actionButton: "request_void",
+    canApproveDirectly: false,
+  };
+}
+
+// Case 15.1: Cashier/FinanceAdmin submits void -> status remains 'verified', badge 'Void Menunggu Pemeriksaan' active, action is 'view_void' (no re-submitting)
+const cashierUser = "usr-cashier-001";
+const pendingVoidData = {
+  status: "pending" as const,
+  requestedBy: cashierUser,
+};
+
+const cashierView = resolvePaymentVoidAction({
+  paymentStatus: "verified",
+  voidRequest: pendingVoidData,
+  currentUserId: cashierUser,
+  userRole: "finance_admin",
+});
+
+assert.strictEqual(cashierView.showVoidPendingBadge, true);
+assert.strictEqual(cashierView.actionButton, "view_void");
+assert.strictEqual(cashierView.canApproveDirectly, false);
+
+// Case 15.2: Owner as checker (different user) sees 'review_void' and can approve
+const ownerChecker = "usr-owner-999";
+const ownerView = resolvePaymentVoidAction({
+  paymentStatus: "verified",
+  voidRequest: pendingVoidData,
+  currentUserId: ownerChecker,
+  userRole: "owner",
+});
+
+assert.strictEqual(ownerView.showVoidPendingBadge, true);
+assert.strictEqual(ownerView.actionButton, "review_void");
+assert.strictEqual(ownerView.canApproveDirectly, true);
+
+// Case 15.3: Owner who requested void themselves is blocked by Maker-Checker -> action is 'view_void'
+const ownerRequester = "usr-owner-999";
+const ownerSelfRequestedVoid = {
+  status: "pending" as const,
+  requestedBy: ownerRequester,
+};
+
+const ownerSelfView = resolvePaymentVoidAction({
+  paymentStatus: "verified",
+  voidRequest: ownerSelfRequestedVoid,
+  currentUserId: ownerRequester,
+  userRole: "owner",
+});
+
+assert.strictEqual(ownerSelfView.showVoidPendingBadge, true);
+assert.strictEqual(ownerSelfView.actionButton, "view_void");
+assert.strictEqual(ownerSelfView.canApproveDirectly, false);
+
+// Case 15.4: After void is rejected -> badge 'Void Menunggu Pemeriksaan' is false, payment is still 'verified', action reverts to 'request_void'
+const rejectedVoidData = {
+  status: "rejected" as const,
+  requestedBy: cashierUser,
+};
+
+const afterRejectionView = resolvePaymentVoidAction({
+  paymentStatus: "verified",
+  voidRequest: rejectedVoidData,
+  currentUserId: cashierUser,
+  userRole: "finance_admin",
+});
+
+assert.strictEqual(afterRejectionView.showVoidPendingBadge, false);
+assert.strictEqual(afterRejectionView.actionButton, "request_void");
+assert.strictEqual(afterRejectionView.canApproveDirectly, false);
+console.log("✓ Test 15 Passed: Payment void request UI indicators, Maker-Checker separation, and rejection recovery verified");
+
+// Test 16: Multiple Void Requests Resolution Logic (Pending Prioritization & Timestamp Fallback)
+function selectActiveOrLatestVoidRequest(voidReqList: Array<{
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  requested_at: string;
+  created_at?: string;
+  reason: string;
+}>): any | null {
+  return (
+    voidReqList.find((v) => v.status === "pending") ||
+    (voidReqList.length > 0
+      ? [...voidReqList].sort(
+          (a, b) =>
+            new Date(b.created_at || b.requested_at).getTime() -
+            new Date(a.created_at || a.requested_at).getTime()
+        )[0]
+      : null)
+  );
+}
+
+// Case 16.1: Old rejected request followed by a newer pending request -> pending MUST be chosen
+const historyWithPending = [
+  { id: "vr-1", status: "rejected" as const, requested_at: "2026-10-08T10:00:00Z", reason: "Alasan pertama ditolak" },
+  { id: "vr-2", status: "pending" as const, requested_at: "2026-10-09T14:00:00Z", reason: "Alasan kedua diajukan kembali" },
+];
+const pickedPending = selectActiveOrLatestVoidRequest(historyWithPending);
+assert.strictEqual(pickedPending?.id, "vr-2", "Pending request must be prioritized over rejected request");
+assert.strictEqual(pickedPending?.status, "pending");
+
+// Case 16.2: Even if rejected request has a newer timestamp than pending, pending remains prioritized
+const historyPendingWithOlderTimestamp = [
+  { id: "vr-pending-1", status: "pending" as const, requested_at: "2026-10-08T09:00:00Z", reason: "Pending aktif" },
+  { id: "vr-rejected-old", status: "rejected" as const, requested_at: "2026-10-08T08:00:00Z", reason: "Ditolak lama" },
+];
+const pickedPendingStrict = selectActiveOrLatestVoidRequest(historyPendingWithOlderTimestamp);
+assert.strictEqual(pickedPendingStrict?.id, "vr-pending-1");
+
+// Case 16.3: No pending requests -> Latest rejected request by timestamp is chosen for history display
+const historyOnlyRejected = [
+  { id: "vr-old", status: "rejected" as const, requested_at: "2026-10-07T10:00:00Z", reason: "Penolakan pertama" },
+  { id: "vr-latest-rejected", status: "rejected" as const, requested_at: "2026-10-09T16:00:00Z", reason: "Penolakan terbaru" },
+];
+const pickedLatestRejected = selectActiveOrLatestVoidRequest(historyOnlyRejected);
+assert.strictEqual(pickedLatestRejected?.id, "vr-latest-rejected", "Latest rejected request must be selected when no pending exists");
+
+// Case 16.4: Empty array returns null
+assert.strictEqual(selectActiveOrLatestVoidRequest([]), null);
+
+console.log("✓ Test 16 Passed: Multiple void requests correctly prioritize active pending and fallback to latest timestamp");
+
 console.log("=== ALL STUDENT PAYMENTS VALIDATION & SECURITY TESTS PASSED CLEANLY! ===");

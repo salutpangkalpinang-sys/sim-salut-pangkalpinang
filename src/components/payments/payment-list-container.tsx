@@ -6,7 +6,7 @@ import { PaymentTable } from "@/components/payments/payment-table";
 import { PaymentFormModal } from "@/components/payments/payment-form-modal";
 import { VoidRequestDialog } from "@/components/payments/void-request-dialog";
 import { RoleCode } from "@/lib/auth/types";
-import { CreditCard, Plus, Search, RotateCcw } from "lucide-react";
+import { CreditCard, Plus, Search, RotateCcw, CheckCircle2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
@@ -56,6 +56,7 @@ export function PaymentListContainer({
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [voidingPayment, setVoidingPayment] = useState<StudentPayment | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const canMutate = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
 
@@ -168,6 +169,26 @@ export function PaymentListContainer({
         </div>
       </div>
 
+      {/* Success Alert Banner */}
+      {successMessage && (
+        <div
+          data-testid="payment-list-success-banner"
+          className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center justify-between shadow-xs"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{successMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMessage(null)}
+            className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-100 transition"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Table Component */}
       <PaymentTable
         payments={filteredPayments}
@@ -178,6 +199,7 @@ export function PaymentListContainer({
         userRole={userRole}
         onPageChange={(newPage) => setPage(newPage)}
         onRequestVoid={(p) => setVoidingPayment(p)}
+        currentUserId={currentUserId}
       />
 
       {/* Payment Form Modal */}
@@ -185,7 +207,10 @@ export function PaymentListContainer({
         <PaymentFormModal
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
-          onSuccess={() => router.refresh()}
+          onSuccess={() => {
+            setSuccessMessage("Pembayaran berhasil dicatat.");
+            router.refresh();
+          }}
           options={options}
         />
       )}
@@ -196,7 +221,10 @@ export function PaymentListContainer({
           payment={voidingPayment}
           isOpen={Boolean(voidingPayment)}
           onClose={() => setVoidingPayment(null)}
-          onSuccess={() => router.refresh()}
+          onSuccess={(msg) => {
+            if (msg) setSuccessMessage(msg);
+            router.refresh();
+          }}
           userRole={userRole}
           currentUserId={currentUserId}
         />

@@ -16,6 +16,7 @@ interface PaymentTableProps {
   userRole: RoleCode;
   onPageChange: (newPage: number) => void;
   onRequestVoid?: (payment: StudentPayment) => void;
+  currentUserId?: string;
 }
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
@@ -52,6 +53,7 @@ export function PaymentTable({
   userRole,
   onPageChange,
   onRequestVoid,
+  currentUserId,
 }: PaymentTableProps) {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [verifyingPayment, setVerifyingPayment] = useState<StudentPayment | null>(null);
@@ -163,9 +165,19 @@ export function PaymentTable({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${badge.color}`}>
-                        {badge.label}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-block px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${badge.color}`}>
+                          {badge.label}
+                        </span>
+                        {p.voidRequest && p.voidRequest.status === "pending" && (
+                          <span
+                            data-testid={`badge-void-pending-${p.id}`}
+                            className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200"
+                          >
+                            Void Menunggu Pemeriksaan
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -208,16 +220,53 @@ export function PaymentTable({
                             <span>Verifikasi</span>
                           </button>
                         )}
-                        {canVerify && p.status === "verified" && onRequestVoid && (
-                          <button
-                            type="button"
-                            onClick={() => onRequestVoid(p)}
-                            className="p-1.5 rounded bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition"
-                            title="Ajukan Void Pembatalan"
-                          >
-                            <Ban className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        {canVerify && p.status === "verified" && onRequestVoid && (() => {
+                          const hasPendingVoid = p.voidRequest && p.voidRequest.status === "pending";
+                          const isSelfRequester = Boolean(currentUserId && p.voidRequest?.requestedBy === currentUserId);
+                          const isChecker = (userRole === "owner" || userRole === "admin") && !isSelfRequester;
+
+                          if (hasPendingVoid) {
+                            if (isChecker) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => onRequestVoid(p)}
+                                  data-testid={`btn-review-void-${p.id}`}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition text-[11px] font-semibold shadow-xs"
+                                  title="Review Pengajuan Void (Persetujuan / Penolakan)"
+                                >
+                                  <Ban className="w-3.5 h-3.5" />
+                                  <span>Review Void</span>
+                                </button>
+                              );
+                            } else {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => onRequestVoid(p)}
+                                  data-testid={`btn-view-void-${p.id}`}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition text-[11px] font-semibold shadow-xs"
+                                  title="Lihat Pengajuan Void"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Lihat Pengajuan</span>
+                                </button>
+                              );
+                            }
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => onRequestVoid(p)}
+                              data-testid={`btn-request-void-${p.id}`}
+                              className="p-1.5 rounded bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition"
+                              title="Ajukan Void Pembatalan"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>

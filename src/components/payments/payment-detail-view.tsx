@@ -7,7 +7,7 @@ import { VoidRequestDialog } from "@/components/payments/void-request-dialog";
 import { verifyStudentPaymentAction, rejectStudentPaymentAction } from "@/features/payments/actions";
 import { RoleCode } from "@/lib/auth/types";
 import Link from "next/link";
-import { ArrowLeft, CreditCard, CheckCircle2, Ban, ExternalLink, ShieldAlert, FileText } from "lucide-react";
+import { ArrowLeft, CreditCard, CheckCircle2, Ban, ExternalLink, ShieldAlert, FileText, Eye, Clock, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 
@@ -34,9 +34,9 @@ export function PaymentDetailView({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const canVerify = userRole === "owner" || userRole === "admin" || userRole === "finance_admin";
-  const isOwner = userRole === "owner" || userRole === "admin";
 
   const formattedPaidAt = new Date(payment.paidAt).toLocaleDateString("id-ID", {
     day: "numeric",
@@ -127,6 +127,14 @@ export function PaymentDetailView({
                   ? "Dibatalkan (Void)"
                   : "Menunggu Verifikasi"}
               </span>
+              {payment.voidRequest && payment.voidRequest.status === "pending" && (
+                <span
+                  data-testid="detail-badge-void-pending"
+                  className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200"
+                >
+                  Void Menunggu Pemeriksaan
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-600">
               {payment.studentName} ({payment.studentNim || "Calon Mahasiswa"}) — Nominal: <strong className="text-emerald-600 font-mono">Rp {payment.amount.toLocaleString("id-ID")}</strong>
@@ -157,16 +165,51 @@ export function PaymentDetailView({
             </>
           )}
 
-          {canVerify && payment.status === "verified" && (
-            <button
-              type="button"
-              onClick={() => setIsVoidDialogOpen(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-semibold rounded-lg transition"
-            >
-              <Ban className="w-4 h-4" />
-              <span>{isOwner && payment.voidRequest ? "Review Void Request" : "Ajukan Void"}</span>
-            </button>
-          )}
+          {canVerify && payment.status === "verified" && (() => {
+            const hasPendingVoid = payment.voidRequest && payment.voidRequest.status === "pending";
+            const isSelfRequester = Boolean(currentUserId && payment.voidRequest?.requestedBy === currentUserId);
+            const isChecker = (userRole === "owner" || userRole === "admin") && !isSelfRequester;
+
+            if (hasPendingVoid) {
+              if (isChecker) {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setIsVoidDialogOpen(true)}
+                    data-testid="detail-btn-review-void"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white hover:bg-purple-700 font-semibold rounded-lg shadow-xs transition"
+                  >
+                    <Ban className="w-4 h-4" />
+                    <span>Review Void</span>
+                  </button>
+                );
+              } else {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setIsVoidDialogOpen(true)}
+                    data-testid="detail-btn-view-void"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-semibold rounded-lg transition"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Lihat Pengajuan Void</span>
+                  </button>
+                );
+              }
+            }
+
+            return (
+              <button
+                type="button"
+                onClick={() => setIsVoidDialogOpen(true)}
+                data-testid="detail-btn-request-void"
+                className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-semibold rounded-lg transition"
+              >
+                <Ban className="w-4 h-4" />
+                <span>Ajukan Void</span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 
@@ -201,10 +244,112 @@ export function PaymentDetailView({
         )}
       </div>
 
+      {/* Notifications */}
       {errorMsg && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 shrink-0 text-red-600" />
           <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {successMsg && (
+        <div
+          data-testid="detail-success-banner"
+          className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center justify-between shadow-xs"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{successMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMsg(null)}
+            className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-100 transition"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Banner 1: Pending Void Request Details */}
+      {payment.status === "verified" && payment.voidRequest && payment.voidRequest.status === "pending" && (
+        <div
+          data-testid="detail-pending-void-banner"
+          className="p-4 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 shadow-xs space-y-2"
+        >
+          <div className="flex items-center justify-between border-b border-purple-200/80 pb-2">
+            <div className="flex items-center gap-2 font-bold text-purple-900">
+              <Ban className="w-4 h-4 text-purple-700" />
+              <span>Status Pengajuan: Void Menunggu Pemeriksaan</span>
+            </div>
+            <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-purple-200 text-purple-800">
+              Pending Approval
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span>Diajukan oleh: <strong>{payment.voidRequest.requestedByName || "Staff Kasir"}</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span>Waktu Pengajuan: <strong>{new Date(payment.voidRequest.requestedAt).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              })}</strong></span>
+            </div>
+          </div>
+
+          <div className="bg-white/80 border border-purple-200 rounded-lg p-2.5 mt-1 text-xs">
+            <span className="text-purple-600 block text-[11px] font-medium">Alasan Pengajuan Void:</span>
+            <p className="italic text-purple-950 font-normal mt-0.5">&ldquo;{payment.voidRequest.reason}&rdquo;</p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner 2: Rejected Void Request History */}
+      {payment.voidRequest && payment.voidRequest.status === "rejected" && (
+        <div
+          data-testid="detail-rejected-void-banner"
+          className="p-4 bg-amber-50/90 border border-amber-300 rounded-xl text-amber-950 shadow-xs space-y-2"
+        >
+          <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+            <div className="flex items-center gap-2 font-bold text-amber-900">
+              <ShieldAlert className="w-4 h-4 text-amber-700" />
+              <span>Riwayat Pengajuan: Pengajuan Void Ditolak</span>
+            </div>
+            <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-amber-200 text-amber-900">
+              Void Ditolak
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <span>Pemeriksa: <strong>{payment.voidRequest.reviewedByName || "Owner / Admin"}</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <span>Waktu Keputusan: <strong>{payment.voidRequest.reviewedAt ? new Date(payment.voidRequest.reviewedAt).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              }) : "-"}</strong></span>
+            </div>
+          </div>
+
+          {payment.voidRequest.reviewNotes && (
+            <div className="bg-white/80 border border-amber-300 rounded-lg p-2.5 mt-1 text-xs">
+              <span className="text-amber-800 block text-[11px] font-semibold">Catatan Hasil Pemeriksa:</span>
+              <p className="italic text-amber-950 font-normal mt-0.5">&ldquo;{payment.voidRequest.reviewNotes}&rdquo;</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -420,7 +565,10 @@ export function PaymentDetailView({
           payment={payment}
           isOpen={isVoidDialogOpen}
           onClose={() => setIsVoidDialogOpen(false)}
-          onSuccess={() => router.refresh()}
+          onSuccess={(msg) => {
+            if (msg) setSuccessMsg(msg);
+            router.refresh();
+          }}
           userRole={userRole}
           currentUserId={currentUserId}
         />

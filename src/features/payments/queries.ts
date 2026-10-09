@@ -35,7 +35,13 @@ export async function getPaymentsList(params: PaymentFilterParams = {}) {
         status,
         reason,
         requested_at,
-        review_notes
+        reviewed_at,
+        review_notes,
+        created_at,
+        requested_by,
+        reviewed_by,
+        requested_profile:profiles!requested_by ( full_name ),
+        reviewed_profile:profiles!reviewed_by ( full_name )
       )
     `,
       { count: "exact" }
@@ -79,9 +85,18 @@ export async function getPaymentsList(params: PaymentFilterParams = {}) {
     const allocatedAmountTotal = allocations.reduce((acc, a) => acc + a.amount, 0);
     const unallocatedAmount = Math.max(0, amount - allocatedAmountTotal);
 
-    const voidReqData = item.payment_void_requests && item.payment_void_requests.length > 0
-      ? item.payment_void_requests[item.payment_void_requests.length - 1]
-      : null;
+    const voidReqList: any[] = item.payment_void_requests || [];
+    // Prioritaskan pengajuan pending yang aktif; jika tidak ada pending, ambil pengajuan terbaru berdasarkan waktu.
+    // Memastikan riwayat rejected lama tidak menutupi pending baru.
+    const voidReqData =
+      voidReqList.find((v: any) => v.status === "pending") ||
+      (voidReqList.length > 0
+        ? [...voidReqList].sort(
+            (a, b) =>
+              new Date(b.created_at || b.requested_at).getTime() -
+              new Date(a.created_at || a.requested_at).getTime()
+          )[0]
+        : null);
 
     const voidRequest: PaymentVoidRequest | null = voidReqData ? {
       id: voidReqData.id,
@@ -93,7 +108,9 @@ export async function getPaymentsList(params: PaymentFilterParams = {}) {
       reviewedBy: voidReqData.reviewed_by,
       reviewedAt: voidReqData.reviewed_at,
       reviewNotes: voidReqData.review_notes,
-      createdAt: voidReqData.created_at,
+      createdAt: voidReqData.created_at || voidReqData.requested_at,
+      requestedByName: voidReqData.requested_profile?.full_name || undefined,
+      reviewedByName: voidReqData.reviewed_profile?.full_name || undefined,
     } : null;
 
     return {
@@ -166,7 +183,12 @@ export async function getPaymentById(id: string): Promise<StudentPayment | null>
         reason,
         requested_at,
         reviewed_at,
-        review_notes
+        review_notes,
+        created_at,
+        requested_by,
+        reviewed_by,
+        requested_profile:profiles!requested_by ( full_name ),
+        reviewed_profile:profiles!reviewed_by ( full_name )
       )
     `
     )
@@ -199,9 +221,18 @@ export async function getPaymentById(id: string): Promise<StudentPayment | null>
     signedProofUrl = signedData?.signedUrl || null;
   }
 
-  const voidReqData = item.payment_void_requests && item.payment_void_requests.length > 0
-    ? item.payment_void_requests[item.payment_void_requests.length - 1]
-    : null;
+  const voidReqList: any[] = item.payment_void_requests || [];
+  // Prioritaskan pengajuan pending yang aktif; jika tidak ada pending, ambil pengajuan terbaru berdasarkan waktu.
+  // Memastikan riwayat rejected lama tidak menutupi pending baru.
+  const voidReqData =
+    voidReqList.find((v: any) => v.status === "pending") ||
+    (voidReqList.length > 0
+      ? [...voidReqList].sort(
+          (a, b) =>
+            new Date(b.created_at || b.requested_at).getTime() -
+            new Date(a.created_at || a.requested_at).getTime()
+        )[0]
+      : null);
 
   const voidRequest: PaymentVoidRequest | null = voidReqData ? {
     id: voidReqData.id,
@@ -213,7 +244,9 @@ export async function getPaymentById(id: string): Promise<StudentPayment | null>
     reviewedBy: voidReqData.reviewed_by,
     reviewedAt: voidReqData.reviewed_at,
     reviewNotes: voidReqData.review_notes,
-    createdAt: voidReqData.created_at,
+    createdAt: voidReqData.created_at || voidReqData.requested_at,
+    requestedByName: voidReqData.requested_profile?.full_name || undefined,
+    reviewedByName: voidReqData.reviewed_profile?.full_name || undefined,
   } : null;
 
   return {
