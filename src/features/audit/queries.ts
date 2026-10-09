@@ -33,6 +33,7 @@ const ACTION_MODULE_MAP: Record<string, { module: string; moduleLabel: string; a
   invoice_created: { module: "lip_invoice", moduleLabel: "LIP & Tagihan", actionLabel: "Penerbitan Invoice Tagihan" },
   invoice_cancelled: { module: "lip_invoice", moduleLabel: "LIP & Tagihan", actionLabel: "Pembatalan Invoice Tagihan" },
   discount_approved: { module: "lip_invoice", moduleLabel: "LIP & Tagihan", actionLabel: "Persetujuan Diskon Internal" },
+  reconciliation_corrected: { module: "lip_invoice", moduleLabel: "LIP & Tagihan", actionLabel: "Koreksi Rekonsiliasi Tagihan" },
 
   // Payments
   payment_created: { module: "payments", moduleLabel: "Pembayaran Mahasiswa", actionLabel: "Pencatatan Pembayaran" },
@@ -46,7 +47,9 @@ const ACTION_MODULE_MAP: Record<string, { module: string; moduleLabel: string; a
   ut_remittance_created: { module: "ut_remittances", moduleLabel: "Setoran UT", actionLabel: "Pencatatan Setoran UT" },
   ut_remittance_verified: { module: "ut_remittances", moduleLabel: "Setoran UT", actionLabel: "Verifikasi Setoran UT" },
   ut_remittance_rejected: { module: "ut_remittances", moduleLabel: "Setoran UT", actionLabel: "Penolakan Setoran UT" },
+  ut_remittance_void_requested: { module: "ut_remittances", moduleLabel: "Setoran UT", actionLabel: "Pengajuan Void Setoran UT" },
   ut_remittance_void_approved: { module: "ut_remittances", moduleLabel: "Setoran UT", actionLabel: "Persetujuan Void Setoran UT" },
+  ut_remittance_void_rejected: { module: "ut_remittances", moduleLabel: "Setoran UT", actionLabel: "Penolakan Void Setoran UT" },
 
   // Operational
   operational_transaction_created: { module: "operational", moduleLabel: "Kas & Operasional", actionLabel: "Pencatatan Transaksi Kas" },

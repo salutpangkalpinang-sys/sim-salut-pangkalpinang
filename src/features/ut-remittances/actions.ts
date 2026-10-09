@@ -169,17 +169,10 @@ export async function rejectUtRemittanceAction(input: RejectRemittanceFormInput)
   const data = validation.data;
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("ut_remittances")
-    .update({
-      status: "rejected",
-      rejected_at: new Date().toISOString(),
-      rejected_by: profile.id,
-      rejection_reason: data.reason,
-      updated_at: new Date().toISOString(),
-      updated_by: profile.id,
-    })
-    .eq("id", data.remittanceId);
+  const { error } = await supabase.rpc("reject_ut_remittance", {
+    p_remittance_id: data.remittanceId,
+    p_reason: data.reason,
+  });
 
   if (error) {
     console.error("Database reject remittance error:", error);
@@ -208,11 +201,9 @@ export async function requestUtRemittanceVoidAction(input: VoidRemittanceRequest
   const data = validation.data;
   const supabase = await createClient();
 
-  const { error } = await supabase.from("ut_remittance_void_requests").insert({
-    remittance_id: data.remittanceId,
-    requested_by: profile.id,
-    reason: data.reason,
-    status: "pending",
+  const { error } = await supabase.rpc("request_ut_remittance_void", {
+    p_remittance_id: data.remittanceId,
+    p_reason: data.reason,
   });
 
   if (error) {

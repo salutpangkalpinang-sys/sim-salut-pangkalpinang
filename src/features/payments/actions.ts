@@ -197,17 +197,10 @@ export async function rejectStudentPaymentAction(input: RejectPaymentFormInput) 
   const data = validation.data;
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("student_payments")
-    .update({
-      status: "rejected",
-      rejected_at: new Date().toISOString(),
-      rejected_by: profile.id,
-      rejection_reason: data.reason,
-      updated_at: new Date().toISOString(),
-      updated_by: profile.id,
-    })
-    .eq("id", data.paymentId);
+  const { error } = await supabase.rpc("reject_student_payment", {
+    p_payment_id: data.paymentId,
+    p_reason: data.reason,
+  });
 
   if (error) {
     console.error("Database reject payment error:", error);
@@ -236,11 +229,9 @@ export async function requestPaymentVoidAction(input: VoidRequestFormInput) {
   const data = validation.data;
   const supabase = await createClient();
 
-  const { error } = await supabase.from("payment_void_requests").insert({
-    payment_id: data.paymentId,
-    requested_by: profile.id,
-    reason: data.reason,
-    status: "pending",
+  const { error } = await supabase.rpc("request_payment_void", {
+    p_payment_id: data.paymentId,
+    p_reason: data.reason,
   });
 
   if (error) {
