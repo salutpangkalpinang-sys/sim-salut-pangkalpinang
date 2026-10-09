@@ -289,12 +289,9 @@ DECLARE
     v_pm_id UUID;
     c_uid_owner  CONSTANT UUID := '10000000-0000-0000-0000-000000000001'::UUID;
     c_uid_admin  CONSTANT UUID := '10000000-0000-0000-0000-000000000002'::UUID;
+    v_acc_id UUID;
 BEGIN
-    SELECT id INTO v_pm_id FROM public.payment_methods LIMIT 1;
-    IF v_pm_id IS NULL THEN
-        INSERT INTO public.payment_methods (code, name, is_active)
-        VALUES ('TRANSFER', 'Transfer Bank', true) RETURNING id INTO v_pm_id;
-    END IF;
+    v_pay_id := '30000000-0000-0000-0000-000000000001'::UUID;
 
     SELECT id INTO v_student_id FROM public.students LIMIT 1;
     IF v_student_id IS NULL THEN
@@ -303,8 +300,15 @@ BEGIN
         RETURNING id INTO v_student_id;
     END IF;
 
-    INSERT INTO public.student_payments (id, transaction_number, student_id, amount, payment_method_id, status)
-    VALUES (v_pay_id, 'PAY-TEST-VOID-01', v_student_id, 500000, v_pm_id, 'verified');
+    -- Ambil pasangan payment method dan cash account yang valid
+    SELECT pm.id, ca.id INTO v_pm_id, v_acc_id
+    FROM public.payment_methods pm
+    CROSS JOIN public.cash_accounts ca
+    WHERE pm.code = 'CASH' AND ca.code = 'KAS_TUNAI' AND pm.is_active = true AND ca.is_active = true
+    LIMIT 1;
+
+    INSERT INTO public.student_payments (id, transaction_number, student_id, amount, payment_method_id, cash_account_id, status)
+    VALUES (v_pay_id, 'PAY-TEST-VOID-01', v_student_id, 500000, v_pm_id, v_acc_id, 'verified');
 
     -- Void request 1: dibuat oleh Admin 1
     INSERT INTO public.payment_void_requests (id, payment_id, requested_by, reason, status)

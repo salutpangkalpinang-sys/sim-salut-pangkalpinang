@@ -50,6 +50,10 @@ export function UtRemittanceFormModal({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (e.defaultPrevented) {
+          // Event was already handled and canceled by a child component/dropdown
+          return;
+        }
         if (isIneligibleDialogOpen) {
           // Ineligible dialog is open: let the dialog's own handler close only the dialog
           return;

@@ -73,22 +73,26 @@ export function SearchableCombobox({
         })
         .slice(0, 50); // Limit to top 50 for max performance with thousands of records
 
-  // Update floating position
+  // Update floating position with collision detection & responsive boundaries
   const updatePosition = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const dropdownHeight = 240;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
+    const dropdownMaxHeight = 240;
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
 
     let top = rect.bottom + 4;
-    if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-      top = Math.max(8, rect.top - dropdownHeight - 4);
+    if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
+      top = Math.max(8, rect.top - Math.min(dropdownMaxHeight, spaceAbove) - 4);
     }
+
+    const computedWidth = Math.max(rect.width, 200);
+    const maxLeft = Math.max(8, window.innerWidth - computedWidth - 8);
+    const left = Math.max(8, Math.min(rect.left, maxLeft));
 
     setMenuPosition({
       top,
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+      left,
       width: rect.width,
     });
   }, []);
@@ -159,6 +163,8 @@ export function SearchableCombobox({
 
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
       setIsOpen(false);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();

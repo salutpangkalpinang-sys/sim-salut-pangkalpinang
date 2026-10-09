@@ -9,6 +9,7 @@ import {
 } from "../user";
 import { UserItem } from "@/types/user";
 import { hasPermission, RoleCode } from "@/lib/auth/types";
+import { resolveUserRole } from "@/lib/auth/permissions";
 
 console.log("=== Running Phase 6C.1 — User Management & RBAC Security Unit Tests ===");
 
@@ -236,7 +237,15 @@ assert.strictEqual(resolveRoleDisplay("superadmin").label, "Role Tidak Dikenal")
 assert.strictEqual(resolveRoleDisplay("superadmin").isError, true, "Unrecognized role must flag error, not fallback to Viewer");
 assert.strictEqual(resolveRoleDisplay("").label, "Role Tidak Dikenal");
 assert.strictEqual(resolveRoleDisplay("").isError, true);
-console.log("✓ Test 10 Passed: Unrecognized role safe resolution (flags 'Role Tidak Dikenal', prevents silent Viewer fallback) verified");
+
+// Test production resolveUserRole logic directly
+assert.strictEqual(resolveUserRole("owner", "u-001"), "owner", "Valid owner role resolved to owner");
+assert.strictEqual(resolveUserRole("admin", "u-002"), "admin", "Valid admin role resolved to admin");
+assert.strictEqual(resolveUserRole(null, "u-003"), "viewer", "Null rawRole safely defaults to viewer");
+assert.strictEqual(resolveUserRole(undefined, "u-004"), "viewer", "Undefined rawRole safely defaults to viewer");
+assert.strictEqual(resolveUserRole("superadmin", "u-005"), "viewer", "Unknown foreign role strictly defaults to viewer without casting");
+assert.strictEqual(resolveUserRole("HACKER_ROOT", "u-006"), "viewer", "Arbitrary role code strictly defaults to viewer without privilege escalation");
+console.log("✓ Test 10 Passed: Unrecognized role safe resolution (flags 'Role Tidak Dikenal', production resolveUserRole fallback to viewer without casting) verified");
 
 // 11. Maker-Checker Void Approval Simulation
 function simulateVoidApproval(params: {

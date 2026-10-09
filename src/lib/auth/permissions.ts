@@ -25,18 +25,11 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
           .from("user_roles")
           .select("roles(code)")
           .eq("user_id", user.id)
-          .single(),
+          .maybeSingle(),
       ]);
 
       const rawRole = (rpcRole as RoleCode) || ((userRole?.roles as unknown as { code: RoleCode })?.code);
-      const knownRoles: RoleCode[] = ["owner", "admin", "academic_admin", "finance_admin", "viewer"];
-      let roleCode: RoleCode;
-      if (rawRole && knownRoles.includes(rawRole)) {
-        roleCode = rawRole;
-      } else {
-        console.error(`[Security Warning] Unrecognized role "${rawRole}" for authenticated user ${user.id}`);
-        roleCode = (rawRole as RoleCode) || ("viewer" as RoleCode);
-      }
+      const roleCode = resolveUserRole(rawRole, user.id);
 
       return {
         id: user.id,
@@ -74,6 +67,17 @@ export const getCurrentUserProfile = cache(async (): Promise<UserProfile | null>
 
   return null;
 });
+
+export function resolveUserRole(rawRole: string | null | undefined, userId?: string): RoleCode {
+  const knownRoles: RoleCode[] = ["owner", "admin", "academic_admin", "finance_admin", "viewer"];
+  if (rawRole && knownRoles.includes(rawRole as RoleCode)) {
+    return rawRole as RoleCode;
+  }
+  if (rawRole) {
+    console.error(`[Security Warning] Unrecognized role "${rawRole}" for authenticated user ${userId || "unknown"}`);
+  }
+  return "viewer";
+}
 
 export { hasPermission } from "./types";
 export type { RoleCode, UserProfile } from "./types";

@@ -7,6 +7,7 @@ import {
   rejectPaymentSchema,
   voidRequestSchema,
   reviewVoidSchema,
+  validatePaymentAccountPairing,
   RejectPaymentFormInput,
   VoidRequestFormInput,
   ReviewVoidFormInput,
@@ -53,6 +54,37 @@ export async function createStudentPaymentAction(formData: FormData) {
 
   const data = validation.data;
   const supabase = await createClient();
+
+  // Server-side strict consistency check: payment_methods vs cash_accounts pairing
+  const [pmQuery, caQuery] = await Promise.all([
+    supabase
+      .from("payment_methods")
+      .select("id, code, name, requires_reference, is_active")
+      .eq("id", data.paymentMethodId)
+      .single(),
+    data.cashAccountId
+      ? supabase
+          .from("cash_accounts")
+          .select("id, code, name, bank_name, account_number, is_active")
+          .eq("id", data.cashAccountId)
+          .single()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  if (pmQuery.error || !pmQuery.data) {
+    return { error: "Metode pembayaran tidak ditemukan." };
+  }
+
+  const pairingCheck = validatePaymentAccountPairing({
+    methodCode: pmQuery.data.code,
+    methodName: pmQuery.data.name,
+    methodIsActive: pmQuery.data.is_active,
+    account: caQuery.data,
+  });
+
+  if (!pairingCheck.valid) {
+    return { error: pairingCheck.message || "Kombinasi metode pembayaran dan rekening kas tidak valid." };
+  }
 
   // Upload proof file if provided
   let proofStoragePath: string | null = null;

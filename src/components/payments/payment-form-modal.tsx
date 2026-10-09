@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createStudentPaymentAction } from "@/features/payments/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
 import { X, CreditCard, Upload, AlertCircle, Save } from "lucide-react";
@@ -8,14 +8,15 @@ import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-c
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
+import { getPaymentMethodCategory, getCashAccountType } from "@/lib/validation/payment";
 
 interface PaymentFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   options: {
-    paymentMethods: { id: string; code: string; name: string; requires_reference: boolean }[];
-    cashAccounts: { id: string; code: string; name: string }[];
+    paymentMethods: { id: string; code: string; name: string; requires_reference: boolean; is_active?: boolean }[];
+    cashAccounts: { id: string; code: string; name: string; bank_name?: string | null; account_number?: string | null; is_active?: boolean }[];
     invoices: {
       id: string;
       invoiceNumber: string;
@@ -55,7 +56,7 @@ export function PaymentFormModal({
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
   const [amount, setAmount] = useState(selectedInvoice ? selectedInvoice.remainingBalance : 0);
   const [paymentMethodId, setPaymentMethodId] = useState(options.paymentMethods[0]?.id || "");
-  const [cashAccountId, setCashAccountId] = useState(options.cashAccounts[0]?.id || "");
+  const [cashAccountId, setCashAccountId] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -63,6 +64,45 @@ export function PaymentFormModal({
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const selectedMethod = options.paymentMethods.find((m) => m.id === paymentMethodId);
+
+  // Filter rekening kas yang hanya cocok dengan kategori metode pembayaran
+  const filteredCashAccounts = useMemo(() => {
+    if (!selectedMethod) return options.cashAccounts;
+    const cat = getPaymentMethodCategory(selectedMethod.code);
+    return options.cashAccounts.filter((acc) => {
+      const type = getCashAccountType(acc);
+      if (cat === "cash") return type === "cash";
+      if (cat === "bank") return type === "bank";
+      return true;
+    });
+  }, [selectedMethod, options.cashAccounts]);
+
+  // Handler pergantian metode: jika rekening sebelumnya tidak cocok, kosongkan pilihan rekening.
+  // Jangan otomatis memilih rekening pengganti.
+  const handlePaymentMethodChange = (newMethodId: string) => {
+    setPaymentMethodId(newMethodId);
+    const newMethod = options.paymentMethods.find((m) => m.id === newMethodId);
+    if (!newMethod) {
+      setCashAccountId("");
+      return;
+    }
+    const newCat = getPaymentMethodCategory(newMethod.code);
+    const currentAcc = options.cashAccounts.find((a) => a.id === cashAccountId);
+
+    if (currentAcc) {
+      const currentAccType = getCashAccountType(currentAcc);
+      const isStillValid =
+        (newCat === "cash" && currentAccType === "cash") ||
+        (newCat === "bank" && currentAccType === "bank");
+
+      if (!isStillValid) {
+        // Kosongkan rekening yang tidak cocok
+        setCashAccountId("");
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -76,7 +116,6 @@ export function PaymentFormModal({
     }
   };
 
-  const selectedMethod = options.paymentMethods.find((m) => m.id === paymentMethodId);
   const remaining = selectedInvoice ? selectedInvoice.remainingBalance : 0;
   const allocatedAmount = Math.min(amount, remaining > 0 ? remaining : amount);
   const unallocatedAmount = Math.max(0, amount - allocatedAmount);
@@ -106,6 +145,17 @@ export function PaymentFormModal({
 
     if (amount <= 0) {
       setErrorMsg("Nominal pembayaran harus lebih dari 0.");
+      return;
+    }
+
+    if (!cashAccountId) {
+      setErrorMsg("Rekening kas / bank penerima wajib dipilih.");
+      return;
+    }
+
+    const selectedAcc = options.cashAccounts.find((a) => a.id === cashAccountId);
+    if (!selectedAcc) {
+      setErrorMsg("Rekening kas / bank penerima tidak valid.");
       return;
     }
 
@@ -251,7 +301,7 @@ export function PaymentFormModal({
                   sublabel: m.code,
                 }))}
                 value={paymentMethodId}
-                onChange={(val) => setPaymentMethodId(val)}
+                onChange={handlePaymentMethodChange}
                 placeholder="Pilih Metode Pembayaran"
                 colorScheme="emerald"
                 required
@@ -259,20 +309,23 @@ export function PaymentFormModal({
             </div>
 
             <div>
-              <label className="block text-slate-700 font-medium mb-1">Rekening Kas Penerima</label>
+              <label className="block text-slate-700 font-medium mb-1">
+                Rekening Kas Penerima <span className="text-red-500">*</span>
+              </label>
               <SearchableSelect
                 options={[
-                  { value: "", label: "Pilih Rekening Kas" },
-                  ...options.cashAccounts.map((c) => ({
+                  { value: "", label: "-- Pilih Rekening Kas / Bank --" },
+                  ...filteredCashAccounts.map((c) => ({
                     value: c.id,
                     label: c.name,
-                    sublabel: c.code,
+                    sublabel: c.account_number ? `${c.bank_name || c.code}: ${c.account_number}` : c.code,
                   })),
                 ]}
                 value={cashAccountId}
                 onChange={(val) => setCashAccountId(val)}
-                placeholder="Pilih Rekening Kas"
+                placeholder="Pilih Rekening Kas / Bank"
                 colorScheme="emerald"
+                required
               />
             </div>
           </div>

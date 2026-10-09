@@ -128,25 +128,31 @@ export function SearchableSelect({
     return !required && !!value;
   }, [disabled, isLoading, isClearable, required, value]);
 
-  // Calculate menu position with collision detection
+  // Calculate menu position with collision detection & responsive boundaries
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const dropdownHeight = 260; // Estimated max height
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
+    const dropdownMaxHeight = 260; // Max allowed height
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
 
     let placement: "bottom" | "top" = "bottom";
     let top = rect.bottom + 4;
 
-    if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+    // Flip to top if insufficient space below AND more space available above
+    if (spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow) {
       placement = "top";
-      top = Math.max(8, rect.top - dropdownHeight - 4);
+      top = Math.max(8, rect.top - Math.min(dropdownMaxHeight, spaceAbove) - 4);
     }
+
+    // Keep left within viewport margins
+    const computedWidth = Math.max(rect.width, 180);
+    const maxLeft = Math.max(8, window.innerWidth - computedWidth - 8);
+    const left = Math.max(8, Math.min(rect.left, maxLeft));
 
     setMenuPosition({
       top,
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+      left,
       width: rect.width,
       placement,
     });
@@ -246,6 +252,8 @@ export function SearchableSelect({
 
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
       setIsOpen(false);
       triggerRef.current?.focus();
     } else if (e.key === "ArrowDown") {

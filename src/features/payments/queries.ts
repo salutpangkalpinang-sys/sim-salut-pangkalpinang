@@ -361,8 +361,8 @@ export async function getPaymentMasterOptions() {
   const supabase = await createClient();
 
   const [methodsRes, accountsRes, invoicesRes] = await Promise.all([
-    supabase.from("payment_methods").select("id, code, name, requires_reference").eq("is_active", true).order("name"),
-    supabase.from("cash_accounts").select("id, code, name").eq("is_active", true).order("name"),
+    supabase.from("payment_methods").select("id, code, name, requires_reference, is_active").eq("is_active", true).order("name"),
+    supabase.from("cash_accounts").select("id, code, name, bank_name, account_number, is_active").eq("is_active", true).order("name"),
     supabase.from("invoices").select(
       `
       id,
@@ -419,8 +419,8 @@ export async function getPaymentMasterOptions() {
   });
 
   return {
-    paymentMethods: (methodsRes.data || []) as { id: string; code: string; name: string; requires_reference: boolean }[],
-    cashAccounts: (accountsRes.data || []) as { id: string; code: string; name: string }[],
+    paymentMethods: (methodsRes.data || []) as { id: string; code: string; name: string; requires_reference: boolean; is_active: boolean }[],
+    cashAccounts: (accountsRes.data || []) as { id: string; code: string; name: string; bank_name?: string | null; account_number?: string | null; is_active: boolean }[],
     invoices: invoicesMapped,
   };
 }
