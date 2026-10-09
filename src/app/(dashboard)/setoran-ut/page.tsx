@@ -1,5 +1,5 @@
 import { getCurrentUserProfile } from "@/lib/auth/permissions";
-import { getUtRemittancesList, getEligibleLipsForRemittance } from "@/features/ut-remittances/queries";
+import { getUtRemittancesList } from "@/features/ut-remittances/queries";
 import { getPaymentMasterOptions } from "@/features/payments/queries";
 import { UtRemittanceContainer } from "@/components/ut-remittances/ut-remittance-container";
 import { redirect } from "next/navigation";
@@ -20,10 +20,9 @@ export default async function SetoranUtPage({
   const search = resolvedParams.search || "";
   const status = resolvedParams.status || "";
 
-  const [remittancesRes, masterOptions, eligibleLips] = await Promise.all([
+  const [remittancesRes, masterOptions] = await Promise.all([
     getUtRemittancesList({ page, limit: 10, search, status }),
     getPaymentMasterOptions(),
-    getEligibleLipsForRemittance(),
   ]);
 
   return (
@@ -35,7 +34,6 @@ export default async function SetoranUtPage({
       initialTotalPages={remittancesRes.totalPages}
       userRole={profile.role}
       cashAccounts={masterOptions.cashAccounts}
-      eligibleLips={eligibleLips}
       currentUserId={profile.id}
     />
   );

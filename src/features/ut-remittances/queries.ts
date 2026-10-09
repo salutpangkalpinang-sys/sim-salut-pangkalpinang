@@ -4,6 +4,8 @@ import {
   UtRemittanceItem,
   UtRemittanceVoidRequest,
   EligibleLipForRemittance,
+  IneligibleLipItem,
+  PaginatedIneligibleLipsResult,
 } from "@/types/ut-remittance";
 
 export async function getUtRemittancesList(params: {
@@ -384,4 +386,98 @@ export async function getEligibleLipsForRemittance(): Promise<EligibleLipForRemi
 
   // Filter only LIPs that still have outstanding liability > 0 (setelah dikurangi pending + verified)
   return mapped.filter((lip) => lip.outstandingUtAmount > 0);
+}
+
+/**
+ * Server-side search & pagination for Ineligible LIPs (Belum Memenuhi Syarat Setoran UT).
+ * Provides exact total count, summary count, and 20-row paginated data with multi-field search.
+ */
+export async function getIneligibleLipsPaginated(params: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedIneligibleLipsResult> {
+  const allLips = await getEligibleLipsForRemittance();
+
+  // Filter only ineligible lips
+  let ineligibleList: IneligibleLipItem[] = allLips
+    .filter((lip) => !lip.isRemittanceEligible)
+    .map((lip) => ({
+      id: lip.id,
+      registrationId: lip.registrationId,
+      lipNumber: lip.lipNumber,
+      registrationNumber: lip.registrationNumber,
+      studentName: lip.studentName,
+      studentNim: lip.studentNim,
+      officialAmount: lip.officialAmount,
+      verifiedUtFundAvailable: lip.verifiedUtFundAvailable ?? 0,
+      utFundShortage: lip.utFundShortage ?? Math.max(0, lip.officialAmount - (lip.verifiedUtFundAvailable ?? 0)),
+      salutFeeRequired: lip.salutFeeRequired ?? 0,
+      salutFeePaid: lip.salutFeePaid ?? 0,
+      invoiceStatus: lip.invoiceStatus ?? "unpaid",
+      ineligibilityReason: lip.ineligibilityReason || "Belum memenuhi kriteria setoran UT.",
+    }));
+
+  // Server-side multi-field search filter
+  if (params.search && params.search.trim()) {
+    const q = params.search.trim().toLowerCase();
+    ineligibleList = ineligibleList.filter((item) => {
+      const nameMatch = item.studentName.toLowerCase().includes(q);
+      const nimMatch = (item.studentNim || "").toLowerCase().includes(q);
+      const regMatch = item.registrationNumber.toLowerCase().includes(q);
+      const lipMatch = item.lipNumber.toLowerCase().includes(q);
+      return nameMatch || nimMatch || regMatch || lipMatch;
+    });
+  }
+
+  const page = params.page && params.page > 0 ? params.page : 1;
+  const limit = params.limit && params.limit > 0 ? params.limit : 20;
+  const total = ineligibleList.length;
+  const totalPages = Math.ceil(total / limit);
+  const startIndex = (page - 1) * limit;
+  const paginatedData = ineligibleList.slice(startIndex, startIndex + limit);
+
+  return {
+    data: paginatedData,
+    total,
+    page,
+    limit,
+    totalPages,
+  };
+}
+
+/**
+ * Server-side summary count for ineligible LIPs.
+ * Returns exact count of documents not eligible for remittance.
+ */
+export async function getIneligibleLipsSummaryCount(): Promise<number> {
+  const allLips = await getEligibleLipsForRemittance();
+  return allLips.filter((lip) => !lip.isRemittanceEligible).length;
+}
+
+/**
+ * Server-side search for eligible LIPs in the combobox dropdown.
+ * Strictly returns only eligible LIPs (`isRemittanceEligible === true`),
+ * limited to top results (default max 50) for fast UX with thousands of records.
+ */
+export async function searchEligibleLipsForCombobox(params: {
+  query?: string;
+  limit?: number;
+}): Promise<EligibleLipForRemittance[]> {
+  const allLips = await getEligibleLipsForRemittance();
+  let eligibleOnly = allLips.filter((lip) => lip.isRemittanceEligible);
+
+  if (params.query && params.query.trim()) {
+    const q = params.query.trim().toLowerCase();
+    eligibleOnly = eligibleOnly.filter((lip) => {
+      const nameMatch = lip.studentName.toLowerCase().includes(q);
+      const nimMatch = (lip.studentNim || "").toLowerCase().includes(q);
+      const regMatch = lip.registrationNumber.toLowerCase().includes(q);
+      const lipMatch = lip.lipNumber.toLowerCase().includes(q);
+      return nameMatch || nimMatch || regMatch || lipMatch;
+    });
+  }
+
+  const maxLimit = params.limit && params.limit > 0 ? params.limit : 50;
+  return eligibleOnly.slice(0, maxLimit);
 }

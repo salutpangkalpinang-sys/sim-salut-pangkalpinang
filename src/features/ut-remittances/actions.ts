@@ -295,3 +295,61 @@ export async function getSignedRemittanceProofUrlAction(storagePath: string) {
 
   return { signedUrl: data.signedUrl };
 }
+
+export async function fetchIneligibleLipsAction(params: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "admin", "finance_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk melihat daftar ini." };
+  }
+
+  try {
+    const { getIneligibleLipsPaginated } = await import("@/features/ut-remittances/queries");
+    const result = await getIneligibleLipsPaginated(params);
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("fetchIneligibleLipsAction error:", err);
+    return { error: "Gagal memuat daftar LIP yang belum memenuhi syarat: " + (err.message || "") };
+  }
+}
+
+export async function fetchIneligibleLipsSummaryCountAction() {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "admin", "finance_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk melihat ringkasan ini." };
+  }
+
+  try {
+    const { getIneligibleLipsSummaryCount } = await import("@/features/ut-remittances/queries");
+    const count = await getIneligibleLipsSummaryCount();
+    return { success: true, count };
+  } catch (err: any) {
+    console.error("fetchIneligibleLipsSummaryCountAction error:", err);
+    return { error: "Gagal memuat ringkasan LIP belum memenuhi syarat: " + (err.message || "") };
+  }
+}
+
+export async function searchEligibleLipsAction(params: {
+  query?: string;
+  limit?: number;
+}) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile || !hasPermission(profile.role, ["owner", "admin", "finance_admin"])) {
+    return { error: "Anda tidak memiliki izin untuk mencari data LIP." };
+  }
+
+  try {
+    const { searchEligibleLipsForCombobox } = await import("@/features/ut-remittances/queries");
+    const result = await searchEligibleLipsForCombobox(params);
+    return { success: true, result };
+  } catch (err: any) {
+    console.error("searchEligibleLipsAction error:", err);
+    return { error: "Gagal mencari data LIP: " + (err.message || "") };
+  }
+}

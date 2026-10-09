@@ -18,7 +18,7 @@ interface UtRemittanceContainerProps {
   initialTotalPages: number;
   userRole: RoleCode;
   cashAccounts: { id: string; code: string; name: string }[];
-  eligibleLips: EligibleLipForRemittance[];
+  eligibleLips?: EligibleLipForRemittance[];
   currentUserId?: string;
 }
 
@@ -30,7 +30,7 @@ export function UtRemittanceContainer({
   initialTotalPages,
   userRole,
   cashAccounts,
-  eligibleLips,
+  eligibleLips = [],
   currentUserId,
 }: UtRemittanceContainerProps) {
   const router = useRouter();

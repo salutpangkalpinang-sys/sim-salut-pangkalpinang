@@ -1,21 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { EligibleLipForRemittance } from "@/types/ut-remittance";
-import { createUtRemittanceAction } from "@/features/ut-remittances/actions";
+import {
+  createUtRemittanceAction,
+  searchEligibleLipsAction,
+  fetchIneligibleLipsSummaryCountAction,
+} from "@/features/ut-remittances/actions";
 import { validateFileMetadata } from "@/lib/validation/lip-invoice";
-import { X, Building2, Upload, AlertCircle, Save, Trash2, AlertTriangle } from "lucide-react";
+import { X, Building2, Upload, AlertCircle, Save, Trash2, AlertTriangle, Eye, RefreshCw } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
+import { IneligibleLipsDialog } from "@/components/ut-remittances/ineligible-lips-dialog";
 
 interface UtRemittanceFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   cashAccounts: { id: string; code: string; name: string }[];
-  eligibleLips: EligibleLipForRemittance[];
+  eligibleLips?: EligibleLipForRemittance[];
 }
 
 export function UtRemittanceFormModal({
@@ -23,67 +28,160 @@ export function UtRemittanceFormModal({
   onClose,
   onSuccess,
   cashAccounts,
-  eligibleLips,
+  eligibleLips = [],
 }: UtRemittanceFormModalProps) {
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
 
-  // Sort: Eligible first, then ineligible
-  const sortedLips = [...eligibleLips].sort((a, b) => {
-    const aEligible = a.isRemittanceEligible ? 1 : 0;
-    const bEligible = b.isRemittanceEligible ? 1 : 0;
-    return bEligible - aEligible;
-  });
-
-  const lipComboboxOptions: ComboboxOption[] = sortedLips.map((lip) => {
-    const isEligible = Boolean(lip.isRemittanceEligible);
-    const badgeText = isEligible ? "SIAP SETOR" : "TIDAK LAYAK SETOR";
-    const statusPrefix = isEligible ? "🟢 [SIAP SETOR] " : "🔴 [TIDAK LAYAK] ";
-
-    // Detailed breakdown string
-    const verifiedFund = lip.verifiedUtFundAvailable ?? 0;
-    const shortage = lip.utFundShortage ?? Math.max(0, lip.officialAmount - verifiedFund);
-    const sublabelParts = [
-      `${lip.lipNumber} — ${lip.registrationNumber}`,
-      `Dana UT: Rp ${verifiedFund.toLocaleString("id-ID")}/${lip.officialAmount.toLocaleString("id-ID")}`,
-    ];
-    if (shortage > 0) {
-      sublabelParts.push(`Kurang Rp ${shortage.toLocaleString("id-ID")}`);
-    }
-    if (lip.ineligibilityReason) {
-      sublabelParts.push(lip.ineligibilityReason);
-    }
-
-    return {
-      id: lip.id,
-      label: `${statusPrefix}${lip.studentName}`,
-      sublabel: sublabelParts.join(" | "),
-      badge: badgeText,
-      searchTerms: `${lip.studentName} ${lip.lipNumber} ${lip.registrationNumber} ${lip.studentNim || ""}`,
-      disabled: !isEligible,
-    };
-  });
   const [cashAccountId, setCashAccountId] = useState(cashAccounts[0]?.id || "");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Ineligible LIPs Dialog & Summary State
+  const [isIneligibleDialogOpen, setIsIneligibleDialogOpen] = useState(false);
+  const [ineligibleCount, setIneligibleCount] = useState<number | null>(null);
+  const [isLoadingCount, setIsLoadingCount] = useState(false);
+  const [countError, setCountError] = useState<string | null>(null);
+
+  // Eligible LIPs dropdown options & server search
+  const [eligibleOptions, setEligibleOptions] = useState<ComboboxOption[]>([]);
+  const [isSearchingLips, setIsSearchingLips] = useState(false);
+  const searchRequestIdRef = useRef(0);
+  // Cache of details for LIPs that were fetched (so selected items info is never lost)
+  const [lipDetailsCache, setLipDetailsCache] = useState<Record<string, EligibleLipForRemittance>>(() => {
+    const initial: Record<string, EligibleLipForRemittance> = {};
+    for (const lip of eligibleLips) {
+      initial[lip.id] = lip;
+    }
+    return initial;
+  });
 
   // Selected LIP Items state
   const [selectedItems, setSelectedItems] = useState<{
     lipDocumentId: string;
     registrationId: string;
     amount: number;
+    // Metadata preserved so it never disappears across searches
+    lipNumber: string;
+    registrationNumber: string;
+    studentName: string;
+    studentNim?: string | null;
+    officialAmount: number;
+    outstandingUtAmount: number;
+    isRemittanceEligible: boolean;
   }[]>([]);
 
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Map an EligibleLipForRemittance to a ComboboxOption
+  const mapLipToOption = useCallback((lip: EligibleLipForRemittance): ComboboxOption => {
+    const sublabelParts = [
+      `${lip.lipNumber} — ${lip.registrationNumber}`,
+      `Kewajiban: Rp ${lip.officialAmount.toLocaleString("id-ID")}`,
+      `Sisa: Rp ${lip.outstandingUtAmount.toLocaleString("id-ID")}`,
+    ];
+
+    return {
+      id: lip.id,
+      label: `🟢 ${lip.studentName}`,
+      sublabel: sublabelParts.join(" | "),
+      badge: "SIAP SETOR",
+      searchTerms: `${lip.studentName} ${lip.lipNumber} ${lip.registrationNumber} ${lip.studentNim || ""}`,
+      disabled: false,
+    };
+  }, []);
+
+  // Fetch summary count of ineligible LIPs
+  const loadIneligibleCount = useCallback(async () => {
+    setIsLoadingCount(true);
+    setCountError(null);
+    const res = await fetchIneligibleLipsSummaryCountAction();
+    setIsLoadingCount(false);
+    if (res.error) {
+      setCountError(res.error);
+      setIneligibleCount(null);
+    } else if (typeof res.count === "number") {
+      setIneligibleCount(res.count);
+    }
+  }, []);
+
+  // Initial load: fetch top 50 eligible LIPs from server & count ineligible LIPs
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    setIsSearchingLips(true);
+
+    searchEligibleLipsAction({ limit: 50 })
+      .then((res) => {
+        if (!isMounted) return;
+        setIsSearchingLips(false);
+        if (res.result) {
+          setLipDetailsCache((prev) => {
+            const updated = { ...prev };
+            for (const lip of res.result!) {
+              updated[lip.id] = lip;
+            }
+            return updated;
+          });
+          setEligibleOptions(res.result.map(mapLipToOption));
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setIsSearchingLips(false);
+        console.error("Initial eligible lips fetch error:", err);
+      });
+
+    loadIneligibleCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, mapLipToOption, loadIneligibleCount]);
+
+  // Server-side debounced search for eligible LIPs in combobox
+  const handleLipSearchChange = useCallback(
+    async (query: string) => {
+      const currentRequestId = ++searchRequestIdRef.current;
+      setIsSearchingLips(true);
+      try {
+        const res = await searchEligibleLipsAction({ query, limit: 50 });
+        if (currentRequestId !== searchRequestIdRef.current) {
+          return;
+        }
+        if (res.result) {
+          // Update details cache
+          setLipDetailsCache((prev) => {
+            const updated = { ...prev };
+            for (const lip of res.result!) {
+              updated[lip.id] = lip;
+            }
+            return updated;
+          });
+          setEligibleOptions(res.result.map(mapLipToOption));
+        }
+      } catch (err) {
+        if (currentRequestId === searchRequestIdRef.current) {
+          console.error("Lip search error:", err);
+        }
+      } finally {
+        if (currentRequestId === searchRequestIdRef.current) {
+          setIsSearchingLips(false);
+        }
+      }
+    },
+    [mapLipToOption]
+  );
+
   if (!isOpen) return null;
 
   const totalRemittanceAmount = selectedItems.reduce((acc, item) => acc + item.amount, 0);
 
   const handleAddItem = (lipId: string) => {
-    const lip = eligibleLips.find((l) => l.id === lipId);
+    const lip = lipDetailsCache[lipId] || eligibleLips.find((l) => l.id === lipId);
     if (!lip) return;
     if (selectedItems.some((i) => i.lipDocumentId === lipId)) return;
 
@@ -97,23 +195,30 @@ export function UtRemittanceFormModal({
     }
 
     setErrorMsg(null);
-    setSelectedItems([
-      ...selectedItems,
+    setSelectedItems((prev) => [
+      ...prev,
       {
         lipDocumentId: lip.id,
         registrationId: lip.registrationId,
         amount: lip.outstandingUtAmount,
+        lipNumber: lip.lipNumber,
+        registrationNumber: lip.registrationNumber,
+        studentName: lip.studentName,
+        studentNim: lip.studentNim,
+        officialAmount: lip.officialAmount,
+        outstandingUtAmount: lip.outstandingUtAmount,
+        isRemittanceEligible: Boolean(lip.isRemittanceEligible),
       },
     ]);
   };
 
   const handleRemoveItem = (lipId: string) => {
-    setSelectedItems(selectedItems.filter((i) => i.lipDocumentId !== lipId));
+    setSelectedItems((prev) => prev.filter((i) => i.lipDocumentId !== lipId));
   };
 
   const handleItemAmountChange = (lipId: string, newAmount: number) => {
-    setSelectedItems(
-      selectedItems.map((item) =>
+    setSelectedItems((prev) =>
+      prev.map((item) =>
         item.lipDocumentId === lipId ? { ...item, amount: newAmount } : item
       )
     );
@@ -149,7 +254,7 @@ export function UtRemittanceFormModal({
 
     // Validate each item against RPC eligibility rules
     for (const item of selectedItems) {
-      const lip = eligibleLips.find((l) => l.id === item.lipDocumentId);
+      const lip = lipDetailsCache[item.lipDocumentId] || eligibleLips.find((l) => l.id === item.lipDocumentId);
       if (!lip) {
         setErrorMsg("Dokumen LIP tidak ditemukan dalam data.");
         return;
@@ -182,7 +287,16 @@ export function UtRemittanceFormModal({
       if (referenceNumber) formData.append("referenceNumber", referenceNumber.trim());
       if (notes) formData.append("notes", notes.trim());
       formData.append("idempotencyKey", idempotencyKey);
-      formData.append("items", JSON.stringify(selectedItems));
+      formData.append(
+        "items",
+        JSON.stringify(
+          selectedItems.map((item) => ({
+            lipDocumentId: item.lipDocumentId,
+            registrationId: item.registrationId,
+            amount: item.amount,
+          }))
+        )
+      );
       if (selectedFile) formData.append("proofFile", selectedFile);
 
       const res = await createUtRemittanceAction(formData);
@@ -201,227 +315,208 @@ export function UtRemittanceFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden my-8 text-xs text-slate-900">
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Catat Setoran / Pembayaran SALUT ke UT</h2>
-              <p className="text-[11px] text-slate-500">Pencatatan pembayaran resmi kewajiban UT per dokumen LIP</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-          {/* Header Info: Date, Cash Account, Reference */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <DatePickerId
-              label="Tanggal Setor"
-              required
-              value={paidAt}
-              onChange={(iso) => setPaidAt(iso)}
-            />
-
-            <div>
-              <label className="block text-slate-700 font-medium mb-1">Sumber Rekening Kas</label>
-              <SearchableSelect
-                options={[
-                  { value: "", label: "Pilih Rekening Kas" },
-                  ...cashAccounts.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                    sublabel: c.code,
-                  })),
-                ]}
-                value={cashAccountId}
-                onChange={(val) => setCashAccountId(val)}
-                placeholder="Pilih Rekening Kas"
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-medium mb-1">No. Referensi Transfer / Bank</label>
-              <input
-                type="text"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder="Contoh: BANK-UT-99012"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Section: Select Eligible LIPs */}
-          <div className="space-y-3 border-t border-slate-200 pt-4">
-            <div className="flex items-center justify-between">
-              <label className="block text-slate-900 font-bold uppercase tracking-wider text-[11px]">
-                Pilih Dokumen LIP Kewajiban UT
-              </label>
-              <span className="text-[11px] text-slate-500 font-mono">
-                {eligibleLips.length} LIP Tersedia dengan Outstanding UT
-              </span>
-            </div>
-
-            <div>
-              <SearchableCombobox
-                options={lipComboboxOptions.map((o) => ({
-                  ...o,
-                  disabled: !eligibleLips.find((l) => l.id === o.id)?.isRemittanceEligible || selectedItems.some((i) => i.lipDocumentId === o.id),
-                }))}
-                value=""
-                onChange={(id) => {
-                  if (id) {
-                    handleAddItem(id);
-                  }
-                }}
-                placeholder="Ketik Nama Mahasiswa, No. LIP, atau No. Reg untuk menambah setoran..."
-                selectedColor="blue"
-              />
-            </div>
-
-            {/* Ineligible LIPs Explanatory Notice */}
-            {eligibleLips.some((l) => !l.isRemittanceEligible) && (
-              <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3.5 space-y-2">
-                <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Daftar Dokumen LIP Belum Memenuhi Syarat Setoran UT ({eligibleLips.filter((l) => !l.isRemittanceEligible).length} Dokumen):</span>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {eligibleLips
-                    .filter((l) => !l.isRemittanceEligible)
-                    .map((ineligibleLip) => {
-                      const verifiedUt = ineligibleLip.verifiedUtFundAvailable ?? 0;
-                      const officialUt = ineligibleLip.officialAmount;
-                      const shortageUt = ineligibleLip.utFundShortage ?? Math.max(0, officialUt - verifiedUt);
-
-                      return (
-                        <div
-                          key={ineligibleLip.id}
-                          className="bg-white border border-amber-200 rounded-lg p-2.5 text-[11px] text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs"
-                        >
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-900">{ineligibleLip.studentName}</span>
-                              <span className="font-mono text-slate-500">({ineligibleLip.studentNim || ineligibleLip.registrationNumber})</span>
-                              <span className="px-1.5 py-0.2 bg-red-100 text-red-700 font-bold rounded text-[9px] uppercase">
-                                Belum Memenuhi Syarat
-                              </span>
-                            </div>
-                            <div className="text-slate-600 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[10px]">
-                              <span>No. LIP: <strong className="text-blue-700">{ineligibleLip.lipNumber}</strong></span>
-                              <span>Dana UT Terverifikasi: <strong className="text-slate-900">Rp {verifiedUt.toLocaleString("id-ID")}</strong></span>
-                              <span>Kewajiban UT: <strong className="text-slate-900">Rp {officialUt.toLocaleString("id-ID")}</strong></span>
-                              {shortageUt > 0 && (
-                                <span className="text-red-600 font-bold">Kekurangan: Rp {shortageUt.toLocaleString("id-ID")}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="sm:text-right shrink-0">
-                            <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-medium text-[10px]">
-                              {ineligibleLip.ineligibilityReason || "Menunggu pelunasan mahasiswa"}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-                <p className="text-[10px] text-amber-700 italic">
-                  * Catatan: Sesuai aturan RPC database, SALUT tidak dapat menyetor ke UT sebelum hak SALUT lunas 100%, dana UT verified mencukupi nominal LIP, dan invoice mahasiswa lunas.
-                </p>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto">
+        <div className="bg-white border border-slate-200 rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden my-8 text-xs text-slate-900">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
+                <Building2 className="w-4 h-4" />
               </div>
-            )}
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Catat Setoran / Pembayaran SALUT ke UT</h2>
+                <p className="text-[11px] text-slate-500">Pencatatan pembayaran resmi kewajiban UT per dokumen LIP</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-            {/* Table of Selected Items */}
-            {selectedItems.length > 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="px-3 py-2">No. LIP & Mahasiswa</th>
-                      <th className="px-3 py-2">Resmi UT (LIP)</th>
-                      <th className="px-3 py-2">Sisa Kewajiban UT</th>
-                      <th className="px-3 py-2">Alokasi Setoran Ini (Rp)</th>
-                      <th className="px-3 py-2 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-normal">
-                    {selectedItems.map((item) => {
-                      const lip = eligibleLips.find((l) => l.id === item.lipDocumentId);
-                      if (!lip) return null;
+          {errorMsg && (
+            <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
-                      return (
-                        <tr key={item.lipDocumentId} className="hover:bg-slate-50">
-                          <td className="px-3 py-2.5">
-                            <div className="font-mono font-bold text-blue-600">{lip.lipNumber}</div>
-                            <div className="text-[11px] text-slate-900 flex items-center gap-1.5 mt-0.5">
-                              <span>{lip.studentName}</span>
-                              {lip.isRemittanceEligible ? (
+          <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+            {/* Header Info: Date, Cash Account, Reference */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <DatePickerId
+                label="Tanggal Setor"
+                required
+                value={paidAt}
+                onChange={(iso) => setPaidAt(iso)}
+              />
+
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">Sumber Rekening Kas</label>
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "Pilih Rekening Kas" },
+                    ...cashAccounts.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                      sublabel: c.code,
+                    })),
+                  ]}
+                  value={cashAccountId}
+                  onChange={(val) => setCashAccountId(val)}
+                  placeholder="Pilih Rekening Kas"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">No. Referensi Transfer / Bank</label>
+                <input
+                  type="text"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Contoh: BANK-UT-99012"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Ineligible LIPs Compact Summary Card with "Lihat daftar" button */}
+            <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-300">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+                    <span>Dokumen LIP Belum Memenuhi Syarat Setoran:</span>
+                    {isLoadingCount ? (
+                      <span className="flex items-center gap-1 text-[11px] text-slate-500 font-normal">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span>Memuat...</span>
+                      </span>
+                    ) : countError ? (
+                      <span className="text-[11px] text-red-600 font-semibold">Gagal memuat status</span>
+                    ) : (
+                      <span className="px-1.5 py-0.2 bg-amber-200/80 text-amber-900 font-bold rounded text-[11px] font-mono">
+                        {ineligibleCount ?? 0} Dokumen
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Hanya dokumen yang seluruh komisi SALUT lunas dan dana UT verified mencukupi yang dapat disetor.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsIneligibleDialogOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-50 text-amber-900 rounded-lg font-semibold text-xs transition shadow-2xs shrink-0 self-start sm:self-auto"
+              >
+                <Eye className="w-3.5 h-3.5 text-amber-700" />
+                <span>Lihat Daftar</span>
+              </button>
+            </div>
+
+            {/* Section: Select Eligible LIPs */}
+            <div className="space-y-3 border-t border-slate-200 pt-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-900 font-bold uppercase tracking-wider text-[11px]">
+                  Pilih Dokumen LIP Siap Setor (Kewajiban UT)
+                </label>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  Hanya menampilkan LIP yang memenuhi syarat
+                </span>
+              </div>
+
+              <div>
+                <SearchableCombobox
+                  options={eligibleOptions.map((o) => ({
+                    ...o,
+                    disabled: selectedItems.some((i) => i.lipDocumentId === o.id),
+                  }))}
+                  value=""
+                  onChange={(id) => {
+                    if (id) {
+                      handleAddItem(id);
+                    }
+                  }}
+                  onSearchChange={handleLipSearchChange}
+                  isLoading={isSearchingLips}
+                  placeholder="Ketik Nama Mahasiswa, No. LIP, atau No. Reg untuk menambah setoran..."
+                  selectedColor="blue"
+                  emptyText="Tidak ada dokumen LIP siap setor yang cocok dengan"
+                />
+              </div>
+
+              {/* Table of Selected Items */}
+              {selectedItems.length > 0 ? (
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="px-3 py-2">No. LIP & Mahasiswa</th>
+                        <th className="px-3 py-2">Resmi UT (LIP)</th>
+                        <th className="px-3 py-2">Sisa Kewajiban UT</th>
+                        <th className="px-3 py-2">Alokasi Setoran Ini (Rp)</th>
+                        <th className="px-3 py-2 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-normal">
+                      {selectedItems.map((item) => {
+                        return (
+                          <tr key={item.lipDocumentId} className="hover:bg-slate-50">
+                            <td className="px-3 py-2.5">
+                              <div className="font-mono font-bold text-blue-600">{item.lipNumber}</div>
+                              <div className="text-[11px] text-slate-900 flex items-center gap-1.5 mt-0.5">
+                                <span>{item.studentName}</span>
                                 <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold text-[9px]">
                                   🟢 Siap Disetor
                                 </span>
-                              ) : (
-                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-semibold text-[9px]">
-                                  🔴 Belum Memenuhi Syarat
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 font-mono text-slate-700">
-                            Rp {lip.officialAmount.toLocaleString("id-ID")}
-                          </td>
-                          <td className="px-3 py-2.5 font-mono font-semibold text-amber-600">
-                            Rp {lip.outstandingUtAmount.toLocaleString("id-ID")}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <FormattedNumberInput
-                              min={1}
-                              max={lip.outstandingUtAmount}
-                              value={item.amount}
-                              onChange={(val) =>
-                                handleItemAmountChange(item.lipDocumentId, val)
-                              }
-                              className="w-36 px-2.5 py-1 bg-white border border-slate-300 rounded text-emerald-600 font-mono font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                            />
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.lipDocumentId)}
-                              className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition"
-                              title="Hapus LIP dari Setoran"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-500">
-                Belum ada LIP yang dipilih. Gunakan dropdown di atas untuk memilih LIP kewajiban UT.
-              </div>
-            )}
-          </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 font-mono text-slate-700">
+                              Rp {item.officialAmount.toLocaleString("id-ID")}
+                            </td>
+                            <td className="px-3 py-2.5 font-mono font-semibold text-amber-600">
+                              Rp {item.outstandingUtAmount.toLocaleString("id-ID")}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <FormattedNumberInput
+                                min={1}
+                                max={item.outstandingUtAmount}
+                                value={item.amount}
+                                onChange={(val) =>
+                                  handleItemAmountChange(item.lipDocumentId, val)
+                                }
+                                className="w-36 px-2.5 py-1 bg-white border border-slate-300 rounded text-emerald-600 font-mono font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                              />
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.lipDocumentId)}
+                                className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition"
+                                title="Hapus LIP dari Setoran"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-500">
+                  Belum ada LIP yang dipilih. Gunakan dropdown di atas untuk memilih LIP kewajiban UT.
+                </div>
+              )}
+            </div>
 
           {/* Total Remittance Calculation Banner */}
           <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between">
@@ -497,5 +592,12 @@ export function UtRemittanceFormModal({
         </form>
       </div>
     </div>
-  );
+
+    {/* Separate Ineligible LIPs Dialog Modal */}
+    <IneligibleLipsDialog
+      isOpen={isIneligibleDialogOpen}
+      onClose={() => setIsIneligibleDialogOpen(false)}
+    />
+  </>
+);
 }

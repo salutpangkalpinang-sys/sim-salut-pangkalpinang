@@ -17,6 +17,8 @@ export interface SearchableComboboxProps {
   options: ComboboxOption[];
   value: string;
   onChange: (id: string) => void;
+  onSearchChange?: (query: string) => void;
+  isLoading?: boolean;
   name?: string;
   placeholder?: string;
   required?: boolean;
@@ -29,6 +31,8 @@ export function SearchableCombobox({
   options,
   value,
   onChange,
+  onSearchChange,
+  isLoading = false,
   name,
   placeholder = "Ketik untuk mencari...",
   required = false,
@@ -55,17 +59,19 @@ export function SearchableCombobox({
 
   const selectedOption = options.find((o) => o.id === value);
 
-  // Filter options based on query
-  const filteredOptions = options
-    .filter((o) => {
-      const q = searchQuery.toLowerCase().trim();
-      if (!q) return true;
-      const labelMatch = (o.label || "").toLowerCase().includes(q);
-      const sublabelMatch = (o.sublabel || "").toLowerCase().includes(q);
-      const searchTermsMatch = (o.searchTerms || "").toLowerCase().includes(q);
-      return labelMatch || sublabelMatch || searchTermsMatch;
-    })
-    .slice(0, 50); // Limit to top 50 for max performance with thousands of records
+  // Filter options based on query (if onSearchChange is provided, options are already filtered externally)
+  const filteredOptions = onSearchChange
+    ? options
+    : options
+        .filter((o) => {
+          const q = searchQuery.toLowerCase().trim();
+          if (!q) return true;
+          const labelMatch = (o.label || "").toLowerCase().includes(q);
+          const sublabelMatch = (o.sublabel || "").toLowerCase().includes(q);
+          const searchTermsMatch = (o.searchTerms || "").toLowerCase().includes(q);
+          return labelMatch || sublabelMatch || searchTermsMatch;
+        })
+        .slice(0, 50); // Limit to top 50 for max performance with thousands of records
 
   // Update floating position
   const updatePosition = useCallback(() => {
@@ -267,9 +273,13 @@ export function SearchableCombobox({
               required={required && !value}
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
+                const val = e.target.value;
+                setSearchQuery(val);
                 setIsOpen(true);
                 setHighlightedIndex(0);
+                if (onSearchChange) {
+                  onSearchChange(val);
+                }
               }}
               onFocus={() => {
                 setIsOpen(true);
@@ -279,11 +289,15 @@ export function SearchableCombobox({
               placeholder={placeholder}
               className={`w-full pl-9 pr-8 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 ${colorStyles.ring} focus:outline-none placeholder:text-slate-400 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed`}
             />
-            <ChevronDown
-              className={`w-4 h-4 text-slate-400 absolute right-2.5 pointer-events-none transition-transform ${
-                isOpen ? "rotate-180" : ""
-              }`}
-            />
+            {isLoading ? (
+              <span className="w-4 h-4 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin absolute right-2.5 pointer-events-none" />
+            ) : (
+              <ChevronDown
+                className={`w-4 h-4 text-slate-400 absolute right-2.5 pointer-events-none transition-transform ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
+            )}
           </div>
 
           {/* Floating Dropdown Options Box using Portal to prevent clipping */}
@@ -305,7 +319,12 @@ export function SearchableCombobox({
                 }}
                 className="bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-100 animate-in fade-in-50 duration-100 text-xs"
               >
-                {filteredOptions.length === 0 ? (
+                {isLoading ? (
+                  <div className="p-4 text-center text-slate-500 text-xs flex items-center justify-center gap-2">
+                    <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
+                    <span>Mencari data...</span>
+                  </div>
+                ) : filteredOptions.length === 0 ? (
                   <div className="p-4 text-center text-slate-500 text-xs">
                     {emptyText} &quot;<strong>{searchQuery}</strong>&quot;
                   </div>

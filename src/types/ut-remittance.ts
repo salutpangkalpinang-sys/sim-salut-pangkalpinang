@@ -94,3 +94,27 @@ export interface EligibleLipForRemittance {
   isRemittanceEligible?: boolean;
   ineligibilityReason?: string | null;
 }
+
+export interface IneligibleLipItem {
+  id: string;
+  registrationId: string;
+  lipNumber: string;
+  registrationNumber: string;
+  studentName: string;
+  studentNim: string | null;
+  officialAmount: number;
+  verifiedUtFundAvailable: number;
+  utFundShortage: number;
+  salutFeeRequired: number;
+  salutFeePaid: number;
+  invoiceStatus: string;
+  ineligibilityReason: string;
+}
+
+export interface PaginatedIneligibleLipsResult {
+  data: IneligibleLipItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
