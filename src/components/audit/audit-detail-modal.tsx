@@ -91,6 +91,78 @@ export function AuditDetailModal({ item, isOpen, onClose }: AuditDetailModalProp
             </div>
           </div>
 
+          {/* Rincian Spesifik: Pencatatan Pengajuan ke UT (nim_submission_recorded) */}
+          {item.action === "nim_submission_recorded" && item.metadata && (
+            <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-lg space-y-2.5">
+              <div className="flex items-center gap-1.5 border-b border-blue-200/70 pb-2 text-blue-950 font-bold">
+                <History className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                <span>Rincian Pengajuan Berkas ke UT</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 font-mono text-[11px]">
+                <div className="bg-white p-2 rounded border border-blue-100">
+                  <span className="text-slate-500 text-[10px] block font-sans">Tanggal Pengajuan:</span>
+                  <span className="font-semibold text-slate-800">
+                    {item.metadata.submission_date ? String(item.metadata.submission_date) : "—"}
+                  </span>
+                </div>
+                <div className="bg-white p-2 rounded border border-blue-100">
+                  <span className="text-slate-500 text-[10px] block font-sans">Nomor Referensi UT:</span>
+                  <span className="font-semibold text-slate-800">
+                    {item.metadata.reference_number ? String(item.metadata.reference_number) : "—"}
+                  </span>
+                </div>
+                <div className="bg-white p-2 rounded border border-blue-100">
+                  <span className="text-slate-500 text-[10px] block font-sans">ID Registrasi Terkait:</span>
+                  <span className="font-semibold text-slate-800 truncate block" title={String(item.metadata.registration_id || "")}>
+                    {item.metadata.registration_id ? String(item.metadata.registration_id) : "—"}
+                  </span>
+                </div>
+                <div className="bg-white p-2 rounded border border-blue-100">
+                  <span className="text-slate-500 text-[10px] block font-sans">ID Invoice Tagihan:</span>
+                  <span className="font-semibold text-slate-800 truncate block" title={String(item.metadata.invoice_id || "")}>
+                    {item.metadata.invoice_id ? String(item.metadata.invoice_id) : "—"}
+                  </span>
+                </div>
+                <div className="sm:col-span-2 bg-white p-2 rounded border border-blue-100 font-sans">
+                  <span className="text-slate-500 text-[10px] block">Catatan Pengajuan:</span>
+                  <span className="text-slate-800 font-medium whitespace-pre-wrap">
+                    {item.metadata.notes ? String(item.metadata.notes) : "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rincian Spesifik: Penetapan NIM Resmi (official_nim_assigned) */}
+          {item.action === "official_nim_assigned" && (item.newData || item.reason) && (
+            <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-lg space-y-2.5">
+              <div className="flex items-center gap-1.5 border-b border-emerald-200/70 pb-2 text-emerald-950 font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span>Rincian Penetapan NIM Resmi</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 font-mono text-[11px]">
+                <div className="bg-white p-2 rounded border border-emerald-100">
+                  <span className="text-slate-500 text-[10px] block font-sans">NIM Resmi Ditetapkan:</span>
+                  <span className="font-bold text-emerald-800 text-xs">
+                    {item.newData?.nim ? String(item.newData.nim) : "—"}
+                  </span>
+                </div>
+                <div className="bg-white p-2 rounded border border-emerald-100">
+                  <span className="text-slate-500 text-[10px] block font-sans">Tanggal Efektif:</span>
+                  <span className="font-semibold text-slate-800">
+                    {item.newData?.effective_date ? String(item.newData.effective_date) : "—"}
+                  </span>
+                </div>
+                <div className="sm:col-span-2 bg-white p-2 rounded border border-emerald-100 font-sans">
+                  <span className="text-slate-500 text-[10px] block">Alasan / Keterangan:</span>
+                  <span className="text-slate-800 font-medium whitespace-pre-wrap">
+                    {item.reason ? String(item.reason) : "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Before vs After JSON Comparison (If Available) */}
           {(item.oldData || item.newData) && (
             <div className="space-y-2 pt-2 border-t border-slate-200">

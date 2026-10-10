@@ -41,6 +41,18 @@ async function runEventsTest() {
   assert(actions.includes("discount_approved"), "Financial discount approval event present");
   assert(actions.includes("ut_remittance_verified"), "UT remittance verification event present");
   assert(actions.includes("operational_transaction_created"), "Operational transaction event present");
+  assert(actions.includes("nim_submission_recorded"), "NIM submission recorded event present");
+  assert(actions.includes("official_nim_assigned"), "Official NIM assigned event present");
+
+  // Check NIM labels mapping
+  const nimSubEvent = result.data.find((item) => item.action === "nim_submission_recorded");
+  assert.strictEqual(nimSubEvent?.actionLabel, "Pencatatan Pengajuan ke UT");
+  assert.strictEqual(nimSubEvent?.moduleLabel, "Pengajuan NIM");
+
+  const nimAssignEvent = result.data.find((item) => item.action === "official_nim_assigned");
+  assert.strictEqual(nimAssignEvent?.actionLabel, "Penetapan NIM Resmi");
+  assert.strictEqual(nimAssignEvent?.moduleLabel, "Akademik & Mahasiswa");
+
   console.log("✓ Test 3 Passed: Comprehensive multi-module audit event coverage verified");
 
   // 4. Module & Search Filter Test

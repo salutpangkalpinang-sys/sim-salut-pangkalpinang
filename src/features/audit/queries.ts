@@ -19,8 +19,10 @@ const ACTION_MODULE_MAP: Record<string, { module: string; moduleLabel: string; a
   user_deactivated: { module: "user_management", moduleLabel: "Pengguna & Hak Akses", actionLabel: "Penonaktifan Akses Pengguna" },
   user_reactivated: { module: "user_management", moduleLabel: "Pengguna & Hak Akses", actionLabel: "Pengaktifan Kembali Akses" },
 
-  // Student
+  // Student & NIM
   student_status_changed: { module: "academic_student", moduleLabel: "Akademik & Mahasiswa", actionLabel: "Perubahan Status Mahasiswa" },
+  nim_submission_recorded: { module: "academic_student", moduleLabel: "Pengajuan NIM", actionLabel: "Pencatatan Pengajuan ke UT" },
+  official_nim_assigned: { module: "academic_student", moduleLabel: "Akademik & Mahasiswa", actionLabel: "Penetapan NIM Resmi" },
 
   // Registration
   registration_created: { module: "registration", moduleLabel: "Registrasi Semester", actionLabel: "Registrasi SKS Baru" },
@@ -207,6 +209,57 @@ const MOCK_AUDIT_STORE: AuditLogItem[] = [
     createdAt: new Date("2026-08-10T10:00:00Z").toISOString(),
     createdAtWib: formatWibTimestamp("2026-08-10T10:00:00Z"),
   },
+  {
+    id: "aud-009",
+    actorUserId: "usr-academic-001",
+    actorName: "Budi Santoso",
+    actorEmail: "akademik@salut-pangkalpinang.ac.id",
+    actorRole: "academic_admin",
+    actorRoleName: "Admin Akademik",
+    action: "nim_submission_recorded",
+    actionLabel: "Pencatatan Pengajuan ke UT",
+    module: "academic_student",
+    moduleLabel: "Pengajuan NIM",
+    entityType: "students",
+    entityId: "std-002",
+    summary: "Pencatatan berkas admisi calon mahasiswa diajukan ke UT tgl 2026-08-09 (Ref: UT-ADM-2026-009)",
+    oldData: null,
+    newData: null,
+    reason: "Berkas admisi lengkap dan syarat finansial komisi SALUT terpenuhi",
+    metadata: {
+      submission_id: "sub-001",
+      registration_id: "reg-001",
+      invoice_id: "inv-001",
+      submission_date: "2026-08-09",
+      reference_number: "UT-ADM-2026-009",
+      required_salut_fee: 400000,
+      net_salut_paid: 400000,
+      notes: "Pengajuan admisi calon mahasiswa via aplikasi admisi UT",
+    },
+    createdAt: new Date("2026-08-09T09:00:00Z").toISOString(),
+    createdAtWib: formatWibTimestamp("2026-08-09T09:00:00Z"),
+  },
+  {
+    id: "aud-010",
+    actorUserId: "usr-academic-001",
+    actorName: "Budi Santoso",
+    actorEmail: "akademik@salut-pangkalpinang.ac.id",
+    actorRole: "academic_admin",
+    actorRoleName: "Admin Akademik",
+    action: "official_nim_assigned",
+    actionLabel: "Penetapan NIM Resmi",
+    module: "academic_student",
+    moduleLabel: "Akademik & Mahasiswa",
+    entityType: "students",
+    entityId: "std-002",
+    summary: "Penetapan NIM resmi UT: 0487654321",
+    oldData: { nim: null, status_id: "stat-calon" },
+    newData: { nim: "0487654321", status_id: "stat-aktif", effective_date: "2026-08-09T14:00:00Z" },
+    reason: "Penerbitan NIM resmi UT: 0487654321",
+    metadata: null,
+    createdAt: new Date("2026-08-09T14:00:00Z").toISOString(),
+    createdAtWib: formatWibTimestamp("2026-08-09T14:00:00Z"),
+  },
 ];
 
 export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedAuditResult> {
@@ -275,6 +328,21 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
             actionLabel: log.action,
           };
 
+          let summaryText = log.reason || "";
+          if (!summaryText) {
+            if (log.action === "nim_submission_recorded") {
+              const meta = log.metadata as Record<string, unknown> | null;
+              const refNo = meta?.reference_number ? ` (Ref: ${meta.reference_number})` : "";
+              const subDate = meta?.submission_date ? ` tgl ${meta.submission_date}` : "";
+              summaryText = `Pencatatan berkas admisi calon mahasiswa diajukan ke UT${subDate}${refNo}`;
+            } else if (log.action === "official_nim_assigned") {
+              const newDataObj = log.new_data as Record<string, unknown> | null;
+              summaryText = `Penetapan NIM resmi UT: ${newDataObj?.nim || "-"}`;
+            } else {
+              summaryText = `Aksi ${actionMeta.actionLabel} pada ${log.entity_type}`;
+            }
+          }
+
           return {
             id: log.id,
             actorUserId: log.actor_user_id,
@@ -288,7 +356,7 @@ export async function getAuditLogsList(filter?: AuditFilter): Promise<PaginatedA
             moduleLabel: actionMeta.moduleLabel,
             entityType: log.entity_type,
             entityId: log.entity_id,
-            summary: maskNikInText(log.reason || `Aksi ${actionMeta.actionLabel} pada ${log.entity_type}`),
+            summary: maskNikInText(summaryText),
             oldData: sanitizeAuditPayload(log.old_data as Record<string, unknown>),
             newData: sanitizeAuditPayload(log.new_data as Record<string, unknown>),
             reason: maskNikInText(log.reason || ""),
