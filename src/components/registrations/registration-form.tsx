@@ -5,7 +5,8 @@ import { CandidateFeeRate, RegistrationType } from "@/types/registration";
 import { RegistrationFormInput, registrationSchema } from "@/lib/validation/registration";
 import { createRegistrationAction, getAvailableCandidateFeeRatesAction } from "@/features/registrations/actions";
 import { getOfficialUtTariff, UT_OFFICIAL_GENERAL_FEES, formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
-import { X, FileCheck, Save, AlertCircle, Plus, Trash2, Calculator } from "lucide-react";
+import { resolveOfficialTariff, buildInitialRegistrationFeeRows, FeeSnapshotRow } from "@/lib/utils/tariff-resolver";
+import { X, FileCheck, Save, AlertCircle, Plus, Trash2, Calculator, RotateCcw } from "lucide-react";
 import { StudentCombobox } from "@/components/ui/student-combobox";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
@@ -22,16 +23,6 @@ interface RegistrationFormProps {
     feeTypes?: { id: string; code: string; name: string }[];
     defaultSalutFee?: number;
   };
-}
-
-interface FeeSnapshotRow {
-  sourceFeeRateId?: string;
-  feeTypeId: string;
-  feeNameSnapshot: string;
-  calculationType: "FIXED" | "PER_SKS";
-  quantity: number;
-  unitAmount: number;
-  totalAmount: number;
 }
 
 export function RegistrationForm({
@@ -52,6 +43,10 @@ export function RegistrationForm({
   const [candidateRates, setCandidateRates] = useState<CandidateFeeRate[]>([]);
   const [selectedCandidateRateId, setSelectedCandidateRateId] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [tariffResolutionError, setTariffResolutionError] = useState<string | null>(null);
+  const [tariffFetchError, setTariffFetchError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
+  const [isLoadingTariffs, setIsLoadingTariffs] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Bangka Belitung Only Schemes: SIPAS Non-TTM, SIPAS Semi, Non-SIPAS
@@ -79,115 +74,69 @@ export function RegistrationForm({
   };
 
   useEffect(() => {
+    // Reset baris tarif, kandidat, dan error saat parameter kontekstual berubah
+    setFeeRows([]);
+    setCandidateRates([]);
+    setTariffResolutionError(null);
+    setTariffFetchError(null);
+
+    let isCurrent = true;
+
     if (studyProgramId && serviceSchemeId && academicPeriodId) {
+      setIsLoadingTariffs(true);
       getAvailableCandidateFeeRatesAction(studyProgramId, serviceSchemeId, academicPeriodId)
         .then((rates) => {
+          if (!isCurrent) return;
+
           setCandidateRates(rates);
 
           const selectedScheme = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
           const schemeCode = (selectedScheme?.code || selectedScheme?.name || "").toUpperCase();
 
-          const selectedProgram = options.studyPrograms.find((p) => p.id === studyProgramId);
-          const officialTariff = getOfficialUtTariff(selectedProgram?.name || selectedProgram?.code || "");
+          const resolutionContext = {
+            studyProgramId,
+            serviceSchemeId,
+            academicPeriodId,
+            schemeCode,
+            schemeName: selectedScheme?.name,
+          };
 
-          const isNonSipas = schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS");
-          const isSemi = schemeCode.includes("SEMI");
-          const isNonTtm = schemeCode.includes("NON_TTM") || schemeCode.includes("NON-TTM");
-
-          // Formulasi Komponen Wajib persis sesuai 3 Contoh LIP Real SALUT Mega Cendekia & SK Rektor 4478
-          const rows: FeeSnapshotRow[] = [];
-
-          if (isNonSipas) {
-            // Non-SIPAS (LIP Contoh 3): SKS + Biaya Buku + Biaya Pengiriman
-            // Hanya buat komponen tagihan PER_SKS jika SKS sudah diisi dan > 0
-            const perSksRate = rates.find(r => (r.feeTypeCode || "").includes("PER_SKS") || r.isPerSks || (r.name || "").includes("SKS")) || rates[0];
-            const sksUnitPrice = officialTariff.sksRate; // Tarif resmi per SKS prodi (mis. 36.000 untuk Administrasi Negara/Publik)
-            
-            if (credits > 0) {
-              const sksQty = credits;
-              rows.push({
-                sourceFeeRateId: perSksRate?.id,
-                feeTypeId: getValidFeeTypeId("PER_SKS", perSksRate?.feeTypeId),
-                feeNameSnapshot: "Total Biaya Mata Kuliah (Per SKS)",
-                calculationType: "PER_SKS",
-                quantity: sksQty,
-                unitAmount: sksUnitPrice,
-                totalAmount: sksQty * sksUnitPrice,
-              });
-            }
-
-            rows.push({
-              feeTypeId: getValidFeeTypeId("NON_SIPAS", perSksRate?.feeTypeId),
-              feeNameSnapshot: "Total Biaya Buku / Bahan Ajar Cetak",
-              calculationType: "FIXED",
-              quantity: 1,
-              unitAmount: 0,
-              totalAmount: 0,
-            });
-
-            rows.push({
-              feeTypeId: getValidFeeTypeId("NON_SIPAS", perSksRate?.feeTypeId),
-              feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
-              calculationType: "FIXED",
-              quantity: 1,
-              unitAmount: 0,
-              totalAmount: 0,
-            });
-          } else if (isSemi) {
-            // SIPAS Semi (LIP Contoh 1): Paket Semester (Bahan Ajar & TTM Wajib Sudah Termasuk)
-            const semiRate = rates.find(r => (r.feeTypeCode || "").includes("SEMI") || (r.name || "").includes("SEMI")) || rates[0];
-            const unitPrice = officialTariff.sipasSemiPackage;
-            rows.push({
-              sourceFeeRateId: semiRate?.id,
-              feeTypeId: getValidFeeTypeId("SEMI", semiRate?.feeTypeId),
-              feeNameSnapshot: "Total Biaya Mata Kuliah (SIPAS Semi Paket)",
-              calculationType: "FIXED",
-              quantity: 1,
-              unitAmount: unitPrice,
-              totalAmount: unitPrice,
-            });
-          } else if (isNonTtm) {
-            // SIPAS Non TTM (LIP Contoh 2): Paket Semester + Biaya Pengiriman
-            const nonTtmRate = rates.find(r => (r.feeTypeCode || "").includes("NON_TTM") || (r.name || "").includes("NON-TTM") || (r.name || "").includes("NON TTM")) || rates[0];
-            const unitPrice = officialTariff.sipasNonTtmPackage;
-            rows.push({
-              sourceFeeRateId: nonTtmRate?.id,
-              feeTypeId: getValidFeeTypeId("NON_TTM", nonTtmRate?.feeTypeId),
-              feeNameSnapshot: "Total Biaya Mata Kuliah (SIPAS Non TTM Paket)",
-              calculationType: "FIXED",
-              quantity: 1,
-              unitAmount: unitPrice,
-              totalAmount: unitPrice,
-            });
-
-            rows.push({
-              feeTypeId: getValidFeeTypeId("NON_TTM", nonTtmRate?.feeTypeId),
-              feeNameSnapshot: "Biaya Pengiriman Bahan Ajar",
-              calculationType: "FIXED",
-              quantity: 1,
-              unitAmount: 0,
-              totalAmount: 0,
-            });
-          }
-
-          // Biaya Layanan & Pendampingan SALUT (Wajib Default Otomatis dari Pengaturan Sistem)
-          const salutAmount = options.defaultSalutFee ?? 400000;
-          const salutRate = rates.find(r => (r.name || "").includes("SALUT") || (r.feeTypeCode || "").includes("SALUT"));
-          rows.push({
-            sourceFeeRateId: salutRate?.id,
-            feeTypeId: getValidFeeTypeId("SALUT", salutRate?.feeTypeId),
-            feeNameSnapshot: "Biaya Layanan & Pendampingan SALUT",
-            calculationType: "FIXED",
-            quantity: 1,
-            unitAmount: salutAmount,
-            totalAmount: salutAmount,
+          const res = buildInitialRegistrationFeeRows({
+            rates,
+            context: resolutionContext,
+            schemeCode,
+            credits,
+            defaultSalutFee: options.defaultSalutFee,
+            getValidFeeTypeId,
           });
 
-          setFeeRows(rows);
+          if (!res.success) {
+            setTariffResolutionError(res.error);
+            return;
+          }
+
+          setFeeRows(res.rows);
         })
-        .catch(console.warn);
+        .catch((err: any) => {
+          if (!isCurrent) return;
+          console.error("Gagal memuat master tarif:", err);
+          setCandidateRates([]);
+          setFeeRows([]);
+          setTariffFetchError("Gagal memuat master tarif dari server. Silakan coba lagi.");
+        })
+        .finally(() => {
+          if (isCurrent) {
+            setIsLoadingTariffs(false);
+          }
+        });
+    } else {
+      setIsLoadingTariffs(false);
     }
-  }, [studyProgramId, serviceSchemeId, academicPeriodId, credits, options.defaultSalutFee]);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [studyProgramId, serviceSchemeId, academicPeriodId, credits, options.defaultSalutFee, retryTrigger]);
 
   const selectedProgram = options.studyPrograms.find((p) => p.id === studyProgramId);
   const officialTariff = getOfficialUtTariff(selectedProgram?.name || selectedProgram?.code || "");
@@ -204,6 +153,8 @@ export function RegistrationForm({
         feeTypeName: item.name,
         feeTypeCode: key,
         feeTypeCategory: "UT_OFFICIAL",
+        isActive: true,
+        verificationStatus: "VERIFIED",
         name: item.name,
         calculationType: "FIXED",
         unitAmount: item.amount,
@@ -220,6 +171,8 @@ export function RegistrationForm({
       feeTypeName: "Registrasi Ulang Praktik / Praktikum",
       feeTypeCode: "PRAKTIKUM_RE",
       feeTypeCategory: "UT_OFFICIAL",
+      isActive: true,
+      verificationStatus: "VERIFIED",
       name: `Registrasi Ulang Praktik / Praktikum (${selectedProgram?.name || "Prodi"})`,
       calculationType: "FIXED",
       unitAmount: officialTariff.praktikumReRegistrationFee,
@@ -235,6 +188,8 @@ export function RegistrationForm({
       feeTypeName: "Registrasi Ulang PKM / PLP",
       feeTypeCode: "PKM_PLP_RE",
       feeTypeCategory: "UT_OFFICIAL",
+      isActive: true,
+      verificationStatus: "VERIFIED",
       name: `Registrasi Ulang PKM / PLP (${selectedProgram?.name || "Prodi"})`,
       calculationType: "FIXED",
       unitAmount: officialTariff.pkmPlpReRegistrationFee,
@@ -250,6 +205,8 @@ export function RegistrationForm({
       feeTypeName: "Registrasi Ulang Praktik Studio",
       feeTypeCode: "STUDIO_RE",
       feeTypeCategory: "UT_OFFICIAL",
+      isActive: true,
+      verificationStatus: "VERIFIED",
       name: `Registrasi Ulang Praktik Studio (${selectedProgram?.name || "Prodi"})`,
       calculationType: "FIXED",
       unitAmount: officialTariff.studioReRegistrationFee,
@@ -304,12 +261,34 @@ export function RegistrationForm({
     e.preventDefault();
     setErrorMsg(null);
 
+    if (isLoadingTariffs) {
+      setErrorMsg("Mohon tunggu, master tarif sedang dimuat...");
+      return;
+    }
+
+    if (tariffFetchError) {
+      setErrorMsg(`Tidak dapat menyimpan registrasi: ${tariffFetchError}`);
+      return;
+    }
+
+    if (tariffResolutionError) {
+      setErrorMsg(`Tidak dapat menyimpan registrasi: ${tariffResolutionError}`);
+      return;
+    }
+
     const selectedScheme = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
     const schemeCode = (selectedScheme?.code || selectedScheme?.name || "").toUpperCase();
     const isNonSipas = schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS");
 
     if (isNonSipas && (!credits || credits <= 0)) {
       setErrorMsg("Untuk skema Non-SIPAS (per SKS), Jumlah SKS wajib diisi berupa angka bulat positif (> 0).");
+      return;
+    }
+
+    // Pastikan terdapat komponen tarif resmi UT yang valid
+    const hasOfficialUtRate = feeRows.some((r) => r.sourceFeeRateId && r.totalAmount >= 0);
+    if (!hasOfficialUtRate) {
+      setErrorMsg("Registrasi wajib memuat komponen tarif resmi UT yang valid dari master tarif.");
       return;
     }
 
@@ -385,6 +364,35 @@ export function RegistrationForm({
           <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
             <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {tariffFetchError && (
+          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-xs flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+              <span>
+                <strong>Gagal Memuat Tarif:</strong> {tariffFetchError}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRetryTrigger((prev) => prev + 1)}
+              disabled={isLoadingTariffs}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded-md font-semibold text-[11px] transition shrink-0"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isLoadingTariffs ? "animate-spin" : ""}`} />
+              <span>Coba Lagi</span>
+            </button>
+          </div>
+        )}
+
+        {tariffResolutionError && (
+          <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+            <span>
+              <strong>Perhatian Master Tarif:</strong> {tariffResolutionError}
+            </span>
           </div>
         )}
 
@@ -666,13 +674,18 @@ export function RegistrationForm({
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoadingTariffs || Boolean(tariffResolutionError) || Boolean(tariffFetchError)}
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:opacity-50 transition"
             >
               {isSubmitting ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Menyimpan Registrasi...</span>
+                </>
+              ) : isLoadingTariffs ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Memuat Tarif Master...</span>
                 </>
               ) : (
                 <>

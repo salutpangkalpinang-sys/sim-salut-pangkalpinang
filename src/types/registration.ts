@@ -81,6 +81,11 @@ export interface CandidateFeeRate {
   feeTypeName: string;
   feeTypeCode: string;
   feeTypeCategory: string;
+  studyProgramId?: string | null;
+  serviceSchemeId?: string | null;
+  academicPeriodId?: string | null;
+  isActive: boolean;
+  verificationStatus: string;
   name: string;
   calculationType: "FIXED" | "PER_SKS";
   unitAmount: number;
