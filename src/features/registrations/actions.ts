@@ -100,6 +100,25 @@ export async function createRegistrationAction(input: RegistrationFormInput) {
     };
   }
 
+  // Verify service scheme master: Fail-closed if NON_SIPAS without positive credits
+  const { data: schemeData, error: schemeErr } = await supabase
+    .from("service_schemes")
+    .select("id, code, name")
+    .eq("id", data.serviceSchemeId)
+    .single();
+
+  if (schemeErr || !schemeData) {
+    return { error: "Skema layanan tidak valid atau tidak ditemukan." };
+  }
+
+  const schemeCode = (schemeData.code || schemeData.name || "").toUpperCase();
+  const isNonSipasScheme = schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS");
+  if (isNonSipasScheme && (!data.credits || data.credits <= 0)) {
+    return {
+      error: "Untuk skema Non-SIPAS (per SKS), Jumlah SKS wajib diisi berupa angka bulat positif (> 0).",
+    };
+  }
+
   const feeItemsPayload = data.feeSnapshots.map((item) => ({
     source_fee_rate_id: item.sourceFeeRateId || null,
     fee_type_id: item.feeTypeId,

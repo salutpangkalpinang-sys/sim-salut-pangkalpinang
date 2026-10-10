@@ -39,7 +39,21 @@ export const registrationSchema = z.object({
   feeSnapshots: z
     .array(feeSnapshotInputSchema)
     .min(1, "Registrasi harus memiliki minimal 1 rincian komponen biaya"),
-});
+}).refine(
+  (data) => {
+    const hasPerSksItem = data.feeSnapshots.some(
+      (item) => item.calculationType.toUpperCase() === "PER_SKS"
+    );
+    if (hasPerSksItem) {
+      return Number.isInteger(data.credits) && data.credits > 0;
+    }
+    return true;
+  },
+  {
+    message: "Jumlah SKS harus berupa angka bulat positif (> 0) untuk skema atau komponen tarif per SKS.",
+    path: ["credits"],
+  }
+);
 
 export type RegistrationFormInput = z.infer<typeof registrationSchema>;
 export type FeeSnapshotInput = z.infer<typeof feeSnapshotInputSchema>;

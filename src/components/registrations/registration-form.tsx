@@ -99,18 +99,22 @@ export function RegistrationForm({
 
           if (isNonSipas) {
             // Non-SIPAS (LIP Contoh 3): SKS + Biaya Buku + Biaya Pengiriman
+            // Hanya buat komponen tagihan PER_SKS jika SKS sudah diisi dan > 0
             const perSksRate = rates.find(r => (r.feeTypeCode || "").includes("PER_SKS") || r.isPerSks || (r.name || "").includes("SKS")) || rates[0];
             const sksUnitPrice = officialTariff.sksRate; // Tarif resmi per SKS prodi (mis. 36.000 untuk Administrasi Negara/Publik)
-            const sksQty = Math.max(1, credits || 20);
-            rows.push({
-              sourceFeeRateId: perSksRate?.id,
-              feeTypeId: getValidFeeTypeId("PER_SKS", perSksRate?.feeTypeId),
-              feeNameSnapshot: "Total Biaya Mata Kuliah (Per SKS)",
-              calculationType: "PER_SKS",
-              quantity: sksQty,
-              unitAmount: sksUnitPrice,
-              totalAmount: sksQty * sksUnitPrice,
-            });
+            
+            if (credits > 0) {
+              const sksQty = credits;
+              rows.push({
+                sourceFeeRateId: perSksRate?.id,
+                feeTypeId: getValidFeeTypeId("PER_SKS", perSksRate?.feeTypeId),
+                feeNameSnapshot: "Total Biaya Mata Kuliah (Per SKS)",
+                calculationType: "PER_SKS",
+                quantity: sksQty,
+                unitAmount: sksUnitPrice,
+                totalAmount: sksQty * sksUnitPrice,
+              });
+            }
 
             rows.push({
               feeTypeId: getValidFeeTypeId("NON_SIPAS", perSksRate?.feeTypeId),
@@ -275,7 +279,11 @@ export function RegistrationForm({
   };
 
   const addCandidateRateToRows = (rate: CandidateFeeRate) => {
-    const qty = rate.isPerSks ? Math.max(1, credits) : 1;
+    if (rate.isPerSks && (!credits || credits <= 0)) {
+      setErrorMsg(`Komponen "${rate.name}" dihitung per SKS. Harap isi Jumlah SKS (> 0) terlebih dahulu.`);
+      return;
+    }
+    const qty = rate.isPerSks ? credits : 1;
     setFeeRows((prev) => [
       ...prev,
       {
@@ -295,6 +303,15 @@ export function RegistrationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    const selectedScheme = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
+    const schemeCode = (selectedScheme?.code || selectedScheme?.name || "").toUpperCase();
+    const isNonSipas = schemeCode.includes("NON_SIPAS") || schemeCode.includes("NON-SIPAS");
+
+    if (isNonSipas && (!credits || credits <= 0)) {
+      setErrorMsg("Untuk skema Non-SIPAS (per SKS), Jumlah SKS wajib diisi berupa angka bulat positif (> 0).");
+      return;
+    }
 
     const payload: RegistrationFormInput = {
       studentId: selectedStudentId,
@@ -467,7 +484,15 @@ export function RegistrationForm({
               </div>
 
               <div>
-                <label className="block text-slate-700 font-medium mb-1">Jumlah SKS</label>
+                <label className="block text-slate-700 font-medium mb-1">
+                  Jumlah SKS {(() => {
+                    const sc = options.serviceSchemes.find((s) => s.id === serviceSchemeId);
+                    const code = (sc?.code || sc?.name || "").toUpperCase();
+                    return code.includes("NON_SIPAS") || code.includes("NON-SIPAS") ? (
+                      <span className="text-red-500">* (Wajib untuk Non-SIPAS)</span>
+                    ) : null;
+                  })()}
+                </label>
                 <input
                   type="number"
                   min={0}
