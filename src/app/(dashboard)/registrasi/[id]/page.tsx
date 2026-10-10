@@ -2,6 +2,7 @@ import { getCurrentUserProfile } from "@/lib/auth/permissions";
 import { getRegistrationById } from "@/features/registrations/queries";
 import { getRegistrationLipAndInvoices } from "@/features/lip-invoices/queries";
 import { RegistrationLipInvoiceList } from "@/components/lip-invoices/registration-lip-invoice-list";
+import { computeRegistrationUtEstimate } from "@/lib/utils/tariff-resolver";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileCheck, User, Calculator, AlertTriangle, Calendar, Award, ShieldAlert } from "lucide-react";
@@ -232,17 +233,26 @@ export default async function RegistrationDetailPage({
           </div>
 
           {/* Integrated LIP Documents & Invoice Tagihan List Component */}
-          <RegistrationLipInvoiceList
-            registrationId={reg.id}
-            registrationNumber={reg.registrationNumber}
-            studentName={reg.studentName || "Mahasiswa"}
-            studentNim={reg.studentNim || null}
-            academicPeriodName={reg.academicPeriodName || "-"}
-            feeEstimateAmount={grandTotalEstimate}
-            lipDocuments={lipDocuments}
-            invoices={invoices}
-            userRole={profile.role}
-          />
+          {(() => {
+            const salutSnap = (reg.feeSnapshots || []).find((s) => s.feeTypeCode === "SALUT_SERVICE" || (s.feeNameSnapshot || "").toLowerCase().includes("salut"));
+            const estUt = computeRegistrationUtEstimate(reg.feeSnapshots);
+
+            return (
+              <RegistrationLipInvoiceList
+                registrationId={reg.id}
+                registrationNumber={reg.registrationNumber}
+                studentName={reg.studentName || "Mahasiswa"}
+                studentNim={reg.studentNim || null}
+                academicPeriodName={reg.academicPeriodName || "-"}
+                feeEstimateAmount={grandTotalEstimate}
+                estimatedUtAmount={estUt}
+                salutFeeSnapshot={salutSnap?.totalAmount}
+                lipDocuments={lipDocuments}
+                invoices={invoices}
+                userRole={profile.role}
+              />
+            );
+          })()}
         </div>
       </div>
     </div>

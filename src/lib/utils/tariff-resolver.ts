@@ -284,3 +284,39 @@ export function buildInitialRegistrationFeeRows(
 
   return { success: true, rows };
 }
+
+/**
+ * Calculates official UT estimated obligation from registration fee snapshots strictly.
+ * Requirements:
+ * - Only counts snapshots with verified feeTypeCategory === 'UT_OFFICIAL'.
+ * - Any internal fees (e.g. 'SALUT_INTERNAL', 'service_fee') are strictly excluded.
+ * - If snapshots are missing or do not contain valid category metadata, returns null (tidak tersedia)
+ *   rather than guessing from fee name or invoice/registration grand totals.
+ */
+export function computeRegistrationUtEstimate(
+  snapshots?: Array<{
+    totalAmount: number;
+    feeTypeCategory?: string | null;
+  }> | null
+): number | null {
+  if (!snapshots || snapshots.length === 0) {
+    return null;
+  }
+
+  // Fail-safe: if any snapshot has missing, null, or empty feeTypeCategory,
+  // we cannot determine full category coverage -> return null (tidak tersedia)
+  // to prevent partial or misleading 0 estimates.
+  const allHaveCategoryMetadata = snapshots.every(
+    (s) => typeof s.feeTypeCategory === "string" && s.feeTypeCategory.trim() !== ""
+  );
+
+  if (!allHaveCategoryMetadata) {
+    return null;
+  }
+
+  // Filter strictly by UT_OFFICIAL category
+  const utOfficialSnapshots = snapshots.filter((s) => s.feeTypeCategory === "UT_OFFICIAL");
+
+  return utOfficialSnapshots.reduce((acc, s) => acc + (Number(s.totalAmount) || 0), 0);
+}
+

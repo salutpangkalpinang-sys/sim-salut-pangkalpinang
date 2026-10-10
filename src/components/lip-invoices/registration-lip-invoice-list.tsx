@@ -17,6 +17,8 @@ interface RegistrationLipInvoiceListProps {
   studentNim: string | null;
   academicPeriodName: string;
   feeEstimateAmount: number;
+  estimatedUtAmount?: number | null;
+  salutFeeSnapshot?: number;
   lipDocuments: LipDocument[];
   invoices: Invoice[];
   userRole: RoleCode;
@@ -29,6 +31,8 @@ export function RegistrationLipInvoiceList({
   studentNim,
   academicPeriodName,
   feeEstimateAmount,
+  estimatedUtAmount,
+  salutFeeSnapshot,
   lipDocuments,
   invoices,
   userRole,
@@ -143,6 +147,9 @@ export function RegistrationLipInvoiceList({
               studentName,
               studentNim,
               academicPeriodName,
+              estimatedUtAmount: estimatedUtAmount,
+              estimatedTotal: feeEstimateAmount,
+              salutFeeSnapshot,
             },
           ]}
           defaultRegistrationId={registrationId}

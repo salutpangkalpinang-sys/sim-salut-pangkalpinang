@@ -3,6 +3,7 @@ import { getLipDocumentsList, getInvoicesList } from "@/features/lip-invoices/qu
 import { getRegistrationsList } from "@/features/registrations/queries";
 import { getAppSettings } from "@/features/settings/queries";
 import { LipInvoiceContainer } from "@/components/lip-invoices/lip-invoice-container";
+import { computeRegistrationUtEstimate } from "@/lib/utils/tariff-resolver";
 import { redirect } from "next/navigation";
 
 export default async function LipTagihanPage({
@@ -41,9 +42,8 @@ export default async function LipTagihanPage({
   const registrationsOptions = (regsRes.data || [])
     .filter((r) => (r.status as string).toLowerCase() !== "cancelled" && (r.status as string).toLowerCase() !== "dibatalkan")
     .map((r) => {
-      const salutSnapshot = r.feeSnapshots?.find((s) => (s.feeNameSnapshot || "").toLowerCase().includes("salut"));
-      const tuitionSnapshot = r.feeSnapshots?.find((s) => ((s.feeNameSnapshot || "").toLowerCase().includes("mata kuliah") || (s.feeNameSnapshot || "").toLowerCase().includes("spp") || s.calculationType === "PER_SKS") && !(s.feeNameSnapshot || "").toLowerCase().includes("salut"));
-      const rawTuition = tuitionSnapshot?.totalAmount || (salutSnapshot ? Math.max(0, (r.totalEstimateAmount || 0) - salutSnapshot.totalAmount) : (r.totalEstimateAmount || 0));
+      const salutSnapshot = r.feeSnapshots?.find((s) => s.feeTypeCode === "SALUT_SERVICE" || (s.feeNameSnapshot || "").toLowerCase().includes("salut"));
+      const rawEstimatedUt = computeRegistrationUtEstimate(r.feeSnapshots);
 
       return {
         id: r.id,
@@ -51,7 +51,7 @@ export default async function LipTagihanPage({
         studentName: r.studentName || "Mahasiswa",
         studentNim: r.studentNim || null,
         academicPeriodName: r.academicPeriodName || "-",
-        estimatedTuition: rawTuition,
+        estimatedUtAmount: rawEstimatedUt,
         estimatedTotal: r.totalEstimateAmount || 0,
         salutFeeSnapshot: salutSnapshot?.totalAmount,
       };

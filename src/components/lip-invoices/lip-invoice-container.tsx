@@ -18,7 +18,7 @@ interface LipInvoiceContainerProps {
   initialInvoices: Invoice[];
   initialInvoiceTotal: number;
   userRole: RoleCode;
-  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number; salutFeeSnapshot?: number }[];
+  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedUtAmount?: number | null; estimatedTotal?: number; salutFeeSnapshot?: number }[];
   defaultSalutFee?: number;
   initialTab?: string;
   initialStatusFilter?: string;

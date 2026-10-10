@@ -118,7 +118,7 @@ export const lipDocumentSchema = z.object({
   officialAmount: z
     .number({ required_error: "Total Resmi LIP wajib diisi" })
     .int("Nominal harus berupa Integer Rupiah")
-    .gte(0, "Total Resmi LIP tidak boleh negatif"),
+    .gt(0, "Total Resmi Kewajiban UT wajib lebih dari 0"),
   tuitionAmount: z
     .number()
     .int("Nominal SPP/Uang Kuliah harus berupa Integer Rupiah")

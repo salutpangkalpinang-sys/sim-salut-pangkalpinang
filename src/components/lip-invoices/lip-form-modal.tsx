@@ -1,17 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { uploadLipFileAndCreateAction } from "@/features/lip-invoices/actions";
 import { formatThousandInput, parseThousandInput } from "@/lib/utils/ut-tariffs";
 import { X, FileText, Upload, AlertTriangle, AlertCircle, Save } from "lucide-react";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 import { DatePickerId } from "@/components/ui/date-picker-id";
 
+export interface RegistrationOption {
+  id: string;
+  registrationNumber: string;
+  studentName: string;
+  studentNim: string | null;
+  academicPeriodName: string;
+  estimatedUtAmount?: number | null;
+  estimatedTotal?: number;
+  salutFeeSnapshot?: number;
+}
+
 interface LipFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  registrationsOptions: { id: string; registrationNumber: string; studentName: string; studentNim: string | null; academicPeriodName: string; estimatedTuition?: number; estimatedTotal?: number; salutFeeSnapshot?: number }[];
+  registrationsOptions: RegistrationOption[];
   defaultRegistrationId?: string;
   defaultSalutFee?: number;
 }
@@ -34,14 +45,15 @@ export function LipFormModal({
     badge: r.academicPeriodName,
     searchTerms: `${r.studentName} ${r.studentNim || ""} ${r.registrationNumber} ${r.academicPeriodName}`,
   }));
-  const [officialAmount, setOfficialAmount] = useState(0);
-  const [tuitionAmount, setTuitionAmount] = useState(0);
-  const [bookAmount, setBookAmount] = useState(0);
-  const [shippingAmount, setShippingAmount] = useState(0);
-  const [otherUtAmount, setOtherUtAmount] = useState(0);
-  const [issuedAt, setIssuedAt] = useState("");
-  const [dueAt, setDueAt] = useState("");
-  const [notes, setNotes] = useState("");
+
+  const [officialAmount, setOfficialAmount] = useState<number>(0);
+  const [tuitionAmount, setTuitionAmount] = useState<number>(0);
+  const [bookAmount, setBookAmount] = useState<number>(0);
+  const [shippingAmount, setShippingAmount] = useState<number>(0);
+  const [otherUtAmount, setOtherUtAmount] = useState<number>(0);
+  const [issuedAt, setIssuedAt] = useState<string>("");
+  const [dueAt, setDueAt] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -52,35 +64,33 @@ export function LipFormModal({
     ? selectedRegistration.salutFeeSnapshot 
     : defaultSalutFee;
 
-  // Pre-fill SPP from registration snapshot when registrationId changes
-  useEffect(() => {
-    if (registrationId) {
-      const selectedReg = registrationsOptions.find((r) => r.id === registrationId);
-      if (selectedReg && selectedReg.estimatedTuition) {
-        setTuitionAmount(selectedReg.estimatedTuition);
-      }
-    }
-  }, [registrationId, registrationsOptions]);
+  // Handle registration change and reset values for new student
+  const handleRegistrationChange = (newRegId: string) => {
+    if (newRegId === registrationId) return;
+    setRegistrationId(newRegId);
+    setErrorMsg(null);
 
-  // Auto-calculate Total Resmi Kewajiban UT from components
-  useEffect(() => {
-    const sum = tuitionAmount + bookAmount + shippingAmount + otherUtAmount;
-    if (sum > 0) {
-      setOfficialAmount(sum);
-    }
-  }, [tuitionAmount, bookAmount, shippingAmount, otherUtAmount]);
+    // Strictly reset all financial amounts and components so previous student's inputs don't leak
+    setLipNumber("");
+    setOfficialAmount(0);
+    setTuitionAmount(0);
+    setBookAmount(0);
+    setShippingAmount(0);
+    setOtherUtAmount(0);
+    setIssuedAt("");
+    setDueAt("");
+    setNotes("");
+    setSelectedFile(null);
+  };
 
   const handleOfficialAmountChange = (val: number) => {
     setOfficialAmount(val);
-    if (bookAmount === 0 && shippingAmount === 0 && otherUtAmount === 0) {
-      setTuitionAmount(val);
-    }
   };
 
   if (!isOpen) return null;
 
   const componentTotal = tuitionAmount + bookAmount + shippingAmount + otherUtAmount;
-  const hasMismatch = officialAmount > 0 && componentTotal !== officialAmount;
+  const hasMismatch = officialAmount > 0 && componentTotal > 0 && componentTotal !== officialAmount;
   const mismatchDifference = Math.abs(componentTotal - officialAmount);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,11 +201,28 @@ export function LipFormModal({
             <SearchableCombobox
               options={regComboboxOptions}
               value={registrationId}
-              onChange={(id) => setRegistrationId(id)}
+              onChange={handleRegistrationChange}
               placeholder="Ketik Nama, NIM, atau No. Registrasi Mahasiswa..."
               required
               selectedColor="blue"
             />
+            {selectedRegistration && (
+              <div className="mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-[11px] text-slate-600">
+                <span className="font-medium text-slate-700">
+                  Estimasi UT — bukan nominal LIP resmi:{" "}
+                  {selectedRegistration.estimatedUtAmount != null ? (
+                    <strong className="text-slate-900 font-mono">
+                      Rp {selectedRegistration.estimatedUtAmount.toLocaleString("id-ID")}
+                    </strong>
+                  ) : (
+                    <span className="text-slate-400 italic">Tidak tersedia (metadata kategori belum ada)</span>
+                  )}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  Total estimasi registrasi: Rp {(selectedRegistration.estimatedTotal ?? 0).toLocaleString("id-ID")} (termasuk SALUT Rp {effectiveSalutFee.toLocaleString("id-ID")})
+                </span>
+              </div>
+            )}
           </div>
 
           {/* LIP Number & Official Amount */}
