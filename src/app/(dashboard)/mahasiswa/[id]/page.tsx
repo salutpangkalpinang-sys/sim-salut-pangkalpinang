@@ -2,6 +2,8 @@ import { getCurrentUserProfile } from "@/lib/auth/permissions";
 import { getStudentById, getStudentStatusHistory } from "@/features/students/queries";
 import { getStudentRegistrations } from "@/features/registrations/queries";
 import { getStudentPaymentsHistory } from "@/features/payments/queries";
+import { getCandidateNimEligibilitySummary } from "@/features/students/nim-queries";
+import { CandidateNimPanel } from "@/components/students/candidate-nim-panel";
 import { MaskedText } from "@/components/ui/masked-text";
 import { StatusHistoryTimeline } from "@/components/students/status-history-timeline";
 import { StudentRegistrationList } from "@/components/registrations/student-registration-list";
@@ -29,13 +31,15 @@ export default async function StudentDetailPage({
     notFound();
   }
 
-  const [statusHistory, studentRegistrations, studentPayments] = await Promise.all([
+  const [statusHistory, studentRegistrations, studentPayments, nimSummary] = await Promise.all([
     getStudentStatusHistory(id),
     getStudentRegistrations(id),
     getStudentPaymentsHistory(id),
+    getCandidateNimEligibilitySummary(id),
   ]);
 
   const canEdit = profile.role === "owner" || profile.role === "admin" || profile.role === "academic_admin";
+  const isCandidate = !student.nim || student.nim.trim() === "";
 
   const birthDateFormatted = student.birthDate
     ? new Date(student.birthDate).toLocaleDateString("id-ID", {
@@ -80,10 +84,15 @@ export default async function StudentDetailPage({
 
         <div className="flex items-center gap-3 shrink-0">
           <span className="px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-            {student.statusName || "Aktif"}
+            {student.statusName || (isCandidate ? "Calon Mahasiswa" : "Aktif")}
           </span>
         </div>
       </div>
+
+      {/* Candidate NIM Submission & Assignment Workflow Panel */}
+      {(isCandidate || nimSummary.activeSubmission || nimSummary.latestCompletedSubmission) && (
+        <CandidateNimPanel summary={nimSummary} canManage={canEdit} />
+      )}
 
       {/* Grid Content Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

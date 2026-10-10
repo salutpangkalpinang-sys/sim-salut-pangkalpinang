@@ -108,48 +108,94 @@ export async function updateStudentAction(studentId: string, input: StudentFormI
   const calonStatus = statuses?.find((s) => s.code === "CALON");
   const aktifStatus = statuses?.find((s) => s.code === "AKTIF");
 
-  if (data.nim && data.nim.trim() !== "") {
-    const { data: currentStudent } = await supabase
-      .from("students")
-      .select("status_id")
-      .eq("id", studentId)
-      .single();
+  // Fetch current student to detect transition
+  const { data: currentStudent } = await supabase
+    .from("students")
+    .select("nim, status_id, student_statuses ( code )")
+    .eq("id", studentId)
+    .single();
 
+  const currentStatusCode = (currentStudent?.student_statuses as any)?.code || "CALON";
+  const hadNoNim = !currentStudent?.nim || currentStudent.nim.trim() === "";
+  const isSettingNewNim = Boolean(data.nim && data.nim.trim() !== "");
+  const isInitialNimAssignment = hadNoNim && isSettingNewNim;
+
+  // If a candidate (or student without NIM) is being assigned an official NIM for the first time,
+  // enforce execution through the canonical atomic assign_official_nim RPC
+  if (isInitialNimAssignment) {
+    const { error: assignErr } = await supabase.rpc("assign_official_nim", {
+      p_student_id: studentId,
+      p_nim: data.nim!.trim(),
+      p_effective_date: new Date().toISOString(),
+      p_reason: "Penetapan NIM resmi melalui pembaruan data mahasiswa",
+    });
+
+    if (assignErr) {
+      console.error("assign_official_nim via updateStudentAction failed:", assignErr);
+      if (assignErr.message.includes("NIM_DUPLICATE")) {
+        return { error: "NIM sudah digunakan oleh mahasiswa lain." };
+      }
+      return {
+        error:
+          assignErr.message.replace(/^[A-Z_]+:\s*/, "") ||
+          "Gagal menetapkan NIM resmi mahasiswa secara atomik.",
+      };
+    }
+  } else if (data.nim && data.nim.trim() !== "") {
     if (
       aktifStatus &&
-      (targetStatusId === calonStatus?.id || currentStudent?.status_id === calonStatus?.id)
+      (targetStatusId === calonStatus?.id || currentStatusCode === "CALON")
     ) {
       targetStatusId = aktifStatus.id;
     }
   }
 
+  // Construct update payload
+  // When isInitialNimAssignment succeeded, nim and status_id were already mutated atomically
+  // by assign_official_nim (with status history & audit log). Do not include them in the subsequent update
+  // to avoid race conditions or overwriting with stale CALON status.
+  const updatePayload: Record<string, any> = {
+    nik: data.nik,
+    full_name: data.fullName,
+    birth_place: data.birthPlace,
+    birth_date: data.birthDate,
+    gender: data.gender,
+    whatsapp: data.whatsapp,
+    email: data.email,
+    address: data.address,
+    city: data.city,
+    entry_year: data.entryYear,
+    faculty_id: data.facultyId,
+    study_level_id: data.studyLevelId,
+    study_program_id: data.studyProgramId,
+    service_scheme_id: data.serviceSchemeId,
+    internal_notes: data.internalNotes,
+    updated_by: profile.id,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (!isInitialNimAssignment) {
+    updatePayload.nim = data.nim;
+    updatePayload.status_id = targetStatusId;
+  }
+
   const { error } = await supabase
     .from("students")
-    .update({
-      nim: data.nim,
-      nik: data.nik,
-      full_name: data.fullName,
-      birth_place: data.birthPlace,
-      birth_date: data.birthDate,
-      gender: data.gender,
-      whatsapp: data.whatsapp,
-      email: data.email,
-      address: data.address,
-      city: data.city,
-      entry_year: data.entryYear,
-      faculty_id: data.facultyId,
-      study_level_id: data.studyLevelId,
-      study_program_id: data.studyProgramId,
-      service_scheme_id: data.serviceSchemeId,
-      status_id: targetStatusId,
-      internal_notes: data.internalNotes,
-      updated_by: profile.id,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", studentId);
 
   if (error) {
     console.error("Database error updating student:", error);
+    // If NIM assignment succeeded via RPC but updating secondary profile fields failed:
+    if (isInitialNimAssignment) {
+      revalidatePath("/mahasiswa");
+      revalidatePath("/calon-mahasiswa");
+      revalidatePath(`/mahasiswa/${studentId}`);
+      revalidatePath(`/calon-mahasiswa/${studentId}`);
+      return {
+        error: `NIM resmi berhasil ditetapkan dan status mahasiswa telah AKTIF, namun pembaruan profil pelengkap gagal: ${error.message}. Silakan periksa kembali data profil.`,
+      };
+    }
     if (error.code === "23505") {
       if (error.message.includes("nim")) {
         return { error: "NIM sudah digunakan oleh mahasiswa lain." };

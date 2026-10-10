@@ -26,10 +26,15 @@ export const studentSchema = z.object({
     .string({ required_error: "Nama lengkap wajib diisi" })
     .trim()
     .min(2, "Nama lengkap minimal 2 karakter"),
-  nim: emptyToNull.refine(
-    (val) => !val || /^[0-9A-Za-z]+$/.test(val),
-    "NIM hanya boleh berisi huruf dan angka"
-  ),
+  nim: emptyToNull
+    .refine(
+      (val) => !val || val.length <= 30,
+      "NIM maksimal 30 karakter"
+    )
+    .refine(
+      (val) => !val || /^[0-9A-Za-z]+$/.test(val),
+      "NIM hanya boleh berisi huruf dan angka"
+    ),
   nik: emptyToNull.refine(
     (val) => !val || /^\d{16}$/.test(val),
     "NIK harus berupa 16 digit angka"

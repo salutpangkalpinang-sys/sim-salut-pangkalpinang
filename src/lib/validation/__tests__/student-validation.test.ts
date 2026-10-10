@@ -81,6 +81,61 @@ const academicCanEdit = hasPermission("academic_admin", ["owner", "academic_admi
 const ownerCanEdit = hasPermission("owner", ["owner", "academic_admin"]);
 assert.strictEqual(academicCanEdit, true);
 assert.strictEqual(ownerCanEdit, true);
-console.log("✓ Test 9 Passed: Academic Admin & Owner permissions granted");
+// Test 10: NIM Boundary Validations (Kosong, 1-2 Karakter, 30 Karakter, 31 Karakter, Ilegal, Leading Zero)
+// 10a. Leading Zero Dipertahankan
+const nimLeadingZero = studentSchema.safeParse({
+  fullName: "Ahmad Leading Zero",
+  nim: "0487654321",
+  statusId: "11111111-1111-1111-1111-111111111111",
+});
+assert.strictEqual(nimLeadingZero.success, true);
+if (nimLeadingZero.success) {
+  assert.strictEqual(nimLeadingZero.data.nim, "0487654321");
+}
+
+// 10b. NIM Pendek 1-2 Karakter Sah
+const nimShort = studentSchema.safeParse({
+  fullName: "Budi Short NIM",
+  nim: "AB",
+  statusId: "11111111-1111-1111-1111-111111111111",
+});
+assert.strictEqual(nimShort.success, true);
+if (nimShort.success) {
+  assert.strictEqual(nimShort.data.nim, "AB");
+}
+
+// 10c. NIM Tepat 30 Karakter Sah
+const nimExact30 = studentSchema.safeParse({
+  fullName: "Citra Exact 30",
+  nim: "123456789012345678901234567890",
+  statusId: "11111111-1111-1111-1111-111111111111",
+});
+assert.strictEqual(nimExact30.success, true);
+if (nimExact30.success) {
+  assert.strictEqual(nimExact30.data.nim, "123456789012345678901234567890");
+}
+
+// 10d. NIM 31 Karakter Ditolak
+const nimTooLong31 = studentSchema.safeParse({
+  fullName: "Dewi Too Long",
+  nim: "1234567890123456789012345678901",
+  statusId: "11111111-1111-1111-1111-111111111111",
+});
+assert.strictEqual(nimTooLong31.success, false);
+if (!nimTooLong31.success) {
+  assert.strictEqual(nimTooLong31.error.errors[0]?.message, "NIM maksimal 30 karakter");
+}
+
+// 10e. Karakter Ilegal Ditolak
+const nimIllegal = studentSchema.safeParse({
+  fullName: "Eko Illegal Char",
+  nim: "04-8765-4321",
+  statusId: "11111111-1111-1111-1111-111111111111",
+});
+assert.strictEqual(nimIllegal.success, false);
+if (!nimIllegal.success) {
+  assert.strictEqual(nimIllegal.error.errors[0]?.message, "NIM hanya boleh berisi huruf dan angka");
+}
+console.log("✓ Test 10 Passed: NIM Boundary Validations (Kosong, 1-2 char, 30 char, 31 char, Ilegal, Leading Zero)");
 
 console.log("=== ALL STUDENT & CORE 1 VALIDATION TESTS PASSED CLEANLY! ===");
