@@ -42,7 +42,21 @@ export async function getRegistrationsList(params: RegistrationFilterParams = {}
       registration_types ( code, name ),
       study_programs ( code, name ),
       service_schemes ( code, name ),
-      registration_fee_snapshots ( total_amount )
+      registration_fee_snapshots (
+        id,
+        registration_id,
+        source_fee_rate_id,
+        fee_type_id,
+        fee_name_snapshot,
+        calculation_type,
+        quantity,
+        unit_amount,
+        total_amount,
+        source_snapshot,
+        notes,
+        created_at,
+        fee_types ( id, name, code, category )
+      )
     `,
       { count: "exact" }
     );
@@ -128,6 +142,23 @@ export async function getRegistrationsList(params: RegistrationFilterParams = {}
       serviceSchemeName: item.service_schemes?.name,
       serviceSchemeCode: item.service_schemes?.code,
       totalEstimateAmount,
+      feeSnapshots: (item.registration_fee_snapshots || []).map((line: any) => ({
+        id: line.id,
+        registrationId: line.registration_id,
+        sourceFeeRateId: line.source_fee_rate_id,
+        feeTypeId: line.fee_type_id,
+        feeNameSnapshot: line.fee_name_snapshot,
+        calculationType: line.calculation_type,
+        quantity: line.quantity,
+        unitAmount: Number(line.unit_amount),
+        totalAmount: Number(line.total_amount),
+        sourceSnapshot: line.source_snapshot,
+        notes: line.notes,
+        createdAt: line.created_at,
+        feeTypeName: line.fee_types?.name,
+        feeTypeCode: line.fee_types?.code,
+        feeTypeCategory: line.fee_types?.category,
+      })),
     };
   });
 
